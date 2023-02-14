@@ -1,6 +1,7 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
+#include "ns3/core-module.h"
 #include "ns3/application.h"
 #include "ns3/socket.h"
 #include "ns3/ipv4-address.h"
@@ -26,11 +27,14 @@ class CybertwinServer: public Application
          */
         static TypeId GetTypeId();
 
-        void Setup(Ptr<Node>,  Ipv4Address);
+        void Setup();
 
     private:
         void StartApplication() override;
         void StopApplication() override;
+        void RecvHandler(Ptr<Socket>);
+        void NewConnectionCreatedCallback(Ptr<Socket> socket, const Address& addr);
+        bool ConnectionRequestCallback(Ptr<Socket> socket, const Address& addr);
 
         Ptr<Socket> m_socket;
         Ptr<Node> node;
@@ -38,6 +42,26 @@ class CybertwinServer: public Application
         uint16_t port;
 };
 
+
+class CybertwinClient: public Application 
+{
+    public:
+        CybertwinClient();
+        ~CybertwinClient() override;
+
+        static TypeId GetTypeId();
+
+        void Setup(Ipv4Address, uint16_t);
+
+    private:
+        void StartApplication() override;
+        void StopApplication() override;
+
+        Ptr<Socket> m_socket;
+        Ptr<Node> node;
+        Ipv4Address m_peerAddr;
+        uint16_t m_peerPort;
+};
 
 }
 
