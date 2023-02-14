@@ -18,11 +18,14 @@ set(header_files
     model/cybertwin.h
     helper/cybertwin-helper.h)
 
+
 build_lib(
     LIBNAME cybertwin
     SOURCE_FILES ${source_files}
     HEADER_FILES ${header_files}
     LIBRARIES_TO_LINK ${libcore}
+                        ${libapplications}
+                        ${libinternet}
     TEST_SOURCES test/cybertwin-test-suite.cc
                  ${examples_as_tests_sources}
 )
