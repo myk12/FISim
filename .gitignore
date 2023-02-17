@@ -3,6 +3,8 @@
 *.patch
 *.rej
 
+.vscode
+
 *.o
 *.pyc
 *.pyo

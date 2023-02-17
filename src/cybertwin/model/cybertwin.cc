@@ -7,22 +7,20 @@
 namespace ns3
 {
 
-
 NS_LOG_COMPONENT_DEFINE("CybertwinServer");
 
 TypeId
 CybertwinServer::GetTypeId()
 {
-    static TypeId tid = TypeId("CybertwinServer")
-                        .SetParent<Application>()
-                        .SetGroupName("cybertwin");
+    static TypeId tid =
+        TypeId("CybertwinServer").SetParent<Application>().SetGroupName("cybertwin");
 
     return tid;
 }
 
 CybertwinServer::CybertwinServer()
-    :m_socket(nullptr),
-     port(8080)
+    : m_socket(nullptr),
+      port(8080)
 {
 }
 
@@ -31,13 +29,15 @@ CybertwinServer::~CybertwinServer()
     m_socket = nullptr;
 }
 
-void CybertwinServer::Setup()
+void
+CybertwinServer::Setup()
 {
     node = GetNode();
     ipaddr = Ipv4Address::GetAny();
 }
 
-void CybertwinServer::StartApplication()
+void
+CybertwinServer::StartApplication()
 {
     // create a socket
     NS_LOG_INFO("Start CybertwinServer.");
@@ -51,7 +51,8 @@ void CybertwinServer::StartApplication()
     m_socket->Listen();
 }
 
-void CybertwinServer::StopApplication()
+void
+CybertwinServer::StopApplication()
 {
     NS_LOG_INFO("CybertwinServer now stoped.");
     if (m_socket)
@@ -72,8 +73,8 @@ CybertwinServer::RecvHandler(Ptr<Socket> socket)
     while ((packet = socket->RecvFrom(from)))
     {
         socket->GetSockName(localAddress);
-        //m_rxTrace(packet);
-        //m_rxTraceWithAddresses(packet, from, localAddress);
+        // m_rxTrace(packet);
+        // m_rxTraceWithAddresses(packet, from, localAddress);
         packet->Print(std::cout);
     }
 }
@@ -85,16 +86,16 @@ CybertwinServer::NewConnectionCreatedCallback(Ptr<Socket> socket, const Address&
     socket->SetRecvCallback(MakeCallback(&CybertwinServer::RecvHandler, this));
 }
 
-bool 
+bool
 CybertwinServer::ConnectionRequestCallback(Ptr<Socket> socket, const Address& addr)
 {
     NS_LOG_INFO("TCP connection request callback.");
     return true; // Unconditionally accept the connection request.
 }
 
-CybertwinClient::CybertwinClient():
-    m_socket(nullptr),
-    node(nullptr)
+CybertwinClient::CybertwinClient()
+    : m_socket(nullptr),
+      node(nullptr)
 {
 }
 
@@ -107,9 +108,8 @@ CybertwinClient::~CybertwinClient()
 TypeId
 CybertwinClient::GetTypeId()
 {
-    static TypeId tid = TypeId("CybertwinClient")
-                        .SetParent<Application>()
-                        .SetGroupName("cybertwin");
+    static TypeId tid =
+        TypeId("CybertwinClient").SetParent<Application>().SetGroupName("cybertwin");
 
     return tid;
 }
@@ -121,7 +121,8 @@ CybertwinClient::Setup(Ipv4Address peer_addr, uint16_t peer_port)
     m_peerPort = peer_port;
 }
 
-void CybertwinClient::StartApplication()
+void
+CybertwinClient::StartApplication()
 {
     // create a socket
     NS_LOG_INFO("Start CybertwinClient.");
@@ -130,17 +131,16 @@ void CybertwinClient::StartApplication()
     m_socket->Connect(InetSocketAddress(m_peerAddr, m_peerPort));
 
     Ptr<Packet> p;
-    const uint8_t msg[128+1] = {"Hello NS-3!"};
+    const uint8_t msg[128 + 1] = {"Hello NS-3!"};
     p = Create<Packet>(msg, 128);
     m_socket->Send(p);
-
 }
 
-void CybertwinClient::StopApplication()
+void
+CybertwinClient::StopApplication()
 {
     m_socket = nullptr;
     node = nullptr;
 }
 
-
-}
+} // namespace ns3
