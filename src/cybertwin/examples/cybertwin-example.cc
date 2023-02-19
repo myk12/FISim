@@ -11,7 +11,7 @@ main(int argc, char* argv[])
 
     CommandLine cmd(__FILE__);
     cmd.AddValue("verbose", "Tell application to log if true", verbose);
-
+/*
     cmd.Parse(argc, argv);
     LogComponentEnable("CybertwinServer", LOG_LEVEL_INFO);
     LogComponentEnable("Socket", LOG_LEVEL_DEBUG);
@@ -46,7 +46,7 @@ main(int argc, char* argv[])
 
     AsciiTraceHelper ascii;
     p2pHelper.EnableAsciiAll(ascii.CreateFileStream("cybertwin-example.tr"));
-
+*/
     /* ... */
 
     Simulator::Run();

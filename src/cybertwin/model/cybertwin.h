@@ -5,64 +5,63 @@
 #include "ns3/application.h"
 #include "ns3/socket.h"
 #include "ns3/ipv4-address.h"
-#include "ns3/node.h"
 #include "ns3/internet-module.h"
-#include "ns3/type-id.h"
 #include "ns3/network-module.h"
+#include "cybertwin-common.h"
+#include <string>
+#include <unordered_map>
+#include <queue>
 
 namespace ns3
 {
 //class Application;
-/* ... */
-class CybertwinServer: public Application
+
+class Cybertwin: public Application
 {
-    public:
-        CybertwinServer();
-        ~CybertwinServer() override;
+public:
+    Cybertwin();
+    Cybertwin(GUID_t, CybertwinInterface, CybertwinInterface);
+    ~Cybertwin();
 
-        /**
-         * @brief Get the Type Id object
-         * 
-         * @return TypeId 
-         */
-        static TypeId GetTypeId();
+    // local
+    static TypeId GetTypeId();
+    bool localConnRequestCallback(Ptr<Socket> socket, const Address& address);
+    void localNewConnCreatedCallback(Ptr<Socket> socket, const Address& address);
+    //void localReceivedDataCallback(Ptr<Socket> socket);
+    void localNormalCloseCallback(Ptr<Socket> socket);
+    void localErrorCloseCallback(Ptr<Socket> socket);
+    void localRecvHandler(Ptr<Socket> socket);
 
-        void Setup();
+    // global
+    bool globalConnRequestCallback(Ptr<Socket> socket, const Address& address);
+    void globalNewConnCreatedCallback(Ptr<Socket> socket, const Address& address);
+    //void globalReceivedDataCallback(Ptr<Socket> socket);
+    void globalNormalCloseCallback(Ptr<Socket> socket);
+    void globalErrorCloseCallback(Ptr<Socket> socket);
+    void globalRecvHandler(Ptr<Socket> socket);
 
-    private:
-        void StartApplication() override;
-        void StopApplication() override;
-        void RecvHandler(Ptr<Socket>);
-        void NewConnectionCreatedCallback(Ptr<Socket> socket, const Address& addr);
-        bool ConnectionRequestCallback(Ptr<Socket> socket, const Address& addr);
+    void ouputPackets();
 
-        Ptr<Socket> m_socket;
-        Ptr<Node> node;
-        Ipv4Address ipaddr;
-        uint16_t port;
+private:
+    void StartApplication() override;
+    void StopApplication() override;
+
+    GUID_t gid;
+
+    Ptr<Socket> localSocket; // communicate with end host
+    CybertwinInterface localInterface;
+
+    Ptr<Socket> globalSocket; // network socket
+    CybertwinInterface globalInterface;
+
+    std::unordered_map<GUID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
+    std::unordered_map<GUID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
+
+    std::unordered_map<GUID_t, Ptr<Socket> > globalTxSocket;
+    // TODO: Add traffic logger
+    // TODO: Add other functionality
+    std::unordered_map<GUID_t, CybertwinInterface> nameResolutionCache;
 };
-
-
-class CybertwinClient: public Application 
-{
-    public:
-        CybertwinClient();
-        ~CybertwinClient() override;
-
-        static TypeId GetTypeId();
-
-        void Setup(Ipv4Address, uint16_t);
-
-    private:
-        void StartApplication() override;
-        void StopApplication() override;
-
-        Ptr<Socket> m_socket;
-        Ptr<Node> node;
-        Ipv4Address m_peerAddr;
-        uint16_t m_peerPort;
-};
-
 }
 
 #endif /* CYBERTWIN_H */
