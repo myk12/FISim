@@ -2,6 +2,7 @@
 #define CYBERTWIN_PACKET_HEADER_H
 
 #include "ns3/header.h"
+#include "cybertwin-common.h"
 
 namespace ns3
 {
@@ -37,6 +38,29 @@ class CybertwinPacketHeader : public Header
     uint64_t m_dst;
     uint32_t m_size;
     uint16_t m_cmd;
+};
+
+class CybertwinControllerHeader: public Header
+{
+  public:
+    CybertwinControllerHeader();
+  
+    void SetMethod(uint16_t method);
+    uint16_t GetMethod() const;
+
+    //void SetDeivceName(std::string devName);
+    //std::string GetDeviceName() const;
+
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
+
+    void Print(std::ostream& os) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(Buffer::Iterator start) const override;
+    uint32_t Deserialize(Buffer::Iterator start) override;
+    std::string ToString() const;
+  private:
+    uint16_t method;
 };
 
 } // namespace ns3

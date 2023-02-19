@@ -123,4 +123,74 @@ CybertwinPacketHeader::Deserialize(Buffer::Iterator start)
     return GetSerializedSize();
 }
 
+//********************************************************************
+//*              Cybertwin Controller Header                         *
+//********************************************************************
+
+CybertwinControllerHeader::CybertwinControllerHeader():
+    method(NOTHING)
+{
+}
+
+TypeId
+CybertwinControllerHeader::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinControllerHeader")
+                            .SetParent<Header>()
+                            .SetGroupName("cybertwin")
+                            .AddConstructor<CybertwinControllerHeader>();
+    return tid;
+}
+
+TypeId
+CybertwinControllerHeader::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
+void
+CybertwinControllerHeader::Print(std::ostream& os) const
+{
+    os << "(method=" << method << ")";
+}
+
+uint32_t
+CybertwinControllerHeader::GetSerializedSize() const
+{
+    return sizeof(method);
+}
+
+void
+CybertwinControllerHeader::Serialize(Buffer::Iterator start) const
+{
+    Buffer::Iterator i = start;
+    i.WriteHtonU16(method);
+}
+
+void CybertwinControllerHeader::SetMethod(uint16_t method)
+{
+    this->method = method;
+}
+
+uint32_t
+CybertwinControllerHeader::Deserialize(Buffer::Iterator start)
+{
+    Buffer::Iterator i = start;
+    method = i.ReadNtohU16();
+    return GetSerializedSize();
+}
+
+std::string
+CybertwinControllerHeader::ToString() const
+{
+    std::ostringstream oss;
+    Print(oss);
+    return oss.str();
+}
+
+uint16_t CybertwinControllerHeader::GetMethod() const
+{
+    return method;
+}
+
 } // namespace ns3

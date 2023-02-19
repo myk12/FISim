@@ -5,6 +5,7 @@
 #include "ns3/socket.h"
 #include "ns3/tcp-socket-factory.h"
 #include "ns3/uinteger.h"
+#include "ns3/simulator.h"
 
 namespace ns3
 {
@@ -141,11 +142,31 @@ CybertwinBulkClient::ConnectionSucceeded(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this << socket);
 
     Ptr<Packet> connPacket = Create<Packet>(0);
-    CybertwinPacketHeader header(m_localGuid, m_localGuid, 0, 1);
+    //CybertwinPacketHeader header(m_localGuid, m_localGuid, 0, 1);
+    CybertwinControllerHeader header;
+    header.SetMethod(CREATE);
 
     connPacket->AddHeader(header);
     m_socket->Send(connPacket);
     NS_LOG_DEBUG("completed TCP handshake, connection packet sent");
+    //sendMethod();
+}
+
+void
+CybertwinBulkClient::sendMethod()
+{
+    NS_LOG_DEBUG("Clinet Send packet.");
+    uint16_t method = 0;
+    CybertwinControllerHeader header;
+
+    srand (time(NULL));
+    header.SetMethod(rand() % 3);
+
+    Ptr<Packet> connPacket = Create<Packet>(0);
+    connPacket->AddHeader(header);
+    m_socket->Send(connPacket);
+
+    Simulator::Schedule(Seconds(3.), &CybertwinBulkClient::sendMethod, this);
 }
 
 void

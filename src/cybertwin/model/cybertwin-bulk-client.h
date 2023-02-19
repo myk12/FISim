@@ -5,6 +5,8 @@
 
 #include "ns3/address.h"
 #include "ns3/application.h"
+#include <stdlib.h>
+#include <time.h>
 
 namespace ns3
 {
@@ -32,6 +34,8 @@ class CybertwinBulkClient : public Application
     void ConnectionFailed(Ptr<Socket>);
 
     void ReceivedData(Ptr<Socket>);
+
+    void sendMethod();
 
     Ptr<Socket> m_socket;
 

@@ -96,7 +96,7 @@ CybertwinController::StartApplication()
     m_listenSocket->SetAcceptCallback(
         MakeCallback(&CybertwinController::ConnectionRequestCallback, this),
         MakeCallback(&CybertwinController::NewConnectionCreatedCallback, this));
-    m_listenSocket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback, this));
+    m_listenSocket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback2, this));
     m_listenSocket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalCloseCallback, this),
                                       MakeCallback(&CybertwinController::ErrorCloseCallback, this));
     m_listenSocket->Listen();
@@ -129,17 +129,40 @@ void
 CybertwinController::NewConnectionCreatedCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this << socket << address);
-    socket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback, this));
+    socket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback2, this));
     socket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalCloseCallback, this),
                               MakeCallback(&CybertwinController::ErrorCloseCallback, this));
-    ReceivedDataCallback(socket);
+    ReceivedDataCallback2(socket);
 }
 
 void
 CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket) 
 {
     NS_LOG_FUNCTION(this<<socket);
-    
+    Ptr<Packet> packet;
+    Address from;
+    while ((packet = socket->RecvFrom(from)))
+    {
+        NS_LOG_DEBUG("Recv packet.");
+        CybertwinControllerHeader header;
+        packet->RemoveHeader(header);
+
+        switch (header.GetMethod())
+        {
+        case NOTHING:
+            NS_LOG_DEBUG("method nothing.");
+            break;
+        case CREATE:
+            NS_LOG_DEBUG("Create Cybertwin.");
+            break;
+        case REMOVE:
+            NS_LOG_DEBUG("Remove Cybertwin.");
+            break;
+        default:
+            break;
+        }
+
+    }
 
 }
 
@@ -160,7 +183,7 @@ CybertwinController::ReceivedDataCallback(Ptr<Socket> socket)
             break;
         }
 
-        bool firstPacket = false;
+        //bool firstPacket = false;
         if (m_streamBuffer.find(socket) == m_streamBuffer.end())
         {
             m_streamBuffer.insert(std::make_pair(socket, Create<StreamState>()));
@@ -173,7 +196,7 @@ CybertwinController::ReceivedDataCallback(Ptr<Socket> socket)
             CybertwinPacketHeader header;
             packet->RemoveHeader(header);
             socketStream->update(header);
-            firstPacket = true;
+            //firstPacket = true;
         }
 
         uint32_t contentSize = packet->GetSize();

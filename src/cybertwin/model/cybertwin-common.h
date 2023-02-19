@@ -9,4 +9,10 @@
 typedef uint64_t GUID_t;
 typedef std::pair<ns3::Address, uint16_t> CybertwinInterface;
 
+enum{
+    NOTHING,
+    CREATE,
+    REMOVE,
+};
+
 #endif
