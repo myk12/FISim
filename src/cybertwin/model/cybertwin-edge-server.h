@@ -75,11 +75,11 @@ class CybertwinControlTable : public SimpleRefCount<CybertwinControlTable>
     std::unordered_map<uint64_t, Ptr<CybertwinItem>> m_table;
 };
 
-class CybertwinEdgeServer : public Application
+class CybertwinController : public Application
 {
   public:
     static TypeId GetTypeId();
-    CybertwinEdgeServer();
+    CybertwinController();
 
   protected:
     void DoDispose() override;
@@ -95,6 +95,7 @@ class CybertwinEdgeServer : public Application
     void ErrorCloseCallback(Ptr<Socket> socket);
 
     void ReceivedDataCallback(Ptr<Socket> socket);
+    void ReceivedDataCallback2(Ptr<Socket> socket);
 
     Ptr<Socket> m_listenSocket;
     Ptr<CybertwinControlTable> m_controlTable;

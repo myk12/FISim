@@ -10,29 +10,29 @@ namespace ns3
 {
 
 NS_LOG_COMPONENT_DEFINE("CybertwinEdgeServer");
-NS_OBJECT_ENSURE_REGISTERED(CybertwinEdgeServer);
+NS_OBJECT_ENSURE_REGISTERED(CybertwinController);
 
 TypeId
-CybertwinEdgeServer::GetTypeId()
+CybertwinController::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::CybertwinEdgeServer")
                             .SetParent<Application>()
                             .SetGroupName("cybertwin")
-                            .AddConstructor<CybertwinEdgeServer>()
+                            .AddConstructor<CybertwinController>()
                             .AddAttribute("LocalAddress",
                                           "The address on which to bind the listening socket",
                                           AddressValue(),
-                                          MakeAddressAccessor(&CybertwinEdgeServer::m_localAddr),
+                                          MakeAddressAccessor(&CybertwinController::m_localAddr),
                                           MakeAddressChecker())
                             .AddAttribute("LocalPort",
                                           "The port on which the application sends data",
                                           UintegerValue(443),
-                                          MakeUintegerAccessor(&CybertwinEdgeServer::m_localPort),
+                                          MakeUintegerAccessor(&CybertwinController::m_localPort),
                                           MakeUintegerChecker<uint16_t>());
     return tid;
 }
 
-CybertwinEdgeServer::CybertwinEdgeServer()
+CybertwinController::CybertwinController()
     : m_listenSocket(nullptr),
       m_controlTable(Create<CybertwinControlTable>())
 {
@@ -40,7 +40,7 @@ CybertwinEdgeServer::CybertwinEdgeServer()
 }
 
 void
-CybertwinEdgeServer::DoDispose()
+CybertwinController::DoDispose()
 {
     NS_LOG_FUNCTION(this);
     m_listenSocket = nullptr;
@@ -60,7 +60,7 @@ CybertwinEdgeServer::DoDispose()
 }
 
 void
-CybertwinEdgeServer::StartApplication()
+CybertwinController::StartApplication()
 {
     NS_LOG_FUNCTION(this);
     // Create the socket if not already
@@ -94,16 +94,16 @@ CybertwinEdgeServer::StartApplication()
     }
 
     m_listenSocket->SetAcceptCallback(
-        MakeCallback(&CybertwinEdgeServer::ConnectionRequestCallback, this),
-        MakeCallback(&CybertwinEdgeServer::NewConnectionCreatedCallback, this));
-    m_listenSocket->SetRecvCallback(MakeCallback(&CybertwinEdgeServer::ReceivedDataCallback, this));
-    m_listenSocket->SetCloseCallbacks(MakeCallback(&CybertwinEdgeServer::NormalCloseCallback, this),
-                                      MakeCallback(&CybertwinEdgeServer::ErrorCloseCallback, this));
+        MakeCallback(&CybertwinController::ConnectionRequestCallback, this),
+        MakeCallback(&CybertwinController::NewConnectionCreatedCallback, this));
+    m_listenSocket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback, this));
+    m_listenSocket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalCloseCallback, this),
+                                      MakeCallback(&CybertwinController::ErrorCloseCallback, this));
     m_listenSocket->Listen();
 }
 
 void
-CybertwinEdgeServer::StopApplication()
+CybertwinController::StopApplication()
 {
     NS_LOG_FUNCTION(this);
     if (m_listenSocket)
@@ -119,24 +119,32 @@ CybertwinEdgeServer::StopApplication()
 }
 
 bool
-CybertwinEdgeServer::ConnectionRequestCallback(Ptr<Socket> socket, const Address& address)
+CybertwinController::ConnectionRequestCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this << socket << address);
     return true;
 }
 
 void
-CybertwinEdgeServer::NewConnectionCreatedCallback(Ptr<Socket> socket, const Address& address)
+CybertwinController::NewConnectionCreatedCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this << socket << address);
-    socket->SetRecvCallback(MakeCallback(&CybertwinEdgeServer::ReceivedDataCallback, this));
-    socket->SetCloseCallbacks(MakeCallback(&CybertwinEdgeServer::NormalCloseCallback, this),
-                              MakeCallback(&CybertwinEdgeServer::ErrorCloseCallback, this));
+    socket->SetRecvCallback(MakeCallback(&CybertwinController::ReceivedDataCallback, this));
+    socket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalCloseCallback, this),
+                              MakeCallback(&CybertwinController::ErrorCloseCallback, this));
     ReceivedDataCallback(socket);
 }
 
 void
-CybertwinEdgeServer::ReceivedDataCallback(Ptr<Socket> socket)
+CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket) 
+{
+    NS_LOG_FUNCTION(this<<socket);
+    
+
+}
+
+void
+CybertwinController::ReceivedDataCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
 
@@ -203,7 +211,7 @@ CybertwinEdgeServer::ReceivedDataCallback(Ptr<Socket> socket)
 }
 
 void
-CybertwinEdgeServer::NormalCloseCallback(Ptr<Socket> socket)
+CybertwinController::NormalCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     if (m_streamBuffer.find(socket) != m_streamBuffer.end())
@@ -226,7 +234,7 @@ CybertwinEdgeServer::NormalCloseCallback(Ptr<Socket> socket)
 }
 
 void
-CybertwinEdgeServer::ErrorCloseCallback(Ptr<Socket> socket)
+CybertwinController::ErrorCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_ERROR("A socket error occurs:" << socket->GetErrno());
     // TODO: Set a timer and remove cybertwin after timeout
