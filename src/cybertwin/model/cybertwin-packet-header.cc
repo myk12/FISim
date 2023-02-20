@@ -167,11 +167,6 @@ CybertwinControllerHeader::Serialize(Buffer::Iterator start) const
     i.WriteHtonU16(method);
 }
 
-void CybertwinControllerHeader::SetMethod(uint16_t method)
-{
-    this->method = method;
-}
-
 uint32_t
 CybertwinControllerHeader::Deserialize(Buffer::Iterator start)
 {
@@ -188,9 +183,34 @@ CybertwinControllerHeader::ToString() const
     return oss.str();
 }
 
+void CybertwinControllerHeader::SetMethod(uint16_t method)
+{
+    this->method = method;
+}
+
 uint16_t CybertwinControllerHeader::GetMethod() const
 {
     return method;
+}
+
+void CybertwinControllerHeader::SetDeivceName(DEVNAME_t devName)
+{
+    this->devName = devName;
+}
+
+DEVNAME_t CybertwinControllerHeader::GetDeviceName() const
+{
+    return devName;
+}
+
+void CybertwinControllerHeader::SetNetworkType(NETTYPE_t netType)
+{
+    this->netType = netType;
+}
+
+NETTYPE_t CybertwinControllerHeader::GetNetworkType() const
+{
+    return netType;
 }
 
 } // namespace ns3

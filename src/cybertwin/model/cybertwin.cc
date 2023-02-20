@@ -25,23 +25,23 @@ Cybertwin::Cybertwin():
 {
 }
 
-Cybertwin::Cybertwin(GUID_t id, CybertwinInterface local, CybertwinInterface global):
-gid(id), 
+Cybertwin::Cybertwin(CYBERTWINID_t id, CybertwinInterface local, CybertwinInterface global):
+cybertwinID(id), 
 localInterface(local),
 globalInterface(global)
 {
-    NS_LOG_INFO("Create new Cybertwin ["<<gid<<"]");
+    NS_LOG_INFO("Create new Cybertwin ["<<cybertwinID<<"]");
 }
 
 Cybertwin::~Cybertwin()
 {
-    NS_LOG_INFO("Delete Cybertwin ["<<gid<<"]");
+    NS_LOG_INFO("Delete Cybertwin ["<<cybertwinID<<"]");
 }
 
 void
 Cybertwin::StartApplication()
 {
-    NS_LOG_INFO("Cybertwin "<<gid<<" born.");
+    NS_LOG_INFO("Cybertwin "<<cybertwinID<<" born.");
     int ret = -1;
     Address addr;
     uint16_t port;
@@ -121,7 +121,31 @@ Cybertwin::StartApplication()
 void
 Cybertwin::StopApplication()
 {
-    NS_LOG_INFO("Cybertwin "<<gid<<" stop.");
+    NS_LOG_INFO("Cybertwin "<<cybertwinID<<" stop.");
+}
+
+CYBERTWINID_t
+Cybertwin::GetCybertwinID() const
+{
+    return cybertwinID;
+}
+
+void
+Cybertwin::SetCybertwinID(CYBERTWINID_t cybertwinID)
+{
+    this->cybertwinID = cybertwinID;
+}
+
+void
+Cybertwin::SetLocalInterface(Address addr, uint16_t port)
+{
+    localInterface = std::make_pair(addr, port);
+}
+
+void
+Cybertwin::SetGlobalInterface(Address addr, uint16_t port)
+{
+    globalInterface = std::make_pair(addr, port);
 }
 
 //********************************************************************************
@@ -152,13 +176,13 @@ Cybertwin::localRecvHandler(Ptr<Socket> socket)
 
     while ((packet = socket->RecvFrom(from)))
     {
-        GUID_t id;
+        CYBERTWINID_t id;
         CybertwinPacketHeader header;
         std::queue<Ptr<Packet>> packetQueue;
 
         socket->GetSockName(localAddress);
         packet->RemoveHeader(header);
-        id = static_cast<GUID_t>(header.GetSrc());
+        id = static_cast<CYBERTWINID_t>(header.GetSrc());
 
         // TODO: it must lock the queue before push data to it.
         if (txPacketBuffer.find(id) == txPacketBuffer.end())
@@ -212,13 +236,13 @@ Cybertwin::globalRecvHandler(Ptr<Socket> socket)
 
     while ((packet = socket->RecvFrom(from)))
     {
-        GUID_t id;
+        CYBERTWINID_t id;
         CybertwinPacketHeader header;
         std::queue<Ptr<Packet>> packetQueue;
 
         socket->GetSockName(localAddress);
         packet->RemoveHeader(header);
-        id = static_cast<GUID_t>(header.GetSrc());
+        id = static_cast<CYBERTWINID_t>(header.GetSrc());
         
         // TODO: it must lock the queue before push data to it.
         if (rxPacketBuffer.find(id) == rxPacketBuffer.end())
@@ -250,7 +274,7 @@ Cybertwin::ouputPackets()
     //naive output method
     for (auto rxBuffer:rxPacketBuffer)
     {
-        GUID_t dstGuid = rxBuffer.first;
+        CYBERTWINID_t dstGuid = rxBuffer.first;
         std::queue<Ptr<Packet>> packetQueue = rxBuffer.second;
         uint32_t size = packetQueue.size();
         Ptr<Socket> txSocket;

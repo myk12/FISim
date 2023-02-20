@@ -48,8 +48,11 @@ class CybertwinControllerHeader: public Header
     void SetMethod(uint16_t method);
     uint16_t GetMethod() const;
 
-    //void SetDeivceName(std::string devName);
-    //std::string GetDeviceName() const;
+    void SetDeivceName(DEVNAME_t devName);
+    DEVNAME_t GetDeviceName() const;
+
+    void SetNetworkType(NETTYPE_t netType);
+    NETTYPE_t GetNetworkType() const;
 
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
@@ -61,6 +64,8 @@ class CybertwinControllerHeader: public Header
     std::string ToString() const;
   private:
     uint16_t method;
+    DEVNAME_t devName;
+    NETTYPE_t netType;
 };
 
 } // namespace ns3

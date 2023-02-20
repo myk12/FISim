@@ -2,6 +2,7 @@
 #define CYBERTWIN_EDGE_SERVER_H
 
 #include "cybertwin-packet-header.h"
+#include "cybertwin.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -97,6 +98,8 @@ class CybertwinController : public Application
     void ReceivedDataCallback(Ptr<Socket> socket);
     void ReceivedDataCallback2(Ptr<Socket> socket);
 
+    uint32_t BornCybertwin(CybertwinControllerHeader header);
+
     Ptr<Socket> m_listenSocket;
     Ptr<CybertwinControlTable> m_controlTable;
 
@@ -127,6 +130,9 @@ class CybertwinController : public Application
     std::unordered_map<Ptr<Socket>, Ptr<StreamState>> m_streamBuffer;
     Address m_localAddr;
     uint64_t m_localPort;
+    uint16_t localPortCounter;
+    uint16_t globalPortCounter;
+    std::unordered_map<CYBERTWINID_t, Ptr<Cybertwin>> CybertwinMapTable;
 };
 
 } // namespace ns3

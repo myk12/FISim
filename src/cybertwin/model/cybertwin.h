@@ -20,7 +20,7 @@ class Cybertwin: public Application
 {
 public:
     Cybertwin();
-    Cybertwin(GUID_t, CybertwinInterface, CybertwinInterface);
+    Cybertwin(CYBERTWINID_t, CybertwinInterface, CybertwinInterface);
     ~Cybertwin();
 
     // local
@@ -42,11 +42,17 @@ public:
 
     void ouputPackets();
 
+    CYBERTWINID_t GetCybertwinID() const;
+    void SetCybertwinID(CYBERTWINID_t cybertwinID);
+
+    void SetLocalInterface(Address address, uint16_t port);
+    void SetGlobalInterface(Address address, uint16_t port);
+
 private:
     void StartApplication() override;
     void StopApplication() override;
 
-    GUID_t gid;
+    CYBERTWINID_t cybertwinID;
 
     Ptr<Socket> localSocket; // communicate with end host
     CybertwinInterface localInterface;
@@ -54,13 +60,13 @@ private:
     Ptr<Socket> globalSocket; // network socket
     CybertwinInterface globalInterface;
 
-    std::unordered_map<GUID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
-    std::unordered_map<GUID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
 
-    std::unordered_map<GUID_t, Ptr<Socket> > globalTxSocket;
+    std::unordered_map<CYBERTWINID_t, Ptr<Socket> > globalTxSocket;
     // TODO: Add traffic logger
     // TODO: Add other functionality
-    std::unordered_map<GUID_t, CybertwinInterface> nameResolutionCache;
+    std::unordered_map<CYBERTWINID_t, CybertwinInterface> nameResolutionCache;
 };
 }
 

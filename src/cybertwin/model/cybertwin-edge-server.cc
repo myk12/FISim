@@ -34,7 +34,9 @@ CybertwinController::GetTypeId()
 
 CybertwinController::CybertwinController()
     : m_listenSocket(nullptr),
-      m_controlTable(Create<CybertwinControlTable>())
+      m_controlTable(Create<CybertwinControlTable>()),
+      localPortCounter(LOCAL_PORT_COUNTER_START),
+      globalPortCounter(GLOBAL_PORT_COUNTER_START)
 {
     NS_LOG_FUNCTION(this);
 }
@@ -147,6 +149,7 @@ CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket)
         CybertwinControllerHeader header;
         packet->RemoveHeader(header);
 
+        //TODO: Packet check
         switch (header.GetMethod())
         {
         case NOTHING:
@@ -159,6 +162,7 @@ CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket)
             NS_LOG_DEBUG("Remove Cybertwin.");
             break;
         default:
+            NS_LOG_DEBUG("Unknown Command.");
             break;
         }
 
@@ -262,6 +266,46 @@ CybertwinController::ErrorCloseCallback(Ptr<Socket> socket)
     NS_LOG_ERROR("A socket error occurs:" << socket->GetErrno());
     // TODO: Set a timer and remove cybertwin after timeout
 }
+
+uint32_t
+CybertwinController::BornCybertwin(CybertwinControllerHeader header)
+{
+    NS_LOG_DEBUG("CybertwinController: Borning a new Cybertwin.");
+    DEVNAME_t devName;
+    NETTYPE_t networkType;
+    CYBERTWINID_t cybertwinID;
+    uint16_t localPort;
+    uint16_t globalPort;
+
+    devName = header.GetDeviceName();
+    networkType = header.GetNetworkType();
+
+    //TODO: A more fancy way to generate CybertwinID
+    cybertwinID = devName + (networkType<<8);
+    if (CybertwinMapTable.find(cybertwinID) != CybertwinMapTable.end())
+    {
+        NS_LOG_ERROR("Cybertwin Already exists.");
+        return -1;
+    }
+
+    //TODO: check port to prevent port conflict.
+    localPort = ++localPortCounter;
+    globalPort = ++globalPortCounter;
+
+    Ptr<Cybertwin> cybertwin = Create<Cybertwin>();
+    cybertwin->SetCybertwinID(cybertwinID);
+    cybertwin->SetLocalInterface(m_localAddr, localPort);
+    cybertwin->SetGlobalInterface(m_localAddr, globalPort);
+
+    CybertwinMapTable[cybertwinID] = cybertwin;
+    cybertwin->SetStartTime(Seconds(0.));
+
+    return 0;
+}
+
+
+
+
 
 // Cybertwin Control Table
 CybertwinControlTable::CybertwinControlTable()
