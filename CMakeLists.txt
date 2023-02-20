@@ -147,6 +147,9 @@ add_subdirectory(scratch)
 # Build test utils
 add_subdirectory(utils)
 
+# Build Cybertwin Simulation
+add_subdirectory(cybertwin)
+
 write_lock()
 write_configtable()
 
