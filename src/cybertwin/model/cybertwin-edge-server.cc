@@ -322,6 +322,9 @@ CybertwinController::BornCybertwin(CybertwinControllerHeader &reqHeader, Cybertw
         NS_LOG_DEBUG("Set Cybertwin Addr: "<<m_localAddr);
         cybertwin->SetLocalInterface(m_localAddr, localPort);
         cybertwin->SetGlobalInterface(m_localAddr, globalPort);
+    }else
+    {
+        NS_LOG_UNCOND("Current not support any other Address except Ipv4.");
     }
 
     CybertwinMapTable[cybertwinID] = cybertwin;

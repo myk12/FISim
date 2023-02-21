@@ -23,10 +23,17 @@ class CybertwinBulkClient : public Application
 
     static TypeId GetTypeId();
     
+    // CybertwinController Relative
+    void ControllerConnectSucceededCallback(Ptr<Socket>);
+    void ControllerConnectFailedCallback(Ptr<Socket>);
+    void RecvFromControllerCallback(Ptr<Socket> socket); 
     void Request2GenerateCybertwin();
     void ConnectCybertwin();
+
+    // Cybertwin Relative
     void CybertwinConnectSucceededCallback(Ptr<Socket> socket);
     void CybertwinConnectFailedCallback(Ptr<Socket> socket);
+    void RecvFromCybertwinCallback(Ptr<Socket> socket);
 
     void RequestNetworkService();
 
@@ -38,13 +45,8 @@ class CybertwinBulkClient : public Application
     void StopApplication() override;
 
     void Connect();
-    void ConnectionSucceeded(Ptr<Socket>);
-    void ConnectionFailed(Ptr<Socket>);
 
-    void ReceivedDataCallback(Ptr<Socket> socket); 
-
-
-    Ptr<Socket> m_socket;
+    Ptr<Socket> controllerSocket;
     Ptr<Socket> cybertwinSocket;
 
     Address m_localAddr;

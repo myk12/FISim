@@ -59,7 +59,7 @@ CybertwinBulkClient::GetTypeId()
 }
 
 CybertwinBulkClient::CybertwinBulkClient()
-    : m_socket(nullptr),
+    : controllerSocket(nullptr),
     cybertwinSocket(nullptr),
     cybertwinID(0)
 {
@@ -75,7 +75,7 @@ void
 CybertwinBulkClient::DoDispose()
 {
     NS_LOG_FUNCTION(this);
-    m_socket = nullptr;
+    controllerSocket = nullptr;
     Application::DoDispose();
 }
 
@@ -84,21 +84,21 @@ CybertwinBulkClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
 
-    if (!m_socket)
+    if (!controllerSocket)
     {
-        m_socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+        controllerSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
         if (Ipv4Address::IsMatchingType(m_localAddr))
         {
             const Ipv4Address ipv4 = Ipv4Address::ConvertFrom(m_localAddr);
             const InetSocketAddress inetSocket = InetSocketAddress(ipv4, m_localPort);
-            m_socket->Bind(inetSocket);
+            controllerSocket->Bind(inetSocket);
             NS_LOG_DEBUG("client bind to " << ipv4 << ":" << m_localPort);
         }
         else if (Ipv6Address::IsMatchingType(m_localAddr))
         {
             const Ipv6Address ipv6 = Ipv6Address::ConvertFrom(m_localAddr);
             const Inet6SocketAddress inet6Socket = Inet6SocketAddress(ipv6, m_localPort);
-            m_socket->Bind(inet6Socket);
+            controllerSocket->Bind(inet6Socket);
             NS_LOG_DEBUG("client bind to " << ipv6 << ":" << m_localPort);
         }
         Connect();
@@ -109,9 +109,9 @@ void
 CybertwinBulkClient::StopApplication()
 {
     NS_LOG_FUNCTION(this);
-    if (m_socket)
+    if (controllerSocket)
     {
-        m_socket->Close();
+        controllerSocket->Close();
     }
 }
 
@@ -119,36 +119,36 @@ void
 CybertwinBulkClient::Connect()
 {
     NS_LOG_FUNCTION(this);
-    m_socket->SetConnectCallback(MakeCallback(&CybertwinBulkClient::ConnectionSucceeded, this),
-                                 MakeCallback(&CybertwinBulkClient::ConnectionFailed, this));
+    controllerSocket->SetConnectCallback(MakeCallback(&CybertwinBulkClient::ControllerConnectSucceededCallback, this),
+                                 MakeCallback(&CybertwinBulkClient::ControllerConnectFailedCallback, this));
 
     if (Ipv4Address::IsMatchingType(m_edgeAddr))
     {
         const Ipv4Address ipv4 = Ipv4Address::ConvertFrom(m_edgeAddr);
         const InetSocketAddress inetSocket = InetSocketAddress(ipv4, m_edgePort);
-        m_socket->Connect(inetSocket);
+        controllerSocket->Connect(inetSocket);
         NS_LOG_DEBUG("client connecting to " << ipv4 << ":" << m_edgePort);
     }
     else if (Ipv6Address::IsMatchingType(m_edgeAddr))
     {
         const Ipv6Address ipv6 = Ipv6Address::ConvertFrom(m_edgeAddr);
         const Inet6SocketAddress inet6Socket = Inet6SocketAddress(ipv6, m_edgePort);
-        m_socket->Connect(inet6Socket);
+        controllerSocket->Connect(inet6Socket);
         NS_LOG_DEBUG("client connecting to " << ipv6 << ":" << m_edgePort);
     }
 
 }
 
 void
-CybertwinBulkClient::ConnectionSucceeded(Ptr<Socket> socket)
+CybertwinBulkClient::ControllerConnectSucceededCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    m_socket->SetRecvCallback(MakeCallback(&CybertwinBulkClient::ReceivedDataCallback, this));
+    controllerSocket->SetRecvCallback(MakeCallback(&CybertwinBulkClient::RecvFromControllerCallback, this));
     Request2GenerateCybertwin();
 }
 
 void
-CybertwinBulkClient::ReceivedDataCallback(Ptr<Socket> socket) 
+CybertwinBulkClient::RecvFromControllerCallback(Ptr<Socket> socket) 
 {
     NS_LOG_FUNCTION(this<<socket);
     NS_LOG_DEBUG("CybertwinBulkClient received data.");
@@ -199,11 +199,11 @@ CybertwinBulkClient::Request2GenerateCybertwin()
     Ptr<Packet> connPacket = Create<Packet>(0);
     
     connPacket->AddHeader(header);
-    m_socket->Send(connPacket);
+    controllerSocket->Send(connPacket);
 }
 
 void
-CybertwinBulkClient::ConnectionFailed(Ptr<Socket> socket)
+CybertwinBulkClient::ControllerConnectFailedCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket->GetErrno());
 }
@@ -213,9 +213,13 @@ CybertwinBulkClient::RequestNetworkService()
 {
     NS_LOG_DEBUG("CybertwinBulkClient request network service.");
     // connect to cybertwin
-    
-    
+    Ptr<Packet> connPacket = Create<Packet>(128);
+    CybertwinPacketHeader reqHeader;
+    reqHeader.SetSrc(cybertwinID);
+    reqHeader.SetDst(cybertwinID + 1);
 
+    connPacket->AddHeader(reqHeader);
+    cybertwinSocket->Send(connPacket);
 }
 
 void
@@ -264,6 +268,7 @@ void
 CybertwinBulkClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
 {
     NS_LOG_DEBUG("CybertwinBulkClient successfully connects to cybertwin.");
+    socket->SetRecvCallback(MakeCallback(&CybertwinBulkClient::RecvFromCybertwinCallback, this));
     RequestNetworkService();
 }
 
@@ -271,6 +276,12 @@ void
 CybertwinBulkClient::CybertwinConnectFailedCallback(Ptr<Socket> socket)
 {
     NS_LOG_DEBUG("CybertwinBulkClient falied to connect to cybertwin.");
+}
+
+void
+CybertwinBulkClient::RecvFromCybertwinCallback(Ptr<Socket> socket)
+{
+    NS_LOG_DEBUG("- Client - : recv from Cybertwin.");
 }
 
 } // namespace ns3
