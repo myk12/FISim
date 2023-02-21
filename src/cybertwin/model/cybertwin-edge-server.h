@@ -56,7 +56,6 @@ class CybertwinItem : public SimpleRefCount<CybertwinItem>
     void SendToClient(Ptr<Packet>);
 
   private:
-    uint64_t m_guid;
     Address m_clientAddr;
     Ptr<Socket> m_socket;
 };
@@ -98,7 +97,9 @@ class CybertwinController : public Application
     void ReceivedDataCallback(Ptr<Socket> socket);
     void ReceivedDataCallback2(Ptr<Socket> socket);
 
-    uint32_t BornCybertwin(CybertwinControllerHeader header);
+    uint32_t BornCybertwin(CybertwinControllerHeader &reqHeader, CybertwinControllerHeader &rspHeader);
+    uint32_t KillCybertwin(CybertwinControllerHeader &reqHeader, CybertwinControllerHeader &rspHeader);
+    void Response2EndHost(Ptr<Socket> socket, CybertwinControllerHeader rspHeader);
 
     Ptr<Socket> m_listenSocket;
     Ptr<CybertwinControlTable> m_controlTable;

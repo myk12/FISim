@@ -7,7 +7,7 @@ namespace ns3
 
 CybertwinEdgeServerHelper::CybertwinEdgeServerHelper(Address address)
 {
-    m_factory.SetTypeId("ns3::CybertwinEdgeServer");
+    m_factory.SetTypeId("ns3::CybertwinController");
     m_factory.Set("LocalAddress", AddressValue(address));
 }
 

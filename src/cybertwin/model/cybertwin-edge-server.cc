@@ -9,13 +9,13 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("CybertwinEdgeServer");
+NS_LOG_COMPONENT_DEFINE("CybertwinController");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinController);
 
 TypeId
 CybertwinController::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CybertwinEdgeServer")
+    static TypeId tid = TypeId("ns3::CybertwinController")
                             .SetParent<Application>()
                             .SetGroupName("cybertwin")
                             .AddConstructor<CybertwinController>()
@@ -143,22 +143,26 @@ CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this<<socket);
     Ptr<Packet> packet;
     Address from;
+    uint32_t ret = 0;
+
     while ((packet = socket->RecvFrom(from)))
     {
         NS_LOG_DEBUG("Recv packet.");
-        CybertwinControllerHeader header;
-        packet->RemoveHeader(header);
+        CybertwinControllerHeader reqHeader, rspHeader;
+        packet->RemoveHeader(reqHeader);
 
         //TODO: Packet check
-        switch (header.GetMethod())
+        switch (reqHeader.GetMethod())
         {
         case NOTHING:
             NS_LOG_DEBUG("method nothing.");
             break;
-        case CREATE:
+        case CYBERTWIN_CREATE:
+            ret = BornCybertwin(reqHeader, rspHeader);
             NS_LOG_DEBUG("Create Cybertwin.");
             break;
-        case REMOVE:
+        case CYBERTWIN_REMOVE:
+            ret = KillCybertwin(reqHeader, rspHeader);
             NS_LOG_DEBUG("Remove Cybertwin.");
             break;
         default:
@@ -166,8 +170,26 @@ CybertwinController::ReceivedDataCallback2(Ptr<Socket> socket)
             break;
         }
 
+        if (ret < 0)
+        {
+            NS_LOG_DEBUG("Failed to execute the command.");
+            rspHeader.SetMethod(CYBERTWIN_CONTROLLER_ERROR);
+        }else{
+            rspHeader.SetMethod(CYBERTWIN_CONTROLLER_SUCCESS);
+        }
+
+        Response2EndHost(socket, rspHeader);
     }
 
+}
+
+void
+CybertwinController::Response2EndHost(Ptr<Socket> socket, CybertwinControllerHeader rspHeader)
+{
+    NS_LOG_DEBUG("CybertwinController: response to Client.");
+    Ptr<Packet> rspPacket = Create<Packet>(0);
+    rspPacket->AddHeader(rspHeader);
+    socket->Send(rspPacket);
 }
 
 void
@@ -268,7 +290,7 @@ CybertwinController::ErrorCloseCallback(Ptr<Socket> socket)
 }
 
 uint32_t
-CybertwinController::BornCybertwin(CybertwinControllerHeader header)
+CybertwinController::BornCybertwin(CybertwinControllerHeader &reqHeader, CybertwinControllerHeader &rspHeader)
 {
     NS_LOG_DEBUG("CybertwinController: Borning a new Cybertwin.");
     DEVNAME_t devName;
@@ -277,8 +299,8 @@ CybertwinController::BornCybertwin(CybertwinControllerHeader header)
     uint16_t localPort;
     uint16_t globalPort;
 
-    devName = header.GetDeviceName();
-    networkType = header.GetNetworkType();
+    devName = reqHeader.GetDeviceName();
+    networkType = reqHeader.GetNetworkType();
 
     //TODO: A more fancy way to generate CybertwinID
     cybertwinID = devName + (networkType<<8);
@@ -293,17 +315,43 @@ CybertwinController::BornCybertwin(CybertwinControllerHeader header)
     globalPort = ++globalPortCounter;
 
     Ptr<Cybertwin> cybertwin = Create<Cybertwin>();
+    GetNode()->AddApplication(cybertwin);
     cybertwin->SetCybertwinID(cybertwinID);
-    cybertwin->SetLocalInterface(m_localAddr, localPort);
-    cybertwin->SetGlobalInterface(m_localAddr, globalPort);
+    if (Ipv4Address::IsMatchingType(m_localAddr))
+    {
+        NS_LOG_DEBUG("Set Cybertwin Addr: "<<m_localAddr);
+        cybertwin->SetLocalInterface(m_localAddr, localPort);
+        cybertwin->SetGlobalInterface(m_localAddr, globalPort);
+    }
 
     CybertwinMapTable[cybertwinID] = cybertwin;
-    cybertwin->SetStartTime(Seconds(0.));
+
+    //TODO: ensure the cybertwin really start
+    cybertwin->SetStartTime(Simulator::Now());
+
+    rspHeader.SetCybertwinID(cybertwinID);
+    rspHeader.SetCybertwinPort(localPort);
 
     return 0;
 }
 
+uint32_t 
+CybertwinController::KillCybertwin(CybertwinControllerHeader &reqHeader, CybertwinControllerHeader &rspHeader)
+{
+    NS_LOG_DEBUG("CybertwinController: Kill cybertwin.");
+    CYBERTWINID_t cybertwinID;
 
+    cybertwinID = reqHeader.GetCybertwinID();
+    if (CybertwinMapTable.find(cybertwinID) != CybertwinMapTable.end())
+    {
+        Ptr<Cybertwin> cybertwin = CybertwinMapTable[cybertwinID];
+        //TODO: consider a more reasonable way to stop the cybertwin
+        cybertwin->SetStopTime(Simulator::Now());
+        CybertwinMapTable.erase(cybertwinID);
+    }
+
+    return 0;
+}
 
 
 
@@ -355,8 +403,7 @@ CybertwinControlTable::Disconnect(uint64_t guid)
 
 // Cybertwin Item
 CybertwinItem::CybertwinItem(uint64_t guid, const Address& src, Ptr<Socket> socket)
-    : m_guid(guid),
-      m_clientAddr(src),
+    : m_clientAddr(src),
       m_socket(socket)
 {
     NS_LOG_FUNCTION(this << guid << src << socket);

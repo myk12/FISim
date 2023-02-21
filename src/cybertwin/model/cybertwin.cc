@@ -8,7 +8,7 @@
 namespace ns3
 {
 
-NS_LOG_COMPONENT_DEFINE("CybertwinServer");
+NS_LOG_COMPONENT_DEFINE("Cybertwin");
 
 TypeId
 Cybertwin::GetTypeId()
@@ -49,9 +49,10 @@ Cybertwin::StartApplication()
     // init local socket
     addr = localInterface.first;
     port = localInterface.second;
+    NS_LOG_DEBUG("Cybertwin: locally binding to : "<<addr<<", "<<port);
     if (!localSocket)
     {
-        localSocket = localSocket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
+        localSocket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
         if (Ipv4Address::IsMatchingType(addr))
         {
             Ipv4Address ipv4 = Ipv4Address::ConvertFrom(addr);
@@ -64,6 +65,9 @@ Cybertwin::StartApplication()
             Inet6SocketAddress inetAddress = Inet6SocketAddress(ipv6, port);
             NS_LOG_DEBUG("Server bind to " << ipv6 << ":" << port);
             ret = localSocket->Bind(inetAddress);
+        }else
+        {
+            NS_FATAL_ERROR("Cybertwin: no matching address.");
         }
     }
 
@@ -80,13 +84,14 @@ Cybertwin::StartApplication()
                                     MakeCallback(&Cybertwin::localErrorCloseCallback, this));
     localSocket->Listen();
     localSocket->ShutdownSend();
+    NS_LOG_DEBUG("Cybertwin is locally listening.");
 
     // init global socket
     addr = globalInterface.first;
     port = globalInterface.second;
     if (!globalSocket)
     {
-        globalSocket = localSocket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
+        globalSocket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
         if (Ipv4Address::IsMatchingType(addr))
         {
             Ipv4Address ipv4 = Ipv4Address::ConvertFrom(addr);
@@ -114,6 +119,7 @@ Cybertwin::StartApplication()
                                     MakeCallback(&Cybertwin::globalErrorCloseCallback, this));
     globalSocket->Listen();
     globalSocket->ShutdownSend();
+    NS_LOG_DEBUG("Cybertwin is globally listening.");
 
     Simulator::Schedule(Seconds(0.), &Cybertwin::ouputPackets, this);
 }
@@ -155,20 +161,21 @@ Cybertwin::SetGlobalInterface(Address addr, uint16_t port)
 bool
 Cybertwin::localConnRequestCallback(Ptr<Socket> socket, const Address& address)
 {
+    NS_LOG_DEBUG("* Cybertwin * : receive a local connectiong request.");
     return true;
 }
 
 void
 Cybertwin::localNewConnCreatedCallback(Ptr<Socket> socket, const Address& addr)
 {
-    NS_LOG_INFO("TCP connection established.");
+    NS_LOG_DEBUG("* Cybertwin * : TCP connection with endhost established.");
     socket->SetRecvCallback(MakeCallback(&Cybertwin::localRecvHandler, this));
 }
 
 void
 Cybertwin::localRecvHandler(Ptr<Socket> socket)
 {
-    NS_LOG_INFO("Cybertwin received local packet.");
+    NS_LOG_DEBUG("* Cybertwin * : Cybertwin received local packet.");
 
     Ptr<Packet> packet;
     Address from;
@@ -271,6 +278,7 @@ Cybertwin::globalErrorCloseCallback(Ptr<Socket> socket)
 void
 Cybertwin::ouputPackets()
 {
+    //NS_LOG_DEBUG("Cybertwin outputPakcets proces.");
     //naive output method
     for (auto rxBuffer:rxPacketBuffer)
     {
@@ -322,7 +330,13 @@ Cybertwin::ouputPackets()
         }
     }
 
-    Simulator::Schedule(Seconds(0.), &Cybertwin::ouputPackets, this);
+    Simulator::Schedule(Seconds(2.), &Cybertwin::ouputPackets, this);
+}
+
+void
+Cybertwin::start()
+{
+    StartApplication();
 }
 
 } // namespace ns3

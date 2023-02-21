@@ -48,11 +48,22 @@ class CybertwinControllerHeader: public Header
     void SetMethod(uint16_t method);
     uint16_t GetMethod() const;
 
-    void SetDeivceName(DEVNAME_t devName);
+    // request fragment
+    void SetDeviceName(DEVNAME_t devName);
     DEVNAME_t GetDeviceName() const;
 
     void SetNetworkType(NETTYPE_t netType);
     NETTYPE_t GetNetworkType() const;
+
+    void SetCybertwinID(CYBERTWINID_t cybertwinID);
+    CYBERTWINID_t GetCybertwinID() const;
+
+    // response fragment
+    //void SetCybertwinAddress(Address addr);
+    //Ipv4Address GetCybertwinAddress() const;
+    
+    void SetCybertwinPort(uint16_t port);
+    uint16_t GetCybertwinPort() const;
 
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
@@ -66,6 +77,9 @@ class CybertwinControllerHeader: public Header
     uint16_t method;
     DEVNAME_t devName;
     NETTYPE_t netType;
+    CYBERTWINID_t cybertwinID;
+    //uint32_t cybertwinAddress; //TODO: support IPv6
+    uint16_t cybertwinPort;
 };
 
 } // namespace ns3

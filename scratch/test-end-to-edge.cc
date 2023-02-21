@@ -23,8 +23,9 @@ main(int argc, char* argv[])
     cmd.Parse(argc, argv);
 
     Time::SetResolution(Time::NS);
-    LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_INFO);
-    LogComponentEnable("CybertwinBulkClient", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinController", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinBulkClient", LOG_LEVEL_DEBUG);
+    LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
 
     NodeContainer nodes;
     nodes.Create(2);

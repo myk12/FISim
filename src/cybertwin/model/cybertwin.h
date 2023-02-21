@@ -48,6 +48,7 @@ public:
     void SetLocalInterface(Address address, uint16_t port);
     void SetGlobalInterface(Address address, uint16_t port);
 
+    void start();
 private:
     void StartApplication() override;
     void StopApplication() override;

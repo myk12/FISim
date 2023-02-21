@@ -128,7 +128,10 @@ CybertwinPacketHeader::Deserialize(Buffer::Iterator start)
 //********************************************************************
 
 CybertwinControllerHeader::CybertwinControllerHeader():
-    method(NOTHING)
+    method(NOTHING),
+    devName(0),
+    netType(0),
+    cybertwinID(0)
 {
 }
 
@@ -157,7 +160,11 @@ CybertwinControllerHeader::Print(std::ostream& os) const
 uint32_t
 CybertwinControllerHeader::GetSerializedSize() const
 {
-    return sizeof(method);
+    return sizeof(method)
+            + sizeof(devName)
+            + sizeof(netType)
+            + sizeof(cybertwinID)
+            + sizeof(cybertwinPort);
 }
 
 void
@@ -165,6 +172,10 @@ CybertwinControllerHeader::Serialize(Buffer::Iterator start) const
 {
     Buffer::Iterator i = start;
     i.WriteHtonU16(method);
+    i.WriteHtonU64(devName);
+    i.WriteHtonU16(netType);
+    i.WriteHtonU64(cybertwinID);
+    i.WriteHtonU16(cybertwinPort);
 }
 
 uint32_t
@@ -172,6 +183,10 @@ CybertwinControllerHeader::Deserialize(Buffer::Iterator start)
 {
     Buffer::Iterator i = start;
     method = i.ReadNtohU16();
+    devName = i.ReadNtohU64();
+    netType = i.ReadNtohU16();
+    cybertwinID = i.ReadNtohU64();
+    cybertwinPort = i.ReadNtohU16();
     return GetSerializedSize();
 }
 
@@ -193,7 +208,7 @@ uint16_t CybertwinControllerHeader::GetMethod() const
     return method;
 }
 
-void CybertwinControllerHeader::SetDeivceName(DEVNAME_t devName)
+void CybertwinControllerHeader::SetDeviceName(DEVNAME_t devName)
 {
     this->devName = devName;
 }
@@ -211,6 +226,26 @@ void CybertwinControllerHeader::SetNetworkType(NETTYPE_t netType)
 NETTYPE_t CybertwinControllerHeader::GetNetworkType() const
 {
     return netType;
+}
+
+void CybertwinControllerHeader::SetCybertwinID(CYBERTWINID_t cybertwinID)
+{
+    this->cybertwinID = cybertwinID;
+}
+
+void CybertwinControllerHeader::SetCybertwinPort(uint16_t port)
+{
+    this->cybertwinPort = port;
+}
+
+uint16_t CybertwinControllerHeader::GetCybertwinPort() const
+{
+    return cybertwinPort;
+}
+
+CYBERTWINID_t CybertwinControllerHeader::GetCybertwinID() const
+{
+    return cybertwinID;
 }
 
 } // namespace ns3

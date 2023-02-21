@@ -2,6 +2,7 @@
 #define CYBERTWIN_BULK_CLIENT_H
 
 #include "cybertwin-packet-header.h"
+#include "cybertwin-common.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -21,6 +22,13 @@ class CybertwinBulkClient : public Application
     ~CybertwinBulkClient();
 
     static TypeId GetTypeId();
+    
+    void Request2GenerateCybertwin();
+    void ConnectCybertwin();
+    void CybertwinConnectSucceededCallback(Ptr<Socket> socket);
+    void CybertwinConnectFailedCallback(Ptr<Socket> socket);
+
+    void RequestNetworkService();
 
   protected:
     void DoDispose() override;
@@ -33,11 +41,11 @@ class CybertwinBulkClient : public Application
     void ConnectionSucceeded(Ptr<Socket>);
     void ConnectionFailed(Ptr<Socket>);
 
-    void ReceivedData(Ptr<Socket>);
+    void ReceivedDataCallback(Ptr<Socket> socket); 
 
-    void sendMethod();
 
     Ptr<Socket> m_socket;
+    Ptr<Socket> cybertwinSocket;
 
     Address m_localAddr;
     uint16_t m_localPort;
@@ -49,6 +57,9 @@ class CybertwinBulkClient : public Application
     uint64_t m_peerGuid;
 
     uint32_t m_sendSize;
+
+    CYBERTWINID_t cybertwinID;
+    uint16_t cybertwinPort;
 };
 
 } // namespace ns3

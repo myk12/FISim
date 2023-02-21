@@ -11,13 +11,15 @@
 
 typedef uint64_t CYBERTWINID_t;
 typedef uint64_t DEVNAME_t;
-typedef uint8_t NETTYPE_t;
+typedef uint16_t NETTYPE_t;
 typedef std::pair<ns3::Address, uint16_t> CybertwinInterface;
 
 enum{
     NOTHING,
-    CREATE,
-    REMOVE,
+    CYBERTWIN_CREATE,
+    CYBERTWIN_REMOVE,
+    CYBERTWIN_CONTROLLER_SUCCESS,
+    CYBERTWIN_CONTROLLER_ERROR,
 };
 
 #endif
