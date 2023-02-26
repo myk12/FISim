@@ -8,6 +8,7 @@ build_lib(
         model/cybertwin-bulk-client.cc
         model/cybertwin-edge-server.cc
         model/cybertwin-packet-header.cc
+        model/cybertwin-name-resolution-service.cc
     HEADER_FILES
         helper/cybertwin-bulk-client-helper.h
         helper/cybertwin-edge-server-helper.h
@@ -16,6 +17,7 @@ build_lib(
         model/cybertwin-bulk-client.h
         model/cybertwin-edge-server.h
         model/cybertwin-packet-header.h
+        model/cybertwin-name-resolution-service.h
     LIBRARIES_TO_LINK ${libcore}
                         ${libapplications}
                         ${libinternet}

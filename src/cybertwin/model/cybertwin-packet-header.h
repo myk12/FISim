@@ -82,6 +82,39 @@ class CybertwinControllerHeader: public Header
     uint16_t cybertwinPort;
 };
 
+class CybertwinCNRSHeader: public Header
+{
+  public:
+    CybertwinCNRSHeader();
+
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
+
+    void Print(std::ostream& os) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(Buffer::Iterator start) const override;
+    uint32_t Deserialize(Buffer::Iterator start) override;
+    std::string ToString() const;
+
+    void SetMethod(uint16_t method);
+    uint16_t GetMethod();
+
+    void SetCybertwinID(CYBERTWINID_t id);
+    CYBERTWINID_t GetCybertwinID() const;
+
+    void SetCybertwinAddr(uint32_t addr);
+    uint32_t GetCybertwinAddr() const;
+
+    void SetCybertwinPort(uint16_t port);
+    uint16_t GetCybertwinPort() const;
+  
+  private:
+    uint16_t method;
+    CYBERTWINID_t cybertwinID;
+    uint32_t cybertwinAddr;
+    uint16_t cybertwinPort;
+};
+
 } // namespace ns3
 
 #endif

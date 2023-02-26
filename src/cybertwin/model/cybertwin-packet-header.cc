@@ -7,6 +7,11 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("CybertwinPacketHeader");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinPacketHeader);
 
+
+//********************************************************************
+//*                  Cybertwin Packet Header                         *
+//********************************************************************
+
 CybertwinPacketHeader::CybertwinPacketHeader(uint64_t src,
                                              uint64_t dst,
                                              uint32_t size,
@@ -246,6 +251,123 @@ uint16_t CybertwinControllerHeader::GetCybertwinPort() const
 CYBERTWINID_t CybertwinControllerHeader::GetCybertwinID() const
 {
     return cybertwinID;
+}
+
+//********************************************************************
+//*                    Cybertwin CNRS Header                         *
+//********************************************************************
+TypeId
+CybertwinCNRSHeader::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinCNRSHeader")
+                            .SetParent<Header>()
+                            .SetGroupName("cybertwin")
+                            .AddConstructor<CybertwinCNRSHeader>();
+    return tid;
+}
+
+TypeId
+CybertwinCNRSHeader::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
+CybertwinCNRSHeader::CybertwinCNRSHeader()
+{
+}
+
+void
+CybertwinCNRSHeader::Print(std::ostream& os) const
+{
+    os << "\nCybertwinID   : "<<cybertwinID
+        <<"\nCybertwinAddr : "<<cybertwinAddr
+        <<"\nCybertwinPort : "<<cybertwinPort<<std::endl;
+}
+
+uint32_t
+CybertwinCNRSHeader::GetSerializedSize() const
+{
+    return sizeof(method)
+            + sizeof(cybertwinID)
+            + sizeof(cybertwinAddr)
+            + sizeof(cybertwinPort);
+}
+
+void
+CybertwinCNRSHeader::Serialize(Buffer::Iterator start) const
+{
+    Buffer::Iterator i = start;
+    i.WriteHtonU16(method);
+    i.WriteHtonU64(cybertwinID);
+    i.WriteHtonU32(cybertwinAddr);
+    i.WriteHtonU16(cybertwinPort);
+}
+
+uint32_t
+CybertwinCNRSHeader::Deserialize(Buffer::Iterator start)
+{
+    Buffer::Iterator i = start;
+    method = i.ReadNtohU16();
+    cybertwinID = i.ReadNtohU64();
+    cybertwinAddr = i.ReadNtohU32();
+    cybertwinPort = i.ReadNtohU16();
+    return GetSerializedSize();
+}
+
+std::string
+CybertwinCNRSHeader::ToString() const
+{
+    std::ostringstream oss;
+    Print(oss);
+    return oss.str();
+}
+
+void
+CybertwinCNRSHeader::SetMethod(uint16_t method)
+{
+    this->method = method;
+}
+
+uint16_t
+CybertwinCNRSHeader::GetMethod()
+{
+    return method;
+}
+
+void
+CybertwinCNRSHeader::SetCybertwinID(CYBERTWINID_t id)
+{
+    this->cybertwinID = id;
+}
+
+CYBERTWINID_t
+CybertwinCNRSHeader::GetCybertwinID() const
+{
+    return cybertwinID;
+}
+
+void
+CybertwinCNRSHeader::SetCybertwinAddr(uint32_t addr)
+{
+    this->cybertwinAddr = addr;
+}
+
+uint32_t
+CybertwinCNRSHeader::GetCybertwinAddr() const
+{
+    return cybertwinAddr;
+}
+
+void
+CybertwinCNRSHeader::SetCybertwinPort(uint16_t port)
+{
+    this->cybertwinPort = port;
+}
+
+uint16_t
+CybertwinCNRSHeader::GetCybertwinPort() const
+{
+    return cybertwinPort;
 }
 
 } // namespace ns3
