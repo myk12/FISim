@@ -191,7 +191,11 @@ CybertwinBulkClient::Request2GenerateCybertwin()
     NS_LOG_DEBUG("Clinet Request to Generate a Cybertwin.");
     CybertwinControllerHeader header;
 
+#if defined __aarch64__
     arc4random ();
+#else
+    srandom((unsigned int)Simulator::Now().GetNanoSeconds());
+#endif
     header.SetMethod(CYBERTWIN_CREATE);
     header.SetDeviceName(rand()%1333333);
     header.SetNetworkType(rand()%3);
