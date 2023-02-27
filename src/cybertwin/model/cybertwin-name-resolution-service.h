@@ -15,11 +15,12 @@ class NameResolutionService: public Application
 {
     public:
         NameResolutionService();
-        NameResolutionService(Address superior);
+        NameResolutionService(Ipv4Address superior);
         ~NameResolutionService();
         static TypeId GetTypeId();
 
-        void InitNameResolutionService();
+        int32_t GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface);
+        void InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface);
 
     private:
         void StartApplication() override;
@@ -27,21 +28,20 @@ class NameResolutionService: public Application
 
         void LoadDatabase();
         void InitNameResolutionServer();
-        void InitReportUDPSocket();
+        int32_t InitReportUDPSocket();
 
-        void RecvHandler(Ptr<Socket> socket);
+        void ServiceRecvHandler(Ptr<Socket> socket);
+        void ReportRecvHandler(Ptr<Socket> socket);
 
         void QueryRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
-        int QueryCybertwinItem(CYBERTWINID_t id, uint32_t &ip, uint16_t &port);
+        void QueryResponseHandler(bool status, CybertwinCNRSHeader& rcvHeader);
         void InsertRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
-        void InsertNewCybertwinItem(CYBERTWINID_t id, uint32_t ip, uint16_t port);
-
         void ReportName2Superior(CYBERTWINID_t id, uint32_t ip, uint16_t port);
 
         Ptr<Socket> serviceSocket;
         Ptr<Socket> reportSocket;
         uint16_t m_port;
-        Address superior;
+        Ipv4Address superior;
         std::string databaseName;
         std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_t> itemCache;
 };

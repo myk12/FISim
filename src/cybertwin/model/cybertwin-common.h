@@ -6,6 +6,7 @@
 #include "ns3/inet-socket-address.h"
 
 #define TX_MAX_NUM (128)
+#define DEFAULT_PAYLOAD_LEN (128)
 #define LOCAL_PORT_COUNTER_START (40000)
 #define GLOBAL_PORT_COUNTER_START (50000)
 
@@ -30,8 +31,10 @@ enum CNRS_METHOD
 {
     CNRS_QUERY,
     CNRS_INSERT,
-    CNRS_RESPONSE_OK,
-    CNRS_RESPONSE_FAIL
+    CNRS_QUERY_OK,
+    CNRS_QUERY_FAIL,
+    CNRS_INSERT_OK,
+    CNRS_INSERT_FAIL
 };
 
 #endif
