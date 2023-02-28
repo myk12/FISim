@@ -1,15 +1,17 @@
 set(target_prefix cybertwin)
 set(source_files
-    cybertwin.cc)
+    version2.cc
+    cybertwin-topology.cc)
 
 set(header_files
-    cybertwin.h)
+    cybertwin-topology.h)
 
 
 build_exec(
-    EXECNAME "cybertwinv1"
+    EXECNAME "cybertwin"
     EXECNAME_PREFIX target_prefix
-    SOURCE_FILES "version2.cc"
+    SOURCE_FILES ${source_files}
+    HEADER_FILES ${header_files}
     LIBRARIES_TO_LINK "${ns3-libs}"
-    EXECUTABLE_DIRECTORY_PATH "cybertwin/"
+    EXECUTABLE_DIRECTORY_PATH "cybertwinexec/"
 )

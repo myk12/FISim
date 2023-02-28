@@ -1,0 +1,4 @@
+#!/bin/bash
+exec_name=ns3.37-cybertwin-default
+exec_dir="../cmake-cache/cybertwin/cybertwinexec/"
+./${exec_dir}${exec_name}
