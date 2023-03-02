@@ -12,6 +12,9 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("CybertwinController");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinController);
 
+// Global GUID Table (temporary)
+std::unordered_map<uint64_t, Address> GuidTable;
+
 TypeId
 CybertwinController::GetTypeId()
 {

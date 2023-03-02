@@ -42,8 +42,6 @@ class AddressHash
     }
 };
 
-// Global GUID Table (temporary)
-std::unordered_map<uint64_t, Address> GuidTable;
 
 class CybertwinItem : public SimpleRefCount<CybertwinItem>
 {
