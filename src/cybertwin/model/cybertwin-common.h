@@ -11,6 +11,7 @@
 #define GLOBAL_PORT_COUNTER_START (50000)
 
 #define NAME_RESOLUTION_SERVICE_PORT (5353)
+#define CYBERTWIN_EDGESERVER_CONTROLLER_PORT (2323)         //Tranportation Layer cybertwin controller server port.
 
 
 typedef uint64_t CYBERTWINID_t;
