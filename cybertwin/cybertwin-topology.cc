@@ -130,3 +130,14 @@ std::vector<Ipv4Address> getNodeIpv4List(Ptr<Node> node)
   }
   return ipList;
 }
+
+std::vector<std::vector<Ipv4Address>> getNodesIpv4List(NodeContainer nodes)
+{
+    std::vector<std::vector<Ipv4Address>> retval;
+    for (NodeContainer::Iterator i=nodes.Begin(); i != nodes.End(); i++)
+    {
+        retval.push_back(getNodeIpv4List(*i));
+    }
+
+    return retval;
+}

@@ -1,0 +1,4 @@
+#!/bin/bash
+exec_name=ns3.37-cybertwin-debug
+exec_dir="./build/cybertwin/cybertwinexec/"
+./${exec_dir}${exec_name}

@@ -114,5 +114,6 @@ void buildCsmaNetwork(NodeContainer &, const std::vector<uint32_t> &, IPaddrBase
 void p2pConnectToNeighbors(NodeContainer &, const uint32_t, const std::vector<uint32_t> &, std::vector<IPaddrBase> &, const char* , const char* );
 void testNodesConnectivity(Ptr<Node> srcNode, Ptr<Node> dstNode);
 std::vector<Ipv4Address> getNodeIpv4List(Ptr<Node> node);
+std::vector<std::vector<Ipv4Address>> getNodesIpv4List(NodeContainer nodes);
 
 #endif
