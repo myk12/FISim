@@ -85,6 +85,7 @@ set(source_files
     model/ripng-header.cc
     model/ripng.cc
     model/rtt-estimator.cc
+    model/rtt-estimator-old.cc
     model/tcp-bbr.cc
     model/tcp-bic.cc
     model/tcp-congestion-ops.cc
@@ -122,6 +123,11 @@ set(source_files
     model/tcp-veno.cc
     model/tcp-westwood.cc
     model/tcp-yeah.cc
+    model/mp-tcp-socket-base.cc
+    model/mp-tcp-socket-factory-impl.cc
+    model/mp-tcp-socket-factory.cc
+    model/mp-tcp-subflow.cc
+    model/mp-tcp-typedefs.cc
     model/udp-header.cc
     model/udp-l4-protocol.cc
     model/udp-socket-factory-impl.cc
@@ -212,6 +218,7 @@ set(header_files
     model/ripng-header.h
     model/ripng.h
     model/rtt-estimator.h
+    model/rtt-estimator-old.h
     model/tcp-bbr.h
     model/tcp-bic.h
     model/tcp-congestion-ops.h
@@ -248,6 +255,11 @@ set(header_files
     model/tcp-veno.h
     model/tcp-westwood.h
     model/tcp-yeah.h
+    model/mp-tcp-socket-base.h
+    model/mp-tcp-socket-factory-impl.h
+    model/mp-tcp-socket-factory.h
+    model/mp-tcp-subflow.h
+    model/mp-tcp-typedefs.h
     model/udp-header.h
     model/udp-l4-protocol.h
     model/udp-socket-factory.h
