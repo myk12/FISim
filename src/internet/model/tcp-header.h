@@ -27,6 +27,7 @@
 #include "ns3/sequence-number.h"
 #include "ns3/tcp-option.h"
 #include "ns3/tcp-socket-factory.h"
+#include "ns3/tcp-option-mptcp.h"
 
 #include <stdint.h>
 
