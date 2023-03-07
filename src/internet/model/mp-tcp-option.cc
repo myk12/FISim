@@ -1,9 +1,9 @@
 #include <stdint.h>
 #include <iostream>
 #include "ns3/log.h"
-#include "tcp-option-mptcp.h"
+#include "mp-tcp-option.h"
 
-NS_LOG_COMPONENT_DEFINE ("TcpOptions");
+NS_LOG_COMPONENT_DEFINE ("MpTcpOptions");
 
 namespace ns3{
 

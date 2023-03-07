@@ -1,5 +1,5 @@
-#ifndef TCP_OPTIONS_H
-#define TCP_OPTIONS_H
+#ifndef MP_TCP_OPTION_H
+#define MP_TCP_OPTION_H
 
 #include <stdint.h>
 #include <vector>
@@ -69,4 +69,4 @@ public:
 };
 
 }
-#endif /* TCP_OPTIONS */
+#endif /* MP_TCP_OPTIONS */

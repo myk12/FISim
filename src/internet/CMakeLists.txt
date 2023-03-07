@@ -100,7 +100,6 @@ set(source_files
     model/tcp-ledbat.cc
     model/tcp-linux-reno.cc
     model/tcp-lp.cc
-    model/tcp-option-mptcp.cc
     model/tcp-option-rfc793.cc
     model/tcp-option-sack-permitted.cc
     model/tcp-option-sack.cc
@@ -128,6 +127,8 @@ set(source_files
     model/mp-tcp-socket-factory.cc
     model/mp-tcp-subflow.cc
     model/mp-tcp-typedefs.cc
+    model/mp-tcp-header.cc
+    model/mp-tcp-option.cc
     model/udp-header.cc
     model/udp-l4-protocol.cc
     model/udp-socket-factory-impl.cc
@@ -233,7 +234,6 @@ set(header_files
     model/tcp-ledbat.h
     model/tcp-linux-reno.h
     model/tcp-lp.h
-    model/tcp-option-mptcp.h
     model/tcp-option-rfc793.h
     model/tcp-option-sack-permitted.h
     model/tcp-option-sack.h
@@ -260,6 +260,8 @@ set(header_files
     model/mp-tcp-socket-factory.h
     model/mp-tcp-subflow.h
     model/mp-tcp-typedefs.h
+    model/mp-tcp-header.h
+    model/mp-tcp-option.h
     model/udp-header.h
     model/udp-l4-protocol.h
     model/udp-socket-factory.h

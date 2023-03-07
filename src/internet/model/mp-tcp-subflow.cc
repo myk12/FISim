@@ -38,7 +38,8 @@ MpTcpSubFlow::GetTypeId(void)
       .AddConstructor<MpTcpSubFlow>()
       .AddTraceSource("cWindow",
           "The congestion control window to trace.",
-           MakeTraceSourceAccessor(&MpTcpSubFlow::cwnd));
+           MakeTraceSourceAccessor(&MpTcpSubFlow::cwnd),
+           "ns3::TracedValueCallback::Cwnd");
   return tid;
 }
 

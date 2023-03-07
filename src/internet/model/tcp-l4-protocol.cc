@@ -806,4 +806,25 @@ TcpL4Protocol::GetDownTarget6() const
     return m_downTarget6;
 }
 
+//*************************************************************
+//*             MPTCP Related Method                          *
+//*************************************************************
+bool
+TcpL4Protocol::IsTokenExist(uint32_t token)
+{
+    return !(m_TokenMap.find(token) == m_TokenMap.end());
+}
+
+void
+TcpL4Protocol::InsertNewToken(uint32_t token, Ipv4EndPoint *m_endPoint)
+{
+    m_TokenMap[token] = m_endPoint;
+}
+
+uint32_t
+TcpL4Protocol::GetTokenMapSize()
+{
+    return m_TokenMap.size();
+}
+
 } // namespace ns3

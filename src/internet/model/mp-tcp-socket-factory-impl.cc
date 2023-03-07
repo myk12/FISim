@@ -15,7 +15,7 @@ MpTcpSocketFactoryImpl::MpTcpSocketFactoryImpl() :
 
 MpTcpSocketFactoryImpl::~MpTcpSocketFactoryImpl()
 {
-  NS_ASSERT(m_mptcp == 0);
+  NS_ASSERT(m_mptcp == nullptr);
 }
 
 void

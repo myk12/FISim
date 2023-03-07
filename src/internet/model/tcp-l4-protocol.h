@@ -286,6 +286,10 @@ class TcpL4Protocol : public IpL4Protocol
     int GetProtocolNumber() const override;
     IpL4Protocol::DownTargetCallback GetDownTarget() const override;
     IpL4Protocol::DownTargetCallback6 GetDownTarget6() const override;
+    //bool RemoveLocalToken(uint32_t);
+    bool IsTokenExist(uint32_t);
+    void InsertNewToken(uint32_t token, Ipv4EndPoint *m_endPoint);
+    uint32_t GetTokenMapSize();
 
   protected:
     void DoDispose() override;
@@ -373,6 +377,9 @@ class TcpL4Protocol : public IpL4Protocol
                       const Ipv6Address& saddr,
                       const Ipv6Address& daddr,
                       Ptr<NetDevice> oif = nullptr) const;
+
+    //MPTCP related variable
+    std::map<uint32_t, Ipv4EndPoint* > m_TokenMap; //!< list of Token
 };
 
 } // namespace ns3
