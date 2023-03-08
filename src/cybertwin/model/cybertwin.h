@@ -1,74 +1,59 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
-#include "ns3/core-module.h"
+#include "cybertwin-common.h"
+#include "cybertwin-packet-header.h"
+
+#include "ns3/address.h"
 #include "ns3/application.h"
 #include "ns3/socket.h"
-#include "ns3/ipv4-address.h"
-#include "ns3/internet-module.h"
-#include "ns3/network-module.h"
-#include "cybertwin-common.h"
-#include <string>
-#include <unordered_map>
-#include <queue>
 
 namespace ns3
 {
-//class Application;
 
-class Cybertwin: public Application
+class Cybertwin : public Application
 {
-public:
+  public:
     Cybertwin();
-    Cybertwin(CYBERTWINID_t, CybertwinInterface, CybertwinInterface);
     ~Cybertwin();
 
-    // local
     static TypeId GetTypeId();
-    bool localConnRequestCallback(Ptr<Socket> socket, const Address& address);
-    void localNewConnCreatedCallback(Ptr<Socket> socket, const Address& address);
-    //void localReceivedDataCallback(Ptr<Socket> socket);
-    void localNormalCloseCallback(Ptr<Socket> socket);
-    void localErrorCloseCallback(Ptr<Socket> socket);
-    void localRecvHandler(Ptr<Socket> socket);
+    void Setup(uint64_t, const Address&, uint16_t, const Address&, uint16_t);
 
-    // global
-    bool globalConnRequestCallback(Ptr<Socket> socket, const Address& address);
-    void globalNewConnCreatedCallback(Ptr<Socket> socket, const Address& address);
-    //void globalReceivedDataCallback(Ptr<Socket> socket);
-    void globalNormalCloseCallback(Ptr<Socket> socket);
-    void globalErrorCloseCallback(Ptr<Socket> socket);
-    void globalRecvHandler(Ptr<Socket> socket);
+  protected:
+    void DoDispose() override;
 
-    void ouputPackets();
-
-    CYBERTWINID_t GetCybertwinID() const;
-    void SetCybertwinID(CYBERTWINID_t cybertwinID);
-
-    void SetLocalInterface(Address address, uint16_t port);
-    void SetGlobalInterface(Address address, uint16_t port);
-
-    void start();
-private:
+  private:
     void StartApplication() override;
     void StopApplication() override;
 
-    CYBERTWINID_t cybertwinID;
+    void DoInit();
 
-    Ptr<Socket> localSocket; // communicate with end host
-    CybertwinInterface localInterface;
+    void RecvFromLocal(Ptr<Socket>);
+    void ReceivePacket(Ptr<Packet>);
 
-    Ptr<Socket> globalSocket; // network socket
-    CybertwinInterface globalInterface;
+    bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
+    void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
+    void LocalNormalCloseCallback(Ptr<Socket>);
+    void LocalErrorCloseCallback(Ptr<Socket>);
 
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
+    // buffer for handling packet fragments; also used for recording all accepted sockets
+    std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
 
-    std::unordered_map<CYBERTWINID_t, Ptr<Socket> > globalTxSocket;
-    // TODO: Add traffic logger
-    // TODO: Add other functionality
-    std::unordered_map<CYBERTWINID_t, CybertwinInterface> nameResolutionCache;
+    CYBERTWINID_t m_cybertwinId;
+
+    Ptr<Socket> m_localSocket;
+    Ptr<Socket> m_globalSocket;
+
+    Address m_localAddr;
+    Address m_globalAddr;
+
+    uint16_t m_localPort;
+    uint16_t m_globalPort;
+
+    bool isInitialized{false};
 };
-}
 
-#endif /* CYBERTWIN_H */
+} // namespace ns3
+
+#endif

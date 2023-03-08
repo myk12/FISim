@@ -22,10 +22,12 @@ main(int argc, char* argv[])
     CommandLine cmd(__FILE__);
     cmd.Parse(argc, argv);
 
+    Packet::EnablePrinting();
+
     Time::SetResolution(Time::NS);
-    LogComponentEnable("CybertwinController", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinBulkClient", LOG_LEVEL_DEBUG);
-    LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinEdge", LOG_LEVEL_ALL);
+    LogComponentEnable("CybertwinClient", LOG_LEVEL_ALL);
+    LogComponentEnable("Cybertwin", LOG_LEVEL_ALL);
 
     NodeContainer nodes;
     nodes.Create(2);
@@ -45,19 +47,24 @@ main(int argc, char* argv[])
 
     Ipv4InterfaceContainer interfaces = address.Assign(devices);
 
-    CybertwinBulkClientHelper bulkClient(1234,
-                                         4321,
-                                         interfaces.GetAddress(0),
-                                         interfaces.GetAddress(1));
-    ApplicationContainer clientApps = bulkClient.Install(nodes.Get(0));
-    clientApps.Start(Seconds(1.0));
-    // clientApps.Stop(Seconds(10.0));
+    CybertwinHelper connClient("ns3::CybertwinConnClient");
+    connClient.SetAttribute("PeerCuid", UintegerValue(1234));
+    connClient.SetAttribute("LocalAddress", AddressValue(interfaces.GetAddress(0)));
+    connClient.SetAttribute("EdgeAddress", AddressValue(interfaces.GetAddress(1)));
+    ApplicationContainer clientConnApp = connClient.Install(nodes.Get(0));
 
-    CybertwinEdgeServerHelper edgeServer(interfaces.GetAddress(1));
+    CybertwinHelper bulkClient("ns3::CybertwinBulkClient");
+    ApplicationContainer clientBulkApp = bulkClient.Install(nodes.Get(0));
+    clientConnApp.Start(Seconds(1.0));
+    clientBulkApp.Start(Seconds(1.1));
+
+    CybertwinHelper edgeServer("ns3::CybertwinController");
+    edgeServer.SetAttribute("LocalAddress", AddressValue(interfaces.GetAddress(1)));
     ApplicationContainer edgeCloud = edgeServer.Install(nodes.Get(1));
     edgeCloud.Start(Seconds(0.0));
-    // edgeCloud.Stop(Seconds(10.0));
+    // edgeCloud.Stop(Seconds(15.0));
 
+    // Simulator::Stop(Seconds(10.0));
     Simulator::Run();
     Simulator::Destroy();
     return 0;

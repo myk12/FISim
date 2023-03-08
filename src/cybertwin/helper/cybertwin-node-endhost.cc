@@ -1,5 +1,6 @@
 #include "cybertwin-node-endhost.h"
-#include "ns3/cybertwin-bulk-client.h"
+
+#include "../model/cybertwin-common.h"
 
 namespace ns3
 {
@@ -10,18 +11,17 @@ NS_OBJECT_ENSURE_REGISTERED(CybertwinEndHost);
 TypeId
 CybertwinEndHost::GetTypeId()
 {
-    static TypeId tid = 
-        TypeId("ns3::CybertwinEndHost")
-            .SetParent<Node>()
-            .SetGroupName("Cybertwin")
-            .AddConstructor<CybertwinEndHost>();
-    
+    static TypeId tid = TypeId("ns3::CybertwinEndHost")
+                            .SetParent<Node>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<CybertwinEndHost>();
+
     return tid;
 }
 
-CybertwinEndHost::CybertwinEndHost():
-    cybertwinControllerClient(nullptr),
-    cybertwinClient(nullptr)
+CybertwinEndHost::CybertwinEndHost()
+    : cybertwinControllerClient(nullptr),
+      cybertwinClient(nullptr)
 {
     NS_LOG_DEBUG("[CybertwinEndHost] create CybertwinEndHost.");
 }
@@ -38,11 +38,11 @@ CybertwinEndHost::Setup(Ipv4Address edgeServerAddr)
     edgeServerAddress = edgeServerAddr;
 
     // install endhost app
-    cybertwinControllerClient = CreateObject<CybertwinBulkClient>();
+    // cybertwinControllerClient = CreateObject<CybertwinBulkClient>();
     this->AddApplication(cybertwinControllerClient);
     cybertwinControllerClient->SetStartTime(Simulator::Now());
 
     return 0;
 }
 
-}
+} // namespace ns3

@@ -1,7 +1,8 @@
-#include "ns3/cybertwin-common.h"
-#include "ns3/cybertwin-name-resolution-service.h"
-#include "ns3/cybertwin-edge-server.h"
 #include "cybertwin-node-edgeserver.h"
+
+#include "../model/cybertwin-common.h"
+#include "../model/cybertwin-edge-server.h"
+#include "../model/cybertwin-name-resolution-service.h"
 
 namespace ns3
 {
@@ -12,18 +13,17 @@ NS_OBJECT_ENSURE_REGISTERED(CybertwinEdgeServer);
 TypeId
 CybertwinEdgeServer::GetTypeId()
 {
-    static TypeId tid = 
-        TypeId("ns3::CybertwinEdgeServer")
-            .SetParent<Node>()
-            .SetGroupName("Cybertwin")
-            .AddConstructor<CybertwinEdgeServer>();
-    
+    static TypeId tid = TypeId("ns3::CybertwinEdgeServer")
+                            .SetParent<Node>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<CybertwinEdgeServer>();
+
     return tid;
 }
 
-CybertwinEdgeServer::CybertwinEdgeServer():
-    cybertwinCNRSApp(nullptr),
-    cybertwinControllerApp(nullptr)
+CybertwinEdgeServer::CybertwinEdgeServer()
+    : cybertwinCNRSApp(nullptr),
+      cybertwinControllerApp(nullptr)
 {
     NS_LOG_DEBUG("[CybertwinEdgeServer] create CybertwinEdgeServer.");
 }
@@ -45,7 +45,6 @@ CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
     this->AddApplication(cybertwinCNRSApp);
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
 
-
     // install Cybertwin Controller application
     cybertwinControllerApp = CreateObject<CybertwinController>();
     this->AddApplication(cybertwinControllerApp);
@@ -54,5 +53,4 @@ CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
     return 0;
 }
 
-}
-
+} // namespace ns3
