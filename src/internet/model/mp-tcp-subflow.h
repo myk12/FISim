@@ -39,7 +39,7 @@
 #include "ns3/ipv4-end-point.h"
 #include "ns3/ipv4-address.h"
 
-using namespace std;
+//using namespace std;
 
 namespace ns3{
 
@@ -69,7 +69,7 @@ public:
   ~MpTcpSubFlow();
 
   void AddDSNMapping(uint8_t sFlowIdx, uint64_t dSeqNum, uint16_t dLvlLen, uint32_t sflowSeqNum, uint32_t ack/*, Ptr<Packet> pkt*/);
-  void StartTracing(string traced);
+  void StartTracing(std::string traced);
   void CwndTracer(uint32_t oldval, uint32_t newval);
   void SetFinSequence(const SequenceNumber32& s);
   bool Finished();
@@ -102,8 +102,8 @@ public:
   bool m_limitedTx;           // perform limited transmit
   uint32_t m_dupAckCount;     // DupACK counter
   Ipv4EndPoint* m_endPoint;   // L4 stack object
-  list<DSNMapping *> mapDSN;  // List of all sent packets
-  multiset<double> measuredRTT;
+  std::list<DSNMapping *> mapDSN;  // List of all sent packets
+  std::multiset<double> measuredRTT;
   Ptr<RttMeanDeviation2> rtt;  // RTT calculator
   Time lastMeasuredRtt;       // Last measured RTT, used for plotting
   uint32_t TxSeqNumber;       // Subflow's next expected sequence number to send
@@ -116,27 +116,27 @@ public:
   uint32_t initialSequnceNumber; // Plotting
 
   //plotting
-  vector<pair<double, uint32_t> > cwndTracer;
-  vector<pair<double, uint32_t> > sstTracer;
-  vector<pair<double, double> > rtoTracer;
-  vector<pair<double, double> > rttTracer;
+  std::vector<std::pair<double, uint32_t> > cwndTracer;
+  std::vector<std::pair<double, uint32_t> > sstTracer;
+  std::vector<std::pair<double, double> > rtoTracer;
+  std::vector<std::pair<double, double> > rttTracer;
 
-  vector<pair<double, double> > ssthreshtrack;
-  vector<pair<double, double> > CWNDtrack;
-  vector<pair<double, uint32_t> > DATA;
-  vector<pair<double, uint32_t> > ACK;
-  vector<pair<double, uint32_t> > DROP;
-  vector<pair<double, uint32_t> > RETRANSMIT;
-  vector<pair<double, uint32_t> > DUPACK;
-  vector<pair<double, double> > _ss;
-  vector<pair<double, double> > _ca;
-  vector<pair<double, double> > _FR_FA;
-  vector<pair<double, double> > _FR_PA;
-  vector<pair<double, double> > _FReTx;
-  vector<pair<double, double> > _TimeOut;
-  vector<pair<double, double> > _RTT;
-  vector<pair<double, double> > _AvgRTT;
-  vector<pair<double, double> > _RTO;
+  std::vector<std::pair<double, double> > ssthreshtrack;
+  std::vector<std::pair<double, double> > CWNDtrack;
+  std::vector<std::pair<double, uint32_t> > DATA;
+  std::vector<std::pair<double, uint32_t> > ACK;
+  std::vector<std::pair<double, uint32_t> > DROP;
+  std::vector<std::pair<double, uint32_t> > RETRANSMIT;
+  std::vector<std::pair<double, uint32_t> > DUPACK;
+  std::vector<std::pair<double, double> > _ss;
+  std::vector<std::pair<double, double> > _ca;
+  std::vector<std::pair<double, double> > _FR_FA;
+  std::vector<std::pair<double, double> > _FR_PA;
+  std::vector<std::pair<double, double> > _FReTx;
+  std::vector<std::pair<double, double> > _TimeOut;
+  std::vector<std::pair<double, double> > _RTT;
+  std::vector<std::pair<double, double> > _AvgRTT;
+  std::vector<std::pair<double, double> > _RTO;
 };
 
 }

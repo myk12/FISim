@@ -71,8 +71,8 @@ public: // public methods
   void SetSourceAddress(Ipv4Address src);     // Explicitly specified the source IP address
   Ipv4Address GetSourceAddress();
   void SetFlowId(uint32_t);
-  void SetFlowType(string);
-  void SetOutputFileName(string);
+  void SetFlowType(std::string);
+  void SetOutputFileName(std::string);
   virtual void SetDupAckThresh(uint32_t);
 
   // Setter for congestion Control and data distribution algorithm
@@ -100,8 +100,8 @@ public: // public variables
   bool flowCompletionTime;
   //uint64_t TxBytes;
   uint32_t flowId;
-  string flowType;
-  string outputFileName;
+  std::string flowType;
+  std::string outputFileName;
   double goodput;
   bool m_largePlotting;
   bool m_shortPlotting;
@@ -112,14 +112,14 @@ public: // public variables
   GnuplotCollection gnu;
   std::list<uint32_t> sampleList;
 
-  vector<pair<double, double> > totalCWNDtrack;
-  vector<pair<double, double> > reTxTrack;
-  vector<pair<double, double> > timeOutTrack;
-  vector<pair<double, double> > PartialAck;
-  vector<pair<double, double> > FullAck;
-  vector<pair<double, double> > DupAcks;
-  vector<pair<double, double> > PacketDrop;
-  vector<pair<double, double> > TxQueue;
+  std::vector<std::pair<double, double> > totalCWNDtrack;
+  std::vector<std::pair<double, double> > reTxTrack;
+  std::vector<std::pair<double, double> > timeOutTrack;
+  std::vector<std::pair<double, double> > PartialAck;
+  std::vector<std::pair<double, double> > FullAck;
+  std::vector<std::pair<double, double> > DupAcks;
+  std::vector<std::pair<double, double> > PacketDrop;
+  std::vector<std::pair<double, double> > TxQueue;
 
 
 protected: // protected methods
@@ -248,8 +248,8 @@ protected: // protected methods
   void IsLastAck();
   virtual void GeneratePlotsOutput();
 //  virtual void DoGenerateOutPutFile();
-  virtual string GetTypeIdName();
-  string TcpFlagPrinter(uint8_t);
+  virtual std::string GetTypeIdName();
+  std::string TcpFlagPrinter(uint8_t);
 
 
   // Uniform Random Variable
@@ -284,10 +284,10 @@ protected: // protected variables
   uint8_t  lastUsedsFlowIdx;
 
   // MPTCP containers
-  vector<Ptr<MpTcpSubFlow> > subflows;
-  vector<MpTcpAddressInfo *> localAddrs;
-  vector<MpTcpAddressInfo *> remoteAddrs;
-  list<DSNMapping *> unOrdered;  // buffer that hold the out of sequence received packet
+  std::vector<Ptr<MpTcpSubFlow> > subflows;
+  std::vector<MpTcpAddressInfo *> localAddrs;
+  std::vector<MpTcpAddressInfo *> remoteAddrs;
+  std::list<DSNMapping *> unOrdered;  // buffer that hold the out of sequence received packet
 
   // Congestion control
   double alpha;

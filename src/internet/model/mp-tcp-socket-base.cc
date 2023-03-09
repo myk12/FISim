@@ -268,7 +268,7 @@ MpTcpSocketBase::ReadOptions(Ptr<Packet> pkt, const MPTcpHeader& mptcpHeader)
 { // Any packet without SYN and MP_CAPABLE is not being processed!
   NS_LOG_FUNCTION(this << mptcpHeader);
   NS_ASSERT(remoteToken == 0 && mpEnabled == false);
-  vector<TcpOptions*> mp_options = mptcpHeader.GetOptions();
+  std::vector<TcpOptions*> mp_options = mptcpHeader.GetOptions();
   uint8_t flags = mptcpHeader.GetFlags();
   TcpOptions *opt;
   bool hasSyn = flags & MPTcpHeader::SYN;
@@ -298,7 +298,7 @@ MpTcpSocketBase::ReadOptions(uint8_t sFlowIdx, Ptr<Packet> pkt, const MPTcpHeade
 {
   NS_LOG_FUNCTION(this << (int)sFlowIdx << mptcpHeader);
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
-  vector<TcpOptions*> options = mptcpHeader.GetOptions();
+  std::vector<TcpOptions*> options = mptcpHeader.GetOptions();
   uint8_t flags = mptcpHeader.GetFlags();
   TcpOptions *opt;
   bool hasSyn = flags & MPTcpHeader::SYN;
@@ -405,7 +405,7 @@ MpTcpSocketBase::ProcessEstablished(uint8_t sFlowIdx, Ptr<Packet> packet, const 
         { // this must be an invalid flag, send reset
           NS_LOG_LOGIC ("Illegal flag " << tcpflags << " received. Reset packet is sent."); //
           NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") Bad FtcpFlag received - SendRST");
-          cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessEstablished)" << endl;
+          std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessEstablished)" << std::endl;
           SendRST(sFlowIdx);
         }
       CloseAndNotifyAllSubflows();
@@ -614,7 +614,7 @@ MpTcpSocketBase::ProcessSynSent(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTc
         { // When (1) rx of FIN+ACK; (2) rx of FIN; (3) rx of bad flags
           NS_LOG_LOGIC ("Illegal flag " << std::hex << static_cast<uint32_t> (tcpflags) << std::dec << " received. Reset packet is sent."); //
           NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") Bad FtcpFlag received - SendRST");
-          cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessSynSent)" << endl;
+          std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessSynSent)" << std::endl;
           SendRST(sFlowIdx);
         }
       CloseAndNotifyAllSubflows();
@@ -680,7 +680,7 @@ MpTcpSocketBase::ProcessSynRcvd(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTc
 //                  InetSocketAddress::ConvertFrom(fromAddress).GetPort());
 //            }
           NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") Bad FtcpFlag received - SendRST");
-          cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessSynRcvd)" << endl;
+          std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessSynRcvd)" << std::endl;
           SendRST(sFlowIdx); // Send RST if receive unexpected flag
         }
       CloseAndNotifyAllSubflows();
@@ -726,7 +726,7 @@ MpTcpSocketBase::ProcessWait(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTcpHe
       if (tcpflags != MPTcpHeader::RST)
         {
           NS_LOG_LOGIC ("Illegal flag " << tcpflags << " received. Reset packet is sent.");
-          cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessWait)" << endl;
+          std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessWait)" << std::endl;
           SendRST(sFlowIdx);
         }
       CloseAndNotifyAllSubflows();
@@ -828,7 +828,7 @@ MpTcpSocketBase::ProcessLastAck(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTc
   else
     { // Received a SYN or SYN+ACK or bad flags
       NS_LOG_INFO ("Illegal flag " << tcpflags << " received. Reset packet is sent.");
-      cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessLastAck)" << endl;
+      std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(ProcessLastAck)" << std::endl;
       SendRST(sFlowIdx);
       CloseAndNotifyAllSubflows();
     }
@@ -842,7 +842,7 @@ MpTcpSocketBase::ReceivedData(uint8_t sFlowIdx, Ptr<Packet> p, const MPTcpHeader
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
   uint32_t expectedSeq = sFlow->RxSeqNumber;
   //uint32_t Seq = mptcpHeader.GetSequenceNumber().GetValue();
-  vector<TcpOptions*> options = mptcpHeader.GetOptions();
+  std::vector<TcpOptions*> options = mptcpHeader.GetOptions();
   TcpOptions* opt;
   bool stored = true;
   for (uint32_t i = 0; i < options.size(); i++)
@@ -933,7 +933,7 @@ void
 MpTcpSocketBase::SendAccumulativeAck(uint8_t sFlowIdx)
 {
   NS_LOG_FUNCTION(this);
-  vector<Ptr<MpTcpSubFlow> >::iterator it;
+  std::vector<Ptr<MpTcpSubFlow> >::iterator it;
   for (it = subflows.begin(); it != subflows.end(); ++it)
     {
       if ((*it)->routeId != sFlowIdx && ((*it)->AccumulativeAck) && (*it)->m_gotFin)
@@ -967,8 +967,8 @@ MpTcpSocketBase::ReceivedAck(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTcpHe
   else if (ack <= sFlow->highestAck + 1)
     {
       NS_LOG_LOGIC ("This acknowlegment" << mptcpHeader.GetAckNumber () << "do not ack the latest data in subflow level");
-      list<DSNMapping *>::iterator current = sFlow->mapDSN.begin();
-      list<DSNMapping *>::iterator next = sFlow->mapDSN.begin();
+      std::list<DSNMapping *>::iterator current = sFlow->mapDSN.begin();
+      std::list<DSNMapping *>::iterator next = sFlow->mapDSN.begin();
       while (current != sFlow->mapDSN.end())
         {
           ++next;
@@ -1054,7 +1054,7 @@ MpTcpSocketBase::SendDataPacket(uint8_t sFlowIdx, uint32_t size, bool withAck)
   if (sFlow->maxSeqNb > sFlow->TxSeqNumber -1)
     {
       uint32_t IterNumber = 0;
-      for (list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); (it != sFlow->mapDSN.end() && guard == false); ++it)
+      for (std::list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); (it != sFlow->mapDSN.end() && guard == false); ++it)
         { // Look for match a segment from subflow's buffer where it is matched with TxSeqNumber
           IterNumber++;
           DSNMapping * ptr = *it;
@@ -1225,10 +1225,10 @@ MpTcpSocketBase::SendAllSubflowsFIN(void)
   if (sendingBuffer.PendingData() == 0)
     {
       //Ptr<UniformRandomVariable> uniRand = CreateObject<UniformRandomVariable>();
-      vector<uint32_t> randomStorage;
+      std::vector<uint32_t> randomStorage;
       uint32_t randomGap = 0;
       uint32_t I = 0;
-      vector<Ptr<MpTcpSubFlow> >::iterator SubflowCI;
+      std::vector<Ptr<MpTcpSubFlow> >::iterator SubflowCI;
       for (SubflowCI = subflows.begin(); SubflowCI != subflows.end(); ++SubflowCI)
         {
           Ptr<MpTcpSubFlow> sFlow = *SubflowCI;
@@ -1411,8 +1411,8 @@ void
 MpTcpSocketBase::DiscardUpTo(uint8_t sFlowIdx, uint32_t ack)
 {
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
-  list<DSNMapping *>::iterator current = sFlow->mapDSN.begin();
-  list<DSNMapping *>::iterator next = sFlow->mapDSN.begin();
+  std::list<DSNMapping *>::iterator current = sFlow->mapDSN.begin();
+  std::list<DSNMapping *>::iterator next = sFlow->mapDSN.begin();
   while (current != sFlow->mapDSN.end())
     {
       ++next;
@@ -1874,7 +1874,7 @@ MpTcpSocketBase::ReduceCWND(uint8_t sFlowIdx, DSNMapping* ptrDSN)
       d = (int) sFlow->cwnd.Get() - (compute_total_window() >> 3);
       if (d < 0)
         d = 0;
-      sFlow->ssthresh = max(2 * mss, (uint32_t) d);
+      sFlow->ssthresh = std::max(2 * mss, (uint32_t) d);
       sFlow->cwnd = sFlow->ssthresh + 3 * mss;
       break;
 
@@ -1882,7 +1882,7 @@ MpTcpSocketBase::ReduceCWND(uint8_t sFlowIdx, DSNMapping* ptrDSN)
     d = (int) sFlow->cwnd.Get() - compute_total_window() / B;
     if (d < 0)
       d = 0;
-    sFlow->ssthresh = max(2 * mss, (uint32_t) d);
+    sFlow->ssthresh = std::max(2 * mss, (uint32_t) d);
     sFlow->cwnd = sFlow->ssthresh + 3 * mss;
     break;
 
@@ -1956,7 +1956,7 @@ MpTcpSocketBase::getAckedSegment(uint8_t sFlowIdx, uint32_t ack)
 {
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
   DSNMapping* ptrDSN = 0;
-  for (list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); it != sFlow->mapDSN.end(); ++it)
+  for (std::list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); it != sFlow->mapDSN.end(); ++it)
     {
       DSNMapping* dsn = *it;
       if (dsn->subflowSeqNumber + dsn->dataLevelLength == ack)
@@ -1973,7 +1973,7 @@ MpTcpSocketBase::getSegmentOfACK(uint8_t sFlowIdx, uint32_t ack)
 {
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
   DSNMapping* ptrDSN = 0;
-  for (list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); it != sFlow->mapDSN.end(); ++it)
+  for (std::list<DSNMapping *>::iterator it = sFlow->mapDSN.begin(); it != sFlow->mapDSN.end(); ++it)
     {
       DSNMapping* dsn = *it;
       if (dsn->subflowSeqNumber == ack)
@@ -2128,7 +2128,7 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
     {
       if (sFlow->cnCount == 0)
         { // No more connection retries, give up
-          cout << "[" << m_node->GetId() << "]{" << flowId << "}(" << flowType<< ")" << sFlow->cnCount << endl;
+          std::cout << "[" << m_node->GetId() << "]{" << flowId << "}(" << flowType<< ")" << sFlow->cnCount << std::endl;
           NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " ["<< m_node->GetId() << "] (" << (int)sFlow->routeId
               << ") SendEmptyPacket(" <<TcpFlagPrinter(flags) << ") hasSyn -> Connection failed."
               << " Subflow's state: " << TcpStateName[sFlow->state] << " Connection's state: "
@@ -2347,7 +2347,7 @@ MpTcpSocketBase::DoForwardUp(Ptr<Packet> p, Ipv4Header header, uint16_t port, Pt
 // Send RST if the incoming packet is not a RST
     if ((mptcpHeader.GetFlags() & ~(MPTcpHeader::PSH | MPTcpHeader::URG)) != MPTcpHeader::RST)
       { // Since sFlow->m_endPoint is not configured yet, we cannot use SendRST here
-        cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(DoForwardup)" << endl;
+        std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "] (" << (int)sFlowIdx << ") {"<< flowId <<"} SendRST(DoForwardup)" << std::endl;
         MPTcpHeader h;
         h.SetFlags(MPTcpHeader::RST);
         h.SetSequenceNumber(SequenceNumber32(sFlow->TxSeqNumber));
@@ -2523,7 +2523,7 @@ MpTcpSocketBase::InitiateMultipleSubflows()
 {
   NS_LOG_FUNCTION_NOARGS();
   //Ptr<UniformRandomVariable> uniRandom = CreateObject<UniformRandomVariable>();
-  vector<uint32_t> randomStorage;
+  std::vector<uint32_t> randomStorage;
   uint16_t randomPort = 0;
   randomPort = rand() % 65000;
   if (randomPort == m_endPoint->GetLocalPort())
@@ -2555,7 +2555,7 @@ MpTcpSocketBase::InitiateMultipleSubflows()
 {
   NS_LOG_FUNCTION_NOARGS();
   //Ptr<UniformRandomVariable> uniRandom = CreateObject<UniformRandomVariable>();
-  vector<uint32_t> randomStorage;
+  std::vector<uint32_t> randomStorage;
   uint16_t randomPort = 0;
   randomPort = rand() % 65000;
   if (randomPort == m_endPoint->GetLocalPort())
@@ -2617,8 +2617,8 @@ MpTcpSocketBase::ReadUnOrderedData()
 {
   NS_LOG_FUNCTION (this);
   //NS_LOG_WARN("ReadUnOrderedData()-> Size: " << unOrdered.size());
-  list<DSNMapping *>::iterator current = unOrdered.begin();
-  list<DSNMapping *>::iterator next = unOrdered.begin();
+  std::list<DSNMapping *>::iterator current = unOrdered.begin();
+  std::list<DSNMapping *>::iterator next = unOrdered.begin();
 
   // I changed this method, now whenever a segment is readed it get dropped from that list
   while (next != unOrdered.end())
@@ -2793,9 +2793,9 @@ std::string
 MpTcpSocketBase::GeneratePlotDetail(void)
 {
 
-  stringstream oss;
+  std::stringstream oss;
   oss << "Node["<<m_node->GetId() << "]  FlowId[" << flowId << "]  FlowType[" << flowType << "]  CC[" << PrintCC(AlgoCC) <<"] RandomGap[" << m_rGap << "]";
-  string tmp = oss.str();
+  std::string tmp = oss.str();
   oss.str("");
   return tmp;
   //stringstream detail;
@@ -2828,7 +2828,7 @@ MpTcpSocketBase::GenerateCwndTracer()
       std::stringstream title;
       title << "SF " << idx;
       dataSet.SetTitle(title.str());
-      vector<pair<double, uint32_t> >::iterator it = sFlow->cwndTracer.begin();
+      std::vector<std::pair<double, uint32_t> >::iterator it = sFlow->cwndTracer.begin();
       while (it != sFlow->cwndTracer.end())
         {
           dataSet.Add(it->first, it->second / sFlow->MSS);
@@ -2858,7 +2858,7 @@ MpTcpSocketBase::GenerateCwndTracer()
       std::stringstream title;
       title << "SST " << idx;
       dataSet.SetTitle(title.str());
-      vector<pair<double, uint32_t> >::iterator it = sFlow->sstTracer.begin();
+      std::vector<std::pair<double, uint32_t> >::iterator it = sFlow->sstTracer.begin();
       while (it != sFlow->sstTracer.end())
         {
           dataSet.Add(it->first, it->second);
@@ -2898,7 +2898,7 @@ MpTcpSocketBase::GenerateRTT()
 
       dataSet.SetTitle(title.str());
 
-      vector<pair<double, double> >::iterator it = sFlow->rttTracer.begin();
+      std::vector<std::pair<double, double> >::iterator it = sFlow->rttTracer.begin();
 
       while (it != sFlow->rttTracer.end())
         {
@@ -2932,7 +2932,7 @@ MpTcpSocketBase::GenerateRTT()
 
       dataSet.SetTitle(title.str());
 
-      vector<pair<double, double> >::iterator it = sFlow->rtoTracer.begin();
+      std::vector<std::pair<double, double> >::iterator it = sFlow->rtoTracer.begin();
 
       while (it != sFlow->rtoTracer.end())
         {
@@ -3012,7 +3012,7 @@ bool
 MpTcpSocketBase::StoreUnOrderedData(DSNMapping *toStore)
 {
   NS_LOG_FUNCTION (this);
-  for (list<DSNMapping *>::iterator it = unOrdered.begin(); it != unOrdered.end(); ++it)
+  for (std::list<DSNMapping *>::iterator it = unOrdered.begin(); it != unOrdered.end(); ++it)
     {
       DSNMapping *stored = *it;
       if (toStore->dataSeqNumber == stored->dataSeqNumber)
@@ -3151,7 +3151,7 @@ MpTcpSocketBase::FindPacketFromUnOrdered(uint8_t sFlowIdx)
 {
   NS_LOG_FUNCTION((int)sFlowIdx);
   bool reValue = false;
-  list<DSNMapping *>::iterator current = unOrdered.begin();
+  std::list<DSNMapping *>::iterator current = unOrdered.begin();
   while (current != unOrdered.end())
     {
       DSNMapping* ptrDSN = *current;
@@ -3236,7 +3236,7 @@ MpTcpSocketBase::Close(uint8_t sFlowIdx)
           m_closeOnEmpty = true;
           if (flowType.compare("Large") == 0)
             { // This is only true for background flows
-              cout <<"[" << m_node->GetId() << "]{" << flowId<<"}("<< flowType<< ") -> DoGenerateOutPutFile()"<< endl;
+              std::cout <<"[" << m_node->GetId() << "]{" << flowId<<"}("<< flowType<< ") -> DoGenerateOutPutFile()"<< std::endl;
               flowCompletionTime = false;
 //              DoGenerateOutPutFile();
 //              GeneratePlots();
@@ -3291,7 +3291,7 @@ MpTcpSocketBase::DoClose(uint8_t sFlowIdx)
     NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " ["<<m_node->GetId() << "] DoClose (SYN_SENT or CLOSING)-> Socket src/des (" << sFlow->sAddr << ":" << sFlow->sPort << "/" << sFlow->dAddr << ":" << sFlow->dPort << ")" << " sFlow->state: " << TcpStateName[sFlow->state]);
     //CancelAllSubflowTimers(); // Danger?!?!
     //sFlow->state = CLOSED;
-    cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "](" << (int)sFlowIdx << "){"<< flowId <<"}(" << flowType<<") "<< TcpStateName[sFlow->state] << " <-- SendRST(DoCLOSE)" << endl;
+    std::cout << Simulator::Now().GetSeconds() << " [" << m_node->GetId() << "](" << (int)sFlowIdx << "){"<< flowId <<"}(" << flowType<<") "<< TcpStateName[sFlow->state] << " <-- SendRST(DoCLOSE)" << std::endl;
     SendRST(sFlowIdx);
     CloseAndNotifyAllSubflows();
     break;
@@ -3705,7 +3705,7 @@ MpTcpSocketBase::compute_a_scaled()
       uint32_t cwnd = sFlow->m_inFastRec ? sFlow->ssthresh : sFlow->cwnd.Get();
       uint32_t mss = sFlow->MSS;
 
-      t = max(t, (uint64_t) cwnd * mss * mss / rtt / rtt);
+      t = std::max(t, (uint64_t) cwnd * mss * mss / rtt / rtt);
       sum_denominator += cwnd * mss / rtt;
       cwndSum += cwnd;
     }
@@ -4057,13 +4057,13 @@ MpTcpSocketBase::SetFlowId(uint32_t fd)
 }
 
 void
-MpTcpSocketBase::SetFlowType(string input)
+MpTcpSocketBase::SetFlowType(std::string input)
 {
   flowType = input;
 }
 
 void
-MpTcpSocketBase::SetOutputFileName(string input)
+MpTcpSocketBase::SetOutputFileName(std::string input)
 {
   outputFileName = input;
 }
@@ -4105,14 +4105,14 @@ MpTcpSocketBase::getQueuePkt(Ipv4Address addr)
 void
 MpTcpSocketBase::GeneratePlotsOutput()
 {
-  stringstream oss;
+  std::stringstream oss;
   //oss << "PLOT_" << m_node->GetId() << "_" << flowId << "_" << GetTypeIdName() <<"_"<< PrintCC(AlgoCC) <<"_"<< (int)maxSubflows << "_" << (uint32_t)Simulator::Now().GetSeconds();
   oss << "PLOT_" << PrintCC(AlgoCC) << "_" << (uint32_t)Simulator::Now().GetSeconds() <<"_"<< (int)maxSubflows << "_" << GetTypeIdName() <<"_" << m_node->GetId() << "_" << flowId <<"_" << m_rGap;
-  string tmp = oss.str();
+  std::string tmp = oss.str();
   oss.clear();
 //  std::ofstream outfile(oss.str().c_str());
   Ptr<OutputStreamWrapper> stream = Create<OutputStreamWrapper>(tmp.c_str(), std::ios::out);
-  ostream* os = stream->GetStream();
+  std::ostream* os = stream->GetStream();
   gnu.GenerateOutput(*os);
 //  oss.str("");
 //  outfile.close();
@@ -4140,10 +4140,10 @@ MpTcpSocketBase::GetRandom(uint32_t min, uint32_t max)
 }
 
 //NONE = 0, FIN = 1, SYN = 2, RST = 4, PSH = 8, ACK = 16, URG = 32, ECE = 64, CWR = 128
-string
+std::string
 MpTcpSocketBase::TcpFlagPrinter(uint8_t flag)
 {
-  ostringstream oss;
+  std::ostringstream oss;
   oss << "[";
   if (flag & MPTcpHeader::SYN)
     oss << " SYN ";
@@ -4156,7 +4156,7 @@ MpTcpSocketBase::TcpFlagPrinter(uint8_t flag)
   if (flag & MPTcpHeader::NONE)
     oss << " NONE";
   oss << "]";
-  string tmp = oss.str();
+  std::string tmp = oss.str();
   oss.str("");
   return tmp;
 }
@@ -4176,10 +4176,10 @@ MpTcpSocketBase::drand()
   return d;
 }
 
-string
+std::string
 MpTcpSocketBase::GetTypeIdName()
 {
-  string tmp = this->GetTypeId().GetName();
+  std::string tmp = this->GetTypeId().GetName();
   if (tmp.compare("ns3::MpTcpSocketBase") == 0)
     return "MPTCP";
   else
@@ -4215,7 +4215,7 @@ MpTcpSocketBase::IsLastAck()
 
       if (pktCount == 0)
         {
-          cerr << "[" << m_node->GetId() << ":" << flowId << " -> pktCount is zero!" << endl;
+          std::cerr << "[" << m_node->GetId() << ":" << flowId << " -> pktCount is zero!" << std::endl;
         }
 
       if (dataLeft == 0)

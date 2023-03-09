@@ -93,7 +93,7 @@ MpTcpSubFlow::~MpTcpSubFlow()
   cwnd = 0;
   maxSeqNb = 0;
   highestAck = 0;
-  for (list<DSNMapping *>::iterator it = mapDSN.begin(); it != mapDSN.end(); ++it)
+  for (std::list<DSNMapping *>::iterator it = mapDSN.begin(); it != mapDSN.end(); ++it)
     {
       DSNMapping * ptrDSN = *it;
       delete ptrDSN;
@@ -108,7 +108,7 @@ MpTcpSubFlow::Finished(void)
 }
 
 void
-MpTcpSubFlow::StartTracing(string traced)
+MpTcpSubFlow::StartTracing(std::string traced)
 {
   //NS_LOG_UNCOND("("<< routeId << ") MpTcpSubFlow -> starting tracing of: "<< traced);
   TraceConnectWithoutContext(traced, MakeCallback(&MpTcpSubFlow::CwndTracer, this)); //"CongestionWindow"
@@ -118,10 +118,10 @@ void
 MpTcpSubFlow::CwndTracer(uint32_t oldval, uint32_t newval)
 {
   //NS_LOG_UNCOND("Subflow "<< routeId <<": Moving cwnd from " << oldval << " to " << newval);
-  cwndTracer.push_back(make_pair(Simulator::Now().GetSeconds(), newval));
-  sstTracer.push_back(make_pair(Simulator::Now().GetSeconds(), ssthresh));
-  rttTracer.push_back(make_pair(Simulator::Now().GetSeconds(), rtt->GetCurrentEstimate().GetMilliSeconds()));
-  rtoTracer.push_back(make_pair(Simulator::Now().GetSeconds(), rtt->RetransmitTimeout().GetMilliSeconds()));
+  cwndTracer.push_back(std::make_pair(Simulator::Now().GetSeconds(), newval));
+  sstTracer.push_back(std::make_pair(Simulator::Now().GetSeconds(), ssthresh));
+  rttTracer.push_back(std::make_pair(Simulator::Now().GetSeconds(), rtt->GetCurrentEstimate().GetMilliSeconds()));
+  rtoTracer.push_back(std::make_pair(Simulator::Now().GetSeconds(), rtt->RetransmitTimeout().GetMilliSeconds()));
 }
 
 void
@@ -147,7 +147,7 @@ MpTcpSubFlow::GetunAckPkt()
 {
   NS_LOG_FUNCTION(this);
   DSNMapping * ptrDSN = 0;
-  for (list<DSNMapping *>::iterator it = mapDSN.begin(); it != mapDSN.end(); ++it)
+  for (std::list<DSNMapping *>::iterator it = mapDSN.begin(); it != mapDSN.end(); ++it)
     {
       DSNMapping * ptr = *it;
       if (ptr->subflowSeqNumber == highestAck + 1)

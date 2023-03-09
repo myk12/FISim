@@ -31,8 +31,6 @@
 #include "mp-tcp-option.h"
 #include "tcp-header.h"
 
-using namespace std;
-
 namespace ns3
 {
 /**
@@ -65,8 +63,8 @@ public:
   uint8_t GetPaddingLength() const;
   uint8_t TcpOptionToUint(TcpOption_t opt) const;
   TcpOption_t UintToTcpOption(uint8_t kind) const;
-  vector<TcpOptions*> GetOptions(void) const;
-  void SetOptions(vector<TcpOptions*> opt);
+  std::vector<TcpOptions*> GetOptions(void) const;
+  void SetOptions(std::vector<TcpOptions*> opt);
   //--------------------------------------------
   /**
    * \brief Enable checksum calculation for TCP
@@ -267,7 +265,7 @@ private:
   bool m_goodChecksum;    //!< Flag to indicate that checksum is correct
 
   // MPTCP related variables------------
-  vector<TcpOptions*> m_option;
+  std::vector<TcpOptions*> m_option;
   uint8_t oLen;
   uint8_t pLen;
   bool original;

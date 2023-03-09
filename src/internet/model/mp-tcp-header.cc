@@ -546,14 +546,14 @@ MPTcpHeader::SetOptionsLength(uint8_t length)
   oLen = length;
 }
 
-vector<TcpOptions*>
+std::vector<TcpOptions*>
 MPTcpHeader::GetOptions(void) const
 {
   return m_option;
 }
 
 void
-MPTcpHeader::SetOptions(vector<TcpOptions*> opt)
+MPTcpHeader::SetOptions(std::vector<TcpOptions*> opt)
 {
   m_option = opt;
 }
