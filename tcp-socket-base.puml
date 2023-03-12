@@ -1,0 +1,37 @@
+@startuml
+interface Socket
+interface TcpSocket
+class TcpSocketBase
+{
+    - m_tcb
+    - m_tcp
+    
+    + Bind()
+    + Listen()
+    + Connect()
+    + Close()
+    + Send()
+    + Recv()
+    # ForwardUp()
+}
+class Node
+class TcpL4Protocol
+class RttEstimator
+class TcpSocketState
+class TcpRxBuffer
+{
+    + Extract()
+}
+class TcpTxBuffer
+
+Socket <|-- TcpSocket
+TcpSocket <|-- TcpSocketBase
+TcpSocketBase o-- Node
+TcpSocketBase o-- TcpL4Protocol
+TcpSocketBase o-- RttEstimator
+TcpSocketBase *-- TcpTxBuffer
+TcpSocketBase *-- TcpSocketState
+TcpSocketState *-- TcpRxBuffer
+
+
+@enduml
