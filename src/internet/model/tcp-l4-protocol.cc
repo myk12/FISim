@@ -34,6 +34,8 @@
 #include "tcp-recovery-ops.h"
 #include "tcp-socket-base.h"
 #include "tcp-socket-factory-impl.h"
+#include "mp-tcp-socket-factory-impl.h"
+#include "mp-tcp-socket-base.h"
 
 #include "ns3/assert.h"
 #include "ns3/boolean.h"
@@ -132,8 +134,13 @@ TcpL4Protocol::NotifyNewAggregate()
         {
             this->SetNode(node);
             Ptr<TcpSocketFactoryImpl> tcpFactory = CreateObject<TcpSocketFactoryImpl>();
+            Ptr<MpTcpSocketFactoryImpl> mptcpFactory = CreateObject<MpTcpSocketFactoryImpl>();
             tcpFactory->SetTcp(this);
+            mptcpFactory->SetTcp(this);
             node->AggregateObject(tcpFactory);
+            node->AggregateObject(mptcpFactory);
+            NS_LOG_UNCOND("Aha! Here We aggregate the TcpSocketFactoryImpl.");
+            NS_LOG_UNCOND("Unfortunately, We still don't know when and by who this function is called.");
         }
     }
 
@@ -203,7 +210,7 @@ TcpL4Protocol::CreateSocket(TypeId congestionTypeId, TypeId recoveryTypeId)
     recoveryAlgorithmFactory.SetTypeId(recoveryTypeId);
 
     Ptr<RttEstimator> rtt = rttFactory.Create<RttEstimator>();
-    Ptr<TcpSocketBase> socket = CreateObject<TcpSocketBase>();
+    Ptr<MpTcpSocketBase> socket = CreateObject<MpTcpSocketBase>();
     Ptr<TcpCongestionOps> algo = congestionAlgorithmFactory.Create<TcpCongestionOps>();
     Ptr<TcpRecoveryOps> recovery = recoveryAlgorithmFactory.Create<TcpRecoveryOps>();
 

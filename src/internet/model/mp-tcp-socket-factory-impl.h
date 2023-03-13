@@ -8,16 +8,23 @@ namespace ns3
 
 class TcpL4Protocol;
 
+/**
+ * \ingroup socket
+ * \ingroup tcp
+ * 
+ * \brief socket factory implementation for Multipath TCP
+*/
 class MpTcpSocketFactoryImpl : public MpTcpSocketFactory
 {
 public:
   MpTcpSocketFactoryImpl();
-  virtual ~MpTcpSocketFactoryImpl();
+  ~MpTcpSocketFactoryImpl() override;
+
   void SetTcp(Ptr<TcpL4Protocol>);
-  virtual Ptr<Socket> CreateSocket();
+  Ptr<Socket> CreateSocket() override;
 
 protected:
-  virtual void DoDispose();
+  void DoDispose() override;
 
 private:
   Ptr<TcpL4Protocol> m_mptcp;

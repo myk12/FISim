@@ -9,29 +9,31 @@ namespace ns3
 {
 
 MpTcpSocketFactoryImpl::MpTcpSocketFactoryImpl() :
-    m_mptcp(0)
+    m_mptcp(nullptr)
 {
 }
 
 MpTcpSocketFactoryImpl::~MpTcpSocketFactoryImpl()
 {
-  NS_ASSERT(m_mptcp == nullptr);
+  NS_ASSERT(!m_mptcp);
 }
 
 void
-MpTcpSocketFactoryImpl::SetTcp(Ptr<TcpL4Protocol> mptcp){
+MpTcpSocketFactoryImpl::SetTcp(Ptr<TcpL4Protocol> mptcp)
+{
   m_mptcp = mptcp;
 }
 
 Ptr<Socket>
-MpTcpSocketFactoryImpl::CreateSocket(void){
+MpTcpSocketFactoryImpl::CreateSocket(){
+  NS_LOG_UNCOND("+ + Right call!");
   return m_mptcp->CreateSocket();
 }
 
 void
-MpTcpSocketFactoryImpl::DoDispose (void)
+MpTcpSocketFactoryImpl::DoDispose ()
 {
-  m_mptcp = 0;
+  m_mptcp = nullptr;
   MpTcpSocketFactory::DoDispose ();
 }
 

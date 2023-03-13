@@ -9,7 +9,8 @@ TypeId
 MpTcpSocketFactory::GetTypeId(void)
 {
   static TypeId tid = TypeId("ns3::MpTcpSocketFactory")
-      .SetParent<SocketFactory>();
+      .SetParent<TcpSocketFactory>()
+      .SetGroupName("Internet");
   return tid;
 }
 

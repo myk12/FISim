@@ -733,9 +733,9 @@ MpTcpSocketBase::ProcessWait(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTcpHe
       return;
     }
   // Check if the close responder sent an in-sequence FIN, if so, respond ACK
-  if ((sFlow->state == FIN_WAIT_1 || sFlow->state == FIN_WAIT_2) && sFlow->Finished())
+  if ((sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_1 || sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_2) && sFlow->Finished())
     {
-      if (sFlow->state == FIN_WAIT_1)
+      if (sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_1)
         {
           NS_LOG_INFO ("("<< (int) sFlowIdx <<") FIN_WAIT_1 -> CLOSING {ProcessWait}");
           sFlow->state = MpTcpSubFlow::TcpStates_t::CLOSING;
@@ -744,7 +744,7 @@ MpTcpSocketBase::ProcessWait(uint8_t sFlowIdx, Ptr<Packet> packet, const MPTcpHe
               TimeWait(sFlowIdx);
             }
         }
-      else if (sFlow->state == FIN_WAIT_2)
+      else if (sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_2)
         {
           TimeWait(sFlowIdx);
         }
@@ -784,7 +784,7 @@ MpTcpSocketBase::CancelAllSubflowTimers(void)
   for (uint32_t i = 0; i < subflows.size(); i++)
     {
       Ptr<MpTcpSubFlow> sFlow = subflows[i];
-      if (sFlow->state != CLOSED)
+      if (sFlow->state != MpTcpSubFlow::TcpStates_t::CLOSED)
         {
           sFlow->retxEvent.Cancel();
           sFlow->m_lastAckEvent.Cancel();
@@ -1232,7 +1232,7 @@ MpTcpSocketBase::SendAllSubflowsFIN(void)
       for (SubflowCI = subflows.begin(); SubflowCI != subflows.end(); ++SubflowCI)
         {
           Ptr<MpTcpSubFlow> sFlow = *SubflowCI;
-          if (sFlow->state == ESTABLISHED)
+          if (sFlow->state == MpTcpSubFlow::TcpStates_t::ESTABLISHED)
             {
               NS_LOG_DEBUG(this << " " << Simulator::Now().GetSeconds() << " FIN has been sent to this subflow: " << sFlow->routeId << " nextTxSeqNumber: " << nextTxSequence << " CurrentSubflow: " << (int)currentSublow);
               if (I == 0)
@@ -1267,7 +1267,7 @@ MpTcpSocketBase::DoRetransmit(uint8_t sFlowIdx)
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
 
   // Retransmit SYN packet
-  if (sFlow->state == SYN_SENT)
+  if (sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT)
     {
 //      if (sFlow->cnCount > 0)
 //        {
@@ -1284,7 +1284,7 @@ MpTcpSocketBase::DoRetransmit(uint8_t sFlowIdx)
   // Retransmit non-data packet: Only if in FIN_WAIT_1 or CLOSING state
   if (sendingBuffer.Empty() && sFlow->mapDSN.size() == 0)
     {
-      if (sFlow->state == FIN_WAIT_1 || sFlow->state == CLOSING)
+      if (sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_1 || sFlow->state == MpTcpSubFlow::TcpStates_t::CLOSING)
         { // Must have lost FIN, re-send
           NS_LOG_UNCOND("DoRetransmit -> Resent FIN... TxSeqNumber: " << sFlow->TxSeqNumber);
           SendEmptyPacket(sFlowIdx, MPTcpHeader::FIN);
@@ -1604,7 +1604,7 @@ MpTcpSocketBase::Bind()
   NS_LOG_FUNCTION (this);
   client = true;
   m_endPoint = m_tcp->Allocate();  // Create endPoint with ephemeralPort.
-  if (0 == m_endPoint)
+  if (0  == m_endPoint)
     {
       m_errno = ERROR_ADDRNOTAVAIL;
       return -1;
@@ -1753,7 +1753,7 @@ MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
       // Search for a subflow with available windows
       for (uint32_t i = 0; i < subflows.size(); i++)
         {
-          if (subflows[lastUsedsFlowIdx]->state != ESTABLISHED)
+          if (subflows[lastUsedsFlowIdx]->state != MpTcpSubFlow::TcpStates_t::ESTABLISHED)
             continue;
           window = std::min(AvailableWindow(lastUsedsFlowIdx), sendingBuffer.PendingData()); // Get available window size
           if (window == 0)
@@ -1775,7 +1775,7 @@ MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
       sFlow = subflows[lastUsedsFlowIdx];
 
       // By this condition only connection initiator can send data need to be change though!
-      if (sFlow->state == ESTABLISHED)
+      if (sFlow->state == MpTcpSubFlow::TcpStates_t::ESTABLISHED)
         {
           currentSublow = sFlow->routeId;
           uint32_t s = std::min(window, sFlow->MSS);  // Send no more than window
@@ -1833,7 +1833,7 @@ MpTcpSocketBase::ReTxTimeout(uint8_t sFlowIdx)
   NS_LOG_INFO ("Subflow ("<<(int)sFlowIdx<<") ReTxTimeout Expired at time "<<Simulator::Now ().GetSeconds()<< " unacked packets count is "<<sFlow->mapDSN.size() << " sFlow->state: " << TcpStateName[sFlow->state]); //
   //NS_LOG_INFO("TxSeqNb: " << sFlow->TxSeqNumber << " HighestAck: " << sFlow->highestAck);
   // If erroneous timeout in closed/timed-wait state, just return
-  if (sFlow->state == CLOSED || sFlow->state == TIME_WAIT)
+  if (sFlow->state == MpTcpSubFlow::TcpStates_t::CLOSED || sFlow->state == MpTcpSubFlow::TcpStates_t::TIME_WAIT)
     {
       NS_LOG_INFO("RETURN");
       //NS_ASSERT(3!=3);
@@ -1841,7 +1841,7 @@ MpTcpSocketBase::ReTxTimeout(uint8_t sFlowIdx)
     }
   // If all data are received (non-closing socket and nothing to send), just return
   // if (m_state <= ESTABLISHED && m_txBuffer.HeadSequence() >= m_highTxMark)
-  if (sFlow->state <= ESTABLISHED && sFlow->mapDSN.size() == 0)
+  if (sFlow->state <= MpTcpSubFlow::TcpStates_t::ESTABLISHED && sFlow->mapDSN.size() == 0)
     {
       NS_LOG_INFO("ReTxTimeOut(" << (int)sFlowIdx << ") -> " << TcpStateName[sFlow->state]);
       //NS_ASSERT(3!=3); // DANGEROUS
@@ -2031,7 +2031,7 @@ MpTcpSocketBase::NewAckNewReno(uint8_t sFlowIdx, const MPTcpHeader& mptcpHeader,
 #endif
     }
 
-  if (!(sFlow->mapDSN.size() == 0 && sendingBuffer.Empty() && sFlow->state == FIN_WAIT_1))
+  if (!(sFlow->mapDSN.size() == 0 && sendingBuffer.Empty() && sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_1))
     // MPTCP various congestion control algorithms...
     OpenCWND(sFlowIdx, ackedBytes);
 
@@ -2065,7 +2065,7 @@ MpTcpSocketBase::NewACK(uint8_t sFlowIdx, const MPTcpHeader& mptcpHeader, TcpOpt
       sFlow->TxSeqNumber = ack; // If advanced
     }
 
-  if (sendingBuffer.Empty() && sFlow->mapDSN.size() == 0 && sFlow->state != FIN_WAIT_1 && sFlow->state != CLOSING)
+  if (sendingBuffer.Empty() && sFlow->mapDSN.size() == 0 && sFlow->state != MpTcpSubFlow::TcpStates_t::FIN_WAIT_1 && sFlow->state != MpTcpSubFlow::TcpStates_t::CLOSING)
     { // No retransmit timer if no data to retransmit
       NS_LOG_INFO ("("<< (int)sFlow->routeId << ") NewAck -> Cancelled ReTxTimeout event which was set to expire at " << (Simulator::Now () + Simulator::GetDelayLeft (sFlow->retxEvent)).GetSeconds () << ", DSNmap: " << sFlow->mapDSN.size());
       sFlow->retxEvent.Cancel();
@@ -2153,7 +2153,7 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
           NS_LOG_UNCOND(Simulator::Now().GetSeconds() << " ["<< m_node->GetId() << "] ("<< (int)sFlow->routeId<< ") " << flowType << " SendEmptyPacket -> backoffCount: " << backoffCount << " RTO: " << RTO.GetSeconds() << " cnTimeout: " << sFlow->cnTimeout.GetSeconds() <<" cnCount: "<< sFlow->cnCount);
         }
     }
-  if (((sFlow->state == SYN_SENT) || (sFlow->state == SYN_RCVD && mpEnabled == true)) && mpSendState == MP_NONE)
+  if (((sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT) || (sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_RCVD && mpEnabled == true)) && mpSendState == MP_NONE)
     {
       mpSendState = MP_MPC;                  // This state means MP_MPC is sent
       do
@@ -2173,12 +2173,12 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
                     << m_endPoint
                     << " TokenMapsSize: "<< m_tcp->GetTokenMapSize());
     }
-  else if ((sFlow->state == SYN_SENT && hasSyn && sFlow->routeId == 0)/* || (sFlow->state == SYN_RCVD && hasSyn && sFlow->routeId == 0)*/)
+  else if ((sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT && hasSyn && sFlow->routeId == 0)/* || (sFlow->state == SYN_RCVD && hasSyn && sFlow->routeId == 0)*/)
     {
       header.AddOptMPC(OPT_MPC, localToken);       // Adding MP_CAPABLE & Token to TCP option (5 Bytes)
       olen += 5;
     }
-  else if (sFlow->state == SYN_SENT && hasSyn && sFlow->routeId != 0)
+  else if (sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT && hasSyn && sFlow->routeId != 0)
     {
       header.AddOptJOIN(OPT_JOIN, remoteToken, 0); // addID should be zero?
       olen += 6;
@@ -3069,7 +3069,7 @@ MpTcpSocketBase::PeerClose(uint8_t sFlowIdx, Ptr<Packet> p, const MPTcpHeader& m
     }
 
   // Simultaneous close: Application invoked Close() when we are processing this FIN packet
-  if (sFlow->state == FIN_WAIT_1)
+  if (sFlow->state == MpTcpSubFlow::TcpStates_t::FIN_WAIT_1)
     {  // This is not expecting this to happens... as our implementation is not bidirectional.
       NS_LOG_INFO ("("<< (int) sFlow->routeId << ") FIN_WAIT_1 -> CLOSING {Simultaneous close}");
       sFlow->state = MpTcpSubFlow::TcpStates_t::CLOSING;
@@ -3086,7 +3086,7 @@ MpTcpSocketBase::DoPeerClose(uint8_t sFlowIdx)
 {
   NS_LOG_FUNCTION((int)sFlowIdx);
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
-  NS_ASSERT(sFlow->state == ESTABLISHED || sFlow->state == SYN_RCVD);
+  NS_ASSERT(sFlow->state == MpTcpSubFlow::TcpStates_t::ESTABLISHED || sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_RCVD);
   /*
    * Receiver gets in-sequence FIN packet from sender.
    * It sends ACK for it and also send its own FIN at the same time since our implementation is unidirectional
@@ -3097,7 +3097,7 @@ MpTcpSocketBase::DoPeerClose(uint8_t sFlowIdx)
   sFlow->state = MpTcpSubFlow::TcpStates_t::CLOSE_WAIT;
   Close(sFlowIdx); // This would cause simultaneous close since receiver also want to close when she got FIN.
 
-  if (sFlow->state == LAST_ACK)
+  if (sFlow->state == MpTcpSubFlow::TcpStates_t::LAST_ACK)
     {
       NS_LOG_LOGIC ("MpTcpSocketBase " << this << " scheduling LATO1");
       sFlow->m_lastAckEvent = Simulator::Schedule(sFlow->rtt->RetransmitTimeout(), &MpTcpSocketBase::LastAckTimeout, this,
@@ -3135,7 +3135,7 @@ MpTcpSocketBase::LastAckTimeout(uint8_t sFlowIdx)
   NS_LOG_FUNCTION (this);
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
   sFlow->m_lastAckEvent.Cancel();
-  if (sFlow->state == LAST_ACK)
+  if (sFlow->state == MpTcpSubFlow::TcpStates_t::LAST_ACK)
     {
       NS_LOG_INFO("(" << (int) sFlow->routeId << ") LAST_ACK -> CLOSED {LastAckTimeout}");
       CloseAndNotify(sFlowIdx);
@@ -3198,7 +3198,7 @@ MpTcpSocketBase::CloseAndNotify(uint8_t sFlowIdx)
 //    {
 //      NotifyNormalClose();
 //    }
-  if (sFlow->state != TIME_WAIT)
+  if (sFlow->state != MpTcpSubFlow::TcpStates_t::TIME_WAIT)
     {
       NS_LOG_INFO("("<< (int)sFlowIdx << ") CloseAndNotify -> DeallocateEndPoint()");
       DeallocateEndPoint(sFlowIdx);
@@ -3360,9 +3360,9 @@ MpTcpSocketBase::CloseMultipathConnection()
     {
       NS_LOG_LOGIC("Subflow (" << i << ") TxSeqNb (" << subflows[i]->TxSeqNumber << ") RxSeqNb = " << subflows[i]->RxSeqNumber << " highestAck (" << subflows[i]->highestAck << ") maxSeqNb (" << subflows[i]->maxSeqNb << ")");
 
-      if (subflows[i]->state == CLOSED)
+      if (subflows[i]->state == MpTcpSubFlow::TcpStates_t::CLOSED)
         cpt++;
-      if (subflows[i]->state == TIME_WAIT)
+      if (subflows[i]->state == MpTcpSubFlow::TcpStates_t::TIME_WAIT)
         {
           NS_LOG_INFO("("<< (int)subflows[i]->routeId<< ") "<< TcpStateName[subflows[i]->state] << " -> CLOSED {CloseMultipathConnection}");
           subflows[i]->state = MpTcpSubFlow::TcpStates_t::CLOSED;
@@ -4203,7 +4203,7 @@ void
 MpTcpSocketBase::IsLastAck()
 {
   assert (client);
-  if ((subflows[0]->state >= FIN_WAIT_1 || subflows[0]->state == CLOSED) && flowCompletionTime)
+  if ((subflows[0]->state >= MpTcpSubFlow::TcpStates_t::FIN_WAIT_1 || subflows[0]->state == MpTcpSubFlow::TcpStates_t::CLOSED) && flowCompletionTime)
     {
       int dataLeft = 0;
       int pktCount = 0;

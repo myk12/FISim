@@ -7,6 +7,8 @@ build_lib(
     helper/three-gpp-http-helper.cc
     helper/udp-client-server-helper.cc
     helper/udp-echo-helper.cc
+    helper/mp-tcp-bulk-send-helper.cc
+    helper/mp-tcp-packet-sink-helper.cc
     model/application-packet-probe.cc
     model/bulk-send-application.cc
     model/onoff-application.cc
@@ -24,6 +26,8 @@ build_lib(
     model/udp-echo-server.cc
     model/udp-server.cc
     model/udp-trace-client.cc
+    model/mp-tcp-bulk-send-application.cc
+    model/mp-tcp-packet-sink.cc
   HEADER_FILES
     helper/bulk-send-helper.h
     helper/on-off-helper.h
@@ -31,6 +35,8 @@ build_lib(
     helper/three-gpp-http-helper.h
     helper/udp-client-server-helper.h
     helper/udp-echo-helper.h
+    helper/mp-tcp-bulk-send-helper.h
+    helper/mp-tcp-packet-sink-helper.h
     model/application-packet-probe.h
     model/bulk-send-application.h
     model/onoff-application.h
@@ -48,6 +54,8 @@ build_lib(
     model/udp-echo-server.h
     model/udp-server.h
     model/udp-trace-client.h
+    model/mp-tcp-bulk-send-application.h
+    model/mp-tcp-packet-sink.h
   LIBRARIES_TO_LINK ${libinternet}
                     ${libstats}
   TEST_SOURCES
