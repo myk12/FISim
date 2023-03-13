@@ -15,6 +15,7 @@ class Cybertwin : public Application
 {
   public:
     Cybertwin();
+    Cybertwin(InitCybertwinCallback);
     ~Cybertwin();
 
     static TypeId GetTypeId();
@@ -41,6 +42,7 @@ class Cybertwin : public Application
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
 
     CYBERTWINID_t m_cybertwinId;
+    InitCybertwinCallback m_initCallback;
 
     Ptr<Socket> m_localSocket;
     Ptr<Socket> m_globalSocket;
@@ -50,8 +52,6 @@ class Cybertwin : public Application
 
     uint16_t m_localPort;
     uint16_t m_globalPort;
-
-    bool isInitialized{false};
 };
 
 } // namespace ns3

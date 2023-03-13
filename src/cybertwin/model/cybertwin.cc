@@ -50,6 +50,15 @@ Cybertwin::Cybertwin()
       m_globalSocket(nullptr)
 {
     NS_LOG_FUNCTION(this);
+    m_initCallback.Nullify();
+}
+
+Cybertwin::Cybertwin(InitCybertwinCallback initCallback)
+    : m_initCallback(initCallback),
+      m_localSocket(nullptr),
+      m_globalSocket(nullptr)
+{
+    NS_LOG_FUNCTION(this);
 }
 
 Cybertwin::~Cybertwin()
@@ -78,7 +87,7 @@ Cybertwin::StartApplication()
                              << "Started Listening at " << Simulator::Now());
     // TODO: Global socket
     // Temporary, simulate the initialization process
-    Simulator::Schedule(Seconds(1.), &Cybertwin::DoInit, this);
+    Simulator::Schedule(Seconds(3.), &Cybertwin::DoInit, this);
 }
 
 void
@@ -115,7 +124,17 @@ void
 Cybertwin::DoInit()
 {
     NS_LOG_FUNCTION(this);
-    isInitialized = true;
+    // initialized, respond to the client
+    if (m_initCallback.IsNull())
+    {
+        NS_LOG_ERROR(
+            "--[Edge-#" << m_cybertwinId << "]: "
+                        << "Started without notifying the client due to invalid initCallback");
+    }
+    else
+    {
+        m_initCallback();
+    }
 }
 
 void
@@ -136,8 +155,9 @@ bool
 Cybertwin::LocalConnRequestCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("Received connection request at " << Simulator::Now());
-    return isInitialized;
+    NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: Received connection request at "
+                             << Simulator::Now());
+    return true;
 }
 
 void

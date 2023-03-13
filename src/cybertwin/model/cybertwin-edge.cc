@@ -63,12 +63,10 @@ CybertwinController::StartApplication()
         m_socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
         DoSocketMethod(&Socket::Bind, m_socket, m_localAddr, m_localPort);
     }
-    // m_socket->SetRecvCallback(MakeCallback(&CybertwinController::ReceiveFromHost, this));
     m_socket->SetAcceptCallback(MakeCallback(&CybertwinController::HostConnecting, this),
                                 MakeCallback(&CybertwinController::HostConnected, this));
     m_socket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalHostClose, this),
                                 MakeCallback(&CybertwinController::ErrorHostClose, this));
-    m_socket->ShutdownSend();
     m_socket->Listen();
 }
 
@@ -161,23 +159,27 @@ CybertwinController::BornCybertwin(Ptr<Socket> socket, const CybertwinController
         NS_FATAL_ERROR("--[Edge-Ctrl]: TODO, Cybertwin Existed");
     }
 
+    // setup the response header
     CybertwinControllerHeader rspHeader;
     rspHeader.SetCybertwinID(cuid);
     rspHeader.SetCybertwinPort(localPort);
     rspHeader.SetMethod(CYBERTWIN_CONTROLLER_SUCCESS);
 
+    // create response packet
     Ptr<Packet> rspPacket = Create<Packet>(0);
     rspPacket->AddHeader(rspHeader);
 
-    Ptr<Cybertwin> cybertwin = Create<Cybertwin>();
+    // create a callback for cybertwin to call when it is initialized
+    InitCybertwinCallback initCallback;
+    initCallback = MakeBoundCallback(&RespToHost, socket, rspPacket);
+
+    // create a cybertwin
+    Ptr<Cybertwin> cybertwin = Create<Cybertwin>(initCallback);
     cybertwin->Setup(cuid, m_localAddr, localPort, m_localAddr, globalPort);
     m_cybertwinTable[cuid] = cybertwin;
 
-    // by default, the application starts running right away
+    // by default, the application will start running right away
     GetNode()->AddApplication(cybertwin);
-    // respond immediately, let client check if the cybertwin is generated successfully, otherwise
-    // the client stops receiving packets somehow
-    socket->Send(rspPacket);
 }
 
 void

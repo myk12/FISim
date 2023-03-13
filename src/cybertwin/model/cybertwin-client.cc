@@ -297,7 +297,6 @@ void
 CybertwinConnClient::CybertwinConnectFailedCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    Simulator::Schedule(Seconds(1.), &CybertwinConnClient::ConnectCybertwin, this);
 }
 
 void
