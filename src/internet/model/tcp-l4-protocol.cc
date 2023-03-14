@@ -97,7 +97,12 @@ TcpL4Protocol::GetTypeId()
                                           "The list of sockets associated to this protocol.",
                                           ObjectVectorValue(),
                                           MakeObjectVectorAccessor(&TcpL4Protocol::m_sockets),
-                                          MakeObjectVectorChecker<TcpSocketBase>());
+                                          MakeObjectVectorChecker<TcpSocketBase>())
+                            .AddAttribute("EnableMPTCP",
+                                          "Enable the Multipath TCP.",
+                                           BooleanValue(false),
+                                           MakeBooleanAccessor(&TcpL4Protocol::m_enableMPTCP),
+                                           MakeBooleanChecker());
     return tid;
 }
 
@@ -133,14 +138,18 @@ TcpL4Protocol::NotifyNewAggregate()
         if (node && (ipv4 || ipv6))
         {
             this->SetNode(node);
-            Ptr<TcpSocketFactoryImpl> tcpFactory = CreateObject<TcpSocketFactoryImpl>();
-            Ptr<MpTcpSocketFactoryImpl> mptcpFactory = CreateObject<MpTcpSocketFactoryImpl>();
-            tcpFactory->SetTcp(this);
-            mptcpFactory->SetTcp(this);
-            node->AggregateObject(tcpFactory);
-            node->AggregateObject(mptcpFactory);
-            NS_LOG_UNCOND("Aha! Here We aggregate the TcpSocketFactoryImpl.");
-            NS_LOG_UNCOND("Unfortunately, We still don't know when and by who this function is called.");
+            if (m_enableMPTCP)
+            {
+                // using multipath TCP
+                Ptr<MpTcpSocketFactoryImpl> mptcpFactory = CreateObject<MpTcpSocketFactoryImpl>();
+                mptcpFactory->SetTcp(this);
+                node->AggregateObject(mptcpFactory);
+            }else
+            {
+                Ptr<TcpSocketFactoryImpl> tcpFactory = CreateObject<TcpSocketFactoryImpl>();
+                tcpFactory->SetTcp(this);
+                node->AggregateObject(tcpFactory);
+            }
         }
     }
 
@@ -210,18 +219,30 @@ TcpL4Protocol::CreateSocket(TypeId congestionTypeId, TypeId recoveryTypeId)
     recoveryAlgorithmFactory.SetTypeId(recoveryTypeId);
 
     Ptr<RttEstimator> rtt = rttFactory.Create<RttEstimator>();
-    Ptr<MpTcpSocketBase> socket = CreateObject<MpTcpSocketBase>();
     Ptr<TcpCongestionOps> algo = congestionAlgorithmFactory.Create<TcpCongestionOps>();
     Ptr<TcpRecoveryOps> recovery = recoveryAlgorithmFactory.Create<TcpRecoveryOps>();
-
-    socket->SetNode(m_node);
-    socket->SetTcp(this);
-    socket->SetRtt(rtt);
-    socket->SetCongestionControlAlgorithm(algo);
-    socket->SetRecoveryAlgorithm(recovery);
-
-    m_sockets.push_back(socket);
-    return socket;
+    if (m_enableMPTCP)
+    {
+        Ptr<MpTcpSocketBase> socket = CreateObject<MpTcpSocketBase>();
+        socket->SetNode(m_node);
+        socket->SetTcp(this);
+        socket->SetRtt(rtt);
+        socket->SetCongestionControlAlgorithm(algo);
+        socket->SetRecoveryAlgorithm(recovery);
+        m_sockets.push_back(socket);
+        return socket;
+    }else
+    {
+        Ptr<TcpSocketBase> socket = CreateObject<TcpSocketBase>();
+        socket->SetNode(m_node);
+        socket->SetTcp(this);
+        socket->SetRtt(rtt);
+        socket->SetCongestionControlAlgorithm(algo);
+        socket->SetRecoveryAlgorithm(recovery);
+        m_sockets.push_back(socket);
+        return socket;
+    }
+    return nullptr;
 }
 
 Ptr<Socket>

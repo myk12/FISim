@@ -26,7 +26,6 @@ MpTcpSocketFactoryImpl::SetTcp(Ptr<TcpL4Protocol> mptcp)
 
 Ptr<Socket>
 MpTcpSocketFactoryImpl::CreateSocket(){
-  NS_LOG_UNCOND("+ + Right call!");
   return m_mptcp->CreateSocket();
 }
 

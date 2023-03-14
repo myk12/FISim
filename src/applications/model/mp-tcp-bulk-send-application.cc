@@ -171,7 +171,6 @@ void MpTcpBulkSendApplication::StartApplication (void) // Called at time specifi
       //m_socket = DynamicCast<MpTcpSocketBase>(Socket::CreateSocket (GetNode (), m_tid));
       m_socket = DynamicCast<MpTcpSocketBase>(Socket::CreateSocket(GetNode(), MpTcpSocketFactory::GetTypeId()));
       NS_ASSERT(m_socket);
-      NS_LOG_DEBUG("MPTCP bulk send app binding...");
       m_socket->Bind();
       //m_socket->SetMaxSubFlowNumber(m_subflows);
       m_socket->SetFlowType(m_flowType);
@@ -195,7 +194,6 @@ void MpTcpBulkSendApplication::StartApplication (void) // Called at time specifi
           NS_LOG_UNCOND("Connection is failed");
         }
     }
-  NS_LOG_DEBUG("MPTCP bulk send app socket created.");
   if (m_connected)
     {
       SendData ();

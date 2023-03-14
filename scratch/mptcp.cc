@@ -39,10 +39,15 @@ int
 main(int argc, char *argv[])
 {
   LogComponentEnable("MpTcpSocketBase", LOG_ALL);
+  LogComponentEnable("MpTcpSocketBase", LOG_PREFIX_TIME);
   LogComponentEnable("MpTcpPacketSink", LOG_ALL);
+  LogComponentEnable("MpTcpPacketSink", LOG_PREFIX_TIME);
   LogComponentEnable("MpTcpBulkSendApplication", LOG_ALL);
+  LogComponentEnable("MpTcpBulkSendApplication", LOG_PREFIX_TIME);
   LogComponentEnable("Socket", LOG_FUNCTION);
-  LogComponentEnable("TcpL4Protocol", LOG_FUNCTION);
+  LogComponentEnable("Socket", LOG_PREFIX_TIME);
+  LogComponentEnable("TcpL4Protocol", LOG_ALL);
+  LogComponentEnable("TcpL4Protocol", LOG_PREFIX_TIME);
 
   //Config::SetDefault("ns3::Ipv4GlobalRouting::FlowEcmpRouting", BooleanValue(true));
   //Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1400));
@@ -53,6 +58,7 @@ main(int argc, char *argv[])
   Config::SetDefault("ns3::MpTcpSocketBase::MaxSubflows", UintegerValue(8)); // Sink
   Config::SetDefault("ns3::MpTcpSocketBase::CongestionControl", StringValue("RTT_Compensator"));
   Config::SetDefault("ns3::MpTcpSocketBase::PathManagement", StringValue("NdiffPorts"));
+  Config::SetDefault("ns3::TcpL4Protocol::EnableMPTCP", BooleanValue(true));
 
   NodeContainer nodes;
   nodes.Create(2);
@@ -70,6 +76,10 @@ main(int argc, char *argv[])
   Ipv4AddressHelper ipv4;
   ipv4.SetBase("10.1.1.0", "255.255.255.0");
   Ipv4InterfaceContainer i = ipv4.Assign(devices);
+
+  //enable Multipath TCP
+  nodes.Get(0)->GetObject<TcpL4Protocol>()->SetAttribute("EnableMPTCP", BooleanValue(true));
+  nodes.Get(1)->GetObject<TcpL4Protocol>()->SetAttribute("EnableMPTCP", BooleanValue(true));
 
   uint16_t port = 9;
   MpTcpPacketSinkHelper sink("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address::GetAny(), port));

@@ -18,8 +18,8 @@
  * Author: Morteza Kheirkhah <m.kheirkhah@sussex.ac.uk>
  */
 
-#define NS_LOG_APPEND_CONTEXT \
-  std::clog << Simulator::Now ().GetSeconds () << " [node] ";
+//#define NS_LOG_APPEND_CONTEXT
+//  std::clog << "[MpTcpSocketBase, " << __FUNCTION__ <<"] ";
 
 #include <algorithm>
 #include <stdlib.h>
@@ -207,8 +207,8 @@ MpTcpSocketBase::SetupEndpoint()
 {
   NS_LOG_FUNCTION (this);
   Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
-  NS_ASSERT(ipv4 != nullptr);
-  if (ipv4->GetRoutingProtocol() == nullptr)
+  NS_ASSERT(ipv4);
+  if (!ipv4->GetRoutingProtocol())
     {
       NS_FATAL_ERROR("No Ipv4RoutingProtocol in the node");
     }
@@ -227,13 +227,13 @@ MpTcpSocketBase::SetupEndpoint()
   Ptr<NetDevice> oif = m_boundnetdevice; // m_boundnetdevice is allocated to 0 by the default constructor of ns3::Socket.
   route = ipv4->GetRoutingProtocol()->RouteOutput(pkt, header, oif, errno_);
   //route = ipv4->GetRoutingProtocol()->RouteOutput(Ptr<Packet>(), header, oif, errno_);
-  if (route == nullptr)
+  if (!route)
     {
       NS_LOG_LOGIC ("Route to " << m_endPoint->GetPeerAddress () << " does not exist");NS_LOG_ERROR (errno_);
       m_errno = errno_;
       return -1;
-    }NS_LOG_LOGIC ("Route exists");
-
+    }
+  NS_LOG_LOGIC ("Route exists");
   // Setup local address for this endpoint
   m_endPoint->SetLocalAddress(route->GetSource());
   return 0;
@@ -1507,26 +1507,23 @@ int
 MpTcpSocketBase::Connect(Ipv4Address servAddr, uint16_t servPort)
 {
   NS_LOG_FUNCTION(this << servAddr << servPort);  //
-  Ptr<MpTcpSubFlow> sFlow = CreateObject<MpTcpSubFlow>();
-  sFlow->routeId = (subflows.size() == 0 ? 0 : subflows[subflows.size() - 1]->routeId + 1);
-  sFlow->dAddr = servAddr;    // Assigned subflow destination address
-  sFlow->dPort = servPort;    // Assigned subflow destination port
-  m_remoteAddress = servAddr; // MPTCP Connection's remote address
-  m_remotePort = servPort;    // MPTCP Connection's remote port
 
-  if (m_endPoint == 0)
+  // make sure m_endPoint is vaild
+  if (m_endPoint == nullptr)
     {
       if (Bind() == -1) // Bind(), if there is no endpoint for this socket
         {
-          NS_ASSERT(m_endPoint == 0);
+          NS_ASSERT(m_endPoint == nullptr);
           return -1; // Bind() failed.
         }
       // Make sure endpoint is created.
-      NS_ASSERT(m_endPoint != 0);
+      NS_ASSERT(m_endPoint);
     }
+
   // Set up remote addr:port for this endpoint as we knew it from Connect's parameters
   m_endPoint->SetPeer(servAddr, servPort);
 
+  // make sure local address approapriate & there is an route from source to destination
   if (m_endPoint->GetLocalAddress() == "0.0.0.0")
     {
       // Find approapriate local address from the routing protocol for this endpoint.
@@ -1544,6 +1541,14 @@ MpTcpSocketBase::Connect(Ipv4Address servAddr, uint16_t servPort)
           return -1;
         }
     }
+  
+  // create and set subflow
+  Ptr<MpTcpSubFlow> sFlow = CreateObject<MpTcpSubFlow>();
+  sFlow->routeId = (subflows.size() == 0 ? 0 : subflows[subflows.size() - 1]->routeId + 1);
+  sFlow->dAddr = servAddr;    // Assigned subflow destination address
+  sFlow->dPort = servPort;    // Assigned subflow destination port
+  m_remoteAddress = servAddr; // MPTCP Connection's remote address
+  m_remotePort = servPort;    // MPTCP Connection's remote port
 
   // Set up subflow local addrs:port from endpoint
   sFlow->sAddr = m_endPoint->GetLocalAddress();
@@ -1555,7 +1560,7 @@ MpTcpSocketBase::Connect(Ipv4Address servAddr, uint16_t servPort)
   // This is master subsocket (master subflow) then its endpoint is the same as connection endpoint.
   sFlow->m_endPoint = m_endPoint;
   subflows.insert(subflows.end(), sFlow);
-//  m_tcp->m_sockets.push_back(this); //TMP REMOVE
+  //m_tcp->m_sockets.push_back(this); //TMP REMOVE
 
   sFlow->rtt->Reset(); // Dangerous ?!?!?! Not really?
   sFlow->cnTimeout = m_cnTimeout;
@@ -1564,7 +1569,7 @@ MpTcpSocketBase::Connect(Ipv4Address servAddr, uint16_t servPort)
 
 //  if (sFlow->state == CLOSED || sFlow->state == LISTEN || sFlow->state == SYN_SENT || sFlow->state == LAST_ACK || sFlow->state == CLOSE_WAIT)
 //    { // send a SYN packet and change state into SYN_SENT
-  NS_LOG_INFO ("("<< (int)sFlow->routeId << ") "<< TcpStateName[sFlow->state] << " -> SYN_SENT");
+  NS_LOG_INFO ("SubFlow["<< (int)sFlow->routeId << "] status: "<< TcpStateName[sFlow->state] << " -> SYN_SENT");
   m_state = SYN_SENT;
   sFlow->state = MpTcpSubFlow::TcpStates_t::SYN_SENT;  // Subflow state should be change first then SendEmptyPacket...
   SendEmptyPacket(sFlow->routeId, MPTcpHeader::SYN);
@@ -2083,16 +2088,17 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
 {
   NS_LOG_FUNCTION (this << (int)sFlowIdx);
   Ptr<MpTcpSubFlow> sFlow = subflows[sFlowIdx];
-  Ptr<Packet> p = Create<Packet>();
 
-  SequenceNumber32 s = SequenceNumber32(sFlow->TxSeqNumber);
-
-  if (sFlow->m_endPoint == 0)
+  if (sFlow->m_endPoint == nullptr)
     {
       NS_FATAL_ERROR("Failed to send empty packet due to null subflow's endpoint");
       NS_LOG_WARN ("Failed to send empty packet due to null subflow's endpoint");
       return;
     }
+
+  Ptr<Packet> p = Create<Packet>();
+  MPTcpHeader header;
+  SequenceNumber32 s = SequenceNumber32(sFlow->TxSeqNumber);
 
   if (flags & MPTcpHeader::FIN)
     {
@@ -2108,7 +2114,6 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
       ++s;
     }
 
-  MPTcpHeader header;
   uint8_t hlen = 0;
   uint8_t olen = 0;
 
