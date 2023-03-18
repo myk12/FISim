@@ -21,7 +21,7 @@ TcpOptionMpCapable::TcpOptionMpCapable()
 }
 
 TcpOptionMpCapable::TcpOptionMpCapable(uint32_t TxToken)
-    :senderToken(TxToken)
+    : senderToken(TxToken)
 {
 }
 
@@ -55,9 +55,7 @@ uint32_t
 TcpOptionMpCapable::GetSerializedSize() const
 {
     NS_LOG_FUNCTION(this);
-    return 1 + 
-            4; // senderToken
-
+    return 1 + 4; // senderToken
 }
 
 void
@@ -65,7 +63,7 @@ TcpOptionMpCapable::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this);
     Buffer::Iterator i = start;
-    i.WriteU8(GetKind()); //Kind
+    i.WriteU8(GetKind()); // Kind
     i.WriteHtonU32(senderToken);
 }
 
@@ -103,19 +101,18 @@ TcpOptionMpCapable::GetSenderToken() const
     return senderToken;
 }
 
-
 //*********************************************************************
 //*                     Option - Join Connection                      *
 //*********************************************************************
 
-TcpOptionJoinConn::TcpOptionJoinConn():
-    TcpOption()
+TcpOptionJoinConn::TcpOptionJoinConn()
+    : TcpOption()
 {
 }
 
-TcpOptionJoinConn::TcpOptionJoinConn(uint32_t recvToken, uint8_t addrID):
-    receiverToken(recvToken),
-    addrID(addrID)
+TcpOptionJoinConn::TcpOptionJoinConn(uint32_t recvToken, uint8_t addrID)
+    : receiverToken(recvToken),
+      addrID(addrID)
 {
 }
 
@@ -149,9 +146,8 @@ uint32_t
 TcpOptionJoinConn::GetSerializedSize() const
 {
     NS_LOG_FUNCTION(this);
-    return  1 +
-            4 + // receiverToken
-            1;  // addrID
+    return 1 + 4 + // receiverToken
+           1;      // addrID
 }
 
 void
@@ -159,7 +155,7 @@ TcpOptionJoinConn::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this);
     Buffer::Iterator i = start;
-    i.WriteU8(GetKind()); //Kind
+    i.WriteU8(GetKind()); // Kind
     i.WriteHtonU32(receiverToken);
     i.WriteU8(addrID);
 }
@@ -205,7 +201,7 @@ TcpOptionJoinConn::SetAddrID(uint8_t addrID)
     addrID = addrID;
 }
 
-uint8_t 
+uint8_t
 TcpOptionJoinConn::GetAddrID() const
 {
     return addrID;
@@ -214,15 +210,15 @@ TcpOptionJoinConn::GetAddrID() const
 //*********************************************************************
 //*                     Option - Add Address                          *
 //*********************************************************************
- 
-TcpOptionAddAddr::TcpOptionAddAddr():
-    TcpOption()
+
+TcpOptionAddAddr::TcpOptionAddAddr()
+    : TcpOption()
 {
 }
 
-TcpOptionAddAddr::TcpOptionAddAddr(uint8_t addrID, Ipv4Address ipaddr):
-    addrID(addrID),
-    addr(ipaddr)
+TcpOptionAddAddr::TcpOptionAddAddr(uint8_t addrID, Ipv4Address ipaddr)
+    : addrID(addrID),
+      addr(ipaddr)
 {
 }
 
@@ -256,9 +252,8 @@ uint32_t
 TcpOptionAddAddr::GetSerializedSize() const
 {
     NS_LOG_FUNCTION(this);
-    return  1 +
-            4 + // ipv4 address
-            1;  // addrID
+    return 1 + 4 + // ipv4 address
+           1;      // addrID
 }
 
 void
@@ -266,7 +261,7 @@ TcpOptionAddAddr::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this);
     Buffer::Iterator i = start;
-    i.WriteU8(GetKind()); //Kind
+    i.WriteU8(GetKind()); // Kind
     i.WriteU8(addrID);
     i.WriteHtonU32(addr.Get());
 }
@@ -300,7 +295,7 @@ TcpOptionAddAddr::SetAddrID(uint8_t addrID)
     addrID = addrID;
 }
 
-uint8_t 
+uint8_t
 TcpOptionAddAddr::GetAddrID() const
 {
     return addrID;
@@ -317,19 +312,21 @@ TcpOptionAddAddr::GetIpv4Addr() const
 {
     return addr;
 }
-   
+
 //*********************************************************************
 //*                     Option - Data Sequence Mapping                *
 //*********************************************************************
-TcpOptionDataSeqMapping::TcpOptionDataSeqMapping():
-    TcpOption()
+TcpOptionDataSeqMapping::TcpOptionDataSeqMapping()
+    : TcpOption()
 {
 }
 
-TcpOptionDataSeqMapping::TcpOptionDataSeqMapping(uint64_t dataSeq, uint16_t levelLength, uint32_t subflowSeq):
-    dataSeqNumber(dataSeq),
-    dataLevelLength(levelLength),
-    subflowSeqNumber(subflowSeq)
+TcpOptionDataSeqMapping::TcpOptionDataSeqMapping(uint64_t dataSeq,
+                                                 uint16_t levelLength,
+                                                 uint32_t subflowSeq)
+    : dataSeqNumber(dataSeq),
+      dataLevelLength(levelLength),
+      subflowSeqNumber(subflowSeq)
 {
 }
 
@@ -356,17 +353,17 @@ TcpOptionDataSeqMapping::GetInstanceTypeId() const
 void
 TcpOptionDataSeqMapping::Print(std::ostream& os) const
 {
-    os << "OPT_ADDR {" << dataSeqNumber << ", " << dataLevelLength <<", "<< subflowSeqNumber << "}";
+    os << "OPT_ADDR {" << dataSeqNumber << ", " << dataLevelLength << ", " << subflowSeqNumber
+       << "}";
 }
 
 uint32_t
 TcpOptionDataSeqMapping::GetSerializedSize() const
 {
     NS_LOG_FUNCTION(this);
-    return  1+ 
-            8 + // dataSeqNumber
-            2 + // dataLevelLength
-            4;  // subflowSeqNumber
+    return 1 + 8 + // dataSeqNumber
+           2 +     // dataLevelLength
+           4;      // subflowSeqNumber
 }
 
 void
@@ -374,7 +371,7 @@ TcpOptionDataSeqMapping::Serialize(Buffer::Iterator start) const
 {
     NS_LOG_FUNCTION(this);
     Buffer::Iterator i = start;
-    i.WriteU8(GetKind()); //Kind
+    i.WriteU8(GetKind()); // Kind
 
     i.WriteHtonU64(dataSeqNumber);
     i.WriteHtonU16(dataLevelLength);
@@ -412,7 +409,7 @@ TcpOptionDataSeqMapping::SetDataSeqNumber(uint64_t seqNum)
     dataSeqNumber = seqNum;
 }
 
-uint64_t 
+uint64_t
 TcpOptionDataSeqMapping::GetDataSeqNumber() const
 {
     return dataSeqNumber;

@@ -8,13 +8,13 @@ namespace ns3
 {
 /**
  * \ingroup tcp
- * 
+ *
  * Defines the TCP option of MPTCP
-*/
+ */
 
-class TcpOptionMpCapable: public TcpOption
+class TcpOptionMpCapable : public TcpOption
 {
-public:
+  public:
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
 
@@ -31,13 +31,14 @@ public:
 
     void SetSenderToken(uint32_t);
     uint32_t GetSenderToken() const;
-protected:
+
+  protected:
     uint32_t senderToken;
 };
 
-class TcpOptionJoinConn: public TcpOption
+class TcpOptionJoinConn : public TcpOption
 {
-public:
+  public:
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
 
@@ -56,14 +57,15 @@ public:
     uint32_t GetReceiverToken() const;
     void SetAddrID(uint8_t);
     uint8_t GetAddrID() const;
-protected:
+
+  protected:
     uint32_t receiverToken;
     uint8_t addrID;
 };
 
-class TcpOptionAddAddr: public TcpOption
+class TcpOptionAddAddr : public TcpOption
 {
-public:
+  public:
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
 
@@ -82,14 +84,15 @@ public:
     uint8_t GetAddrID() const;
     void SetIpv4Addr(Ipv4Address);
     Ipv4Address GetIpv4Addr() const;
-protected:
+
+  protected:
     uint8_t addrID;
     Ipv4Address addr;
 };
 
-class TcpOptionDataSeqMapping: public TcpOption
+class TcpOptionDataSeqMapping : public TcpOption
 {
-public:
+  public:
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
 
@@ -111,13 +114,12 @@ public:
     void SetSubflowSeqNumber(uint32_t);
     uint32_t GetSubflowSeqNumber() const;
 
-protected:
+  protected:
     uint64_t dataSeqNumber;
     uint16_t dataLevelLength;
     uint32_t subflowSeqNumber;
 };
 
-}
-
+} // namespace ns3
 
 #endif /* TCP_OPTION_MPTCP_H */
