@@ -6,15 +6,10 @@ namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("TcpOptionMultipathTCP");
 
-NS_OBJECT_ENSURE_REGISTERED(TcpOptionMpCapable);
-NS_OBJECT_ENSURE_REGISTERED(TcpOptionJoinConn);
-NS_OBJECT_ENSURE_REGISTERED(TcpOptionAddAddr);
-NS_OBJECT_ENSURE_REGISTERED(TcpOptionDataSeqMapping);
 
 //*********************************************************************
 //*                     Option - Multipath Capable                    *
 //*********************************************************************
-
 TcpOptionMpCapable::TcpOptionMpCapable()
     : TcpOption()
 {
@@ -28,6 +23,8 @@ TcpOptionMpCapable::TcpOptionMpCapable(uint32_t TxToken)
 TcpOptionMpCapable::~TcpOptionMpCapable()
 {
 }
+
+NS_OBJECT_ENSURE_REGISTERED(TcpOptionMpCapable);
 
 TypeId
 TcpOptionMpCapable::GetTypeId()
@@ -105,6 +102,7 @@ TcpOptionMpCapable::GetSenderToken() const
 //*                     Option - Join Connection                      *
 //*********************************************************************
 
+NS_OBJECT_ENSURE_REGISTERED(TcpOptionJoinConn);
 TcpOptionJoinConn::TcpOptionJoinConn()
     : TcpOption()
 {
@@ -211,6 +209,7 @@ TcpOptionJoinConn::GetAddrID() const
 //*                     Option - Add Address                          *
 //*********************************************************************
 
+NS_OBJECT_ENSURE_REGISTERED(TcpOptionAddAddr);
 TcpOptionAddAddr::TcpOptionAddAddr()
     : TcpOption()
 {
@@ -316,6 +315,7 @@ TcpOptionAddAddr::GetIpv4Addr() const
 //*********************************************************************
 //*                     Option - Data Sequence Mapping                *
 //*********************************************************************
+NS_OBJECT_ENSURE_REGISTERED(TcpOptionDataSeqMapping);
 TcpOptionDataSeqMapping::TcpOptionDataSeqMapping()
     : TcpOption()
 {
@@ -400,7 +400,7 @@ TcpOptionDataSeqMapping::Deserialize(Buffer::Iterator start)
 uint8_t
 TcpOptionDataSeqMapping::GetKind() const
 {
-    return TcpOption::ADDR;
+    return TcpOption::DSN;
 }
 
 void

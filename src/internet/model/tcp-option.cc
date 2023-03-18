@@ -24,6 +24,7 @@
 #include "tcp-option-sack.h"
 #include "tcp-option-ts.h"
 #include "tcp-option-winscale.h"
+#include "tcp-option-mptcp.h"
 
 #include "ns3/log.h"
 #include "ns3/type-id.h"
@@ -75,6 +76,10 @@ TcpOption::CreateOption(uint8_t kind)
                                 {TcpOption::WINSCALE, TcpOptionWinScale::GetTypeId()},
                                 {TcpOption::SACKPERMITTED, TcpOptionSackPermitted::GetTypeId()},
                                 {TcpOption::SACK, TcpOptionSack::GetTypeId()},
+                                {TcpOption::MPC, TcpOptionMpCapable::GetTypeId()},
+                                {TcpOption::JOIN, TcpOptionJoinConn::GetTypeId()},
+                                {TcpOption::ADDR, TcpOptionAddAddr::GetTypeId()},
+                                {TcpOption::DSN, TcpOptionDataSeqMapping::GetTypeId()},
                                 {TcpOption::UNKNOWN, TcpOptionUnknown::GetTypeId()}};
 
     for (unsigned int i = 0; i < sizeof(toTid) / sizeof(kindToTid); ++i)

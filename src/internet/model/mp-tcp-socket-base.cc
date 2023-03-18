@@ -1334,20 +1334,6 @@ MpTcpSocketBase::SendDataPacket(uint8_t sFlowIdx, uint32_t size, bool withAck)
         NS_ASSERT(packetSize == ptrDSN->dataLevelLength);
     }
 
-    // FIXME: Now, We don't need to care about the calculation of TCP Header length.
-    // uint8_t hlen = 5;   // 5 --> 32-bit words = 20 Bytes == TcpHeader Size with out any option
-    // uint8_t olen = 15;  // 15 because packet size is 2 bytes in size. 1 + 8 + 2+ 4 = 15
-    // uint8_t olen = 20;
-    // uint8_t plen = 0;
-    // plen = (4 - (olen % 4)) % 4; // (4 - (15 % 4)) 4 => 1
-    // olen = (olen + plen) / 4;    // (15 + 1) / 4 = 4
-    // hlen += olen;
-    // header.SetLength(hlen);
-    // header.SetOptionsLength(olen);
-    // header.SetPaddingLength(plen);
-
-    // NS_LOG_ERROR("hLen: " << (int)hlen << " oLen: " << (int)olen << " pLen: " << (int)plen);
-
     // Check RTO, if expired then reschedule it again.
     SetReTxTimeout(sFlowIdx);
     NS_LOG_LOGIC("Send packet via TcpL4Protocol with flags 0x"
@@ -1524,17 +1510,6 @@ MpTcpSocketBase::DoRetransmit(uint8_t sFlowIdx)
 
     AddOptionDSN(header, ptrDSN->dataSeqNumber, ptrDSN->dataLevelLength, ptrDSN->subflowSeqNumber);
 
-    // FIXME: Now, we don't need to care about the calculation of the length of TCP header.
-    // uint8_t hlen = 5;
-    // uint8_t olen = 20; //uint8_t olen = 15;
-    // uint8_t plen = 0;
-    // plen = (4 - (olen % 4)) % 4;
-    // olen = (olen + plen) / 4;
-    // hlen += olen;
-    // header.SetLength(hlen);
-    // header.SetOptionsLength(olen);
-    // header.SetPaddingLength(plen);
-
     m_tcp->SendPacket(pkt, header, sFlow->sAddr, sFlow->dAddr, FindOutputNetDevice(sFlow->sAddr));
 
     // reset RTO
@@ -1589,19 +1564,6 @@ MpTcpSocketBase::DoRetransmit(uint8_t sFlowIdx, DSNMapping* ptrDSN)
     header.SetWindowSize(AdvertisedWindowSize());
     // Make sure info here comes from ptrDSN...
     AddOptionDSN(header, ptrDSN->dataSeqNumber, ptrDSN->dataLevelLength, ptrDSN->subflowSeqNumber);
-
-    // FIXME: Now, we don't need to care about the calculation of the length of TCP header.
-    // NS_LOG_WARN (Simulator::Now().GetSeconds() <<" RetransmitSegment -> "<< " localToken "<<
-    // localToken<<" Subflow "<<(int) sFlowIdx<<" DataSeq "<< ptrDSN->dataSeqNumber <<" SubflowSeq "
-    // << ptrDSN->subflowSeqNumber <<" dataLength " << ptrDSN->dataLevelLength << " packet size " <<
-    // pkt->GetSize() << " 3DupACK"); uint8_t hlen = 5; uint8_t olen = 20; //uint8_t olen = 15;
-    // uint8_t plen = 0;
-    // plen = (4 - (olen % 4)) % 4;
-    // olen = (olen + plen) / 4;
-    // hlen += olen;
-    // header.SetLength(hlen);
-    // header.SetOptionsLength(olen);
-    // header.SetPaddingLength(plen);
 
     // Send Segment to lower layer
     m_tcp->SendPacket(pkt, header, sFlow->sAddr, sFlow->dAddr, FindOutputNetDevice(sFlow->sAddr));
@@ -2477,9 +2439,7 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
                           << localToken << " -> " << m_endPoint
                           << " TokenMapsSize: " << m_tcp->GetTokenMapSize());
     }
-    else if ((sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT && hasSyn &&
-              sFlow->routeId ==
-                  0) /* || (sFlow->state == SYN_RCVD && hasSyn && sFlow->routeId == 0)*/)
+    else if ((sFlow->state == MpTcpSubFlow::TcpStates_t::SYN_SENT && hasSyn && sFlow->routeId == 0) /* || (sFlow->state == SYN_RCVD && hasSyn && sFlow->routeId == 0)*/)
     {
         AddOptionMPC(header, localToken); // Adding MP_CAPABLE & Token to TCP option (5 Bytes)
     }
@@ -2487,13 +2447,6 @@ MpTcpSocketBase::SendEmptyPacket(uint8_t sFlowIdx, uint8_t flags)
     {
         AddOptionJOIN(header, remoteToken, 0); // addID should be zero?
     }
-
-    // uint8_t plen = (4 - (olen % 4)) % 4;
-    // olen = (olen + plen) / 4;
-    // hlen = 5 + olen;
-    // header.SetLength(hlen);
-    // header.SetOptionsLength(olen);
-    // header.SetPaddingLength(plen);
 
     m_tcp->SendPacket(p, header, sFlow->sAddr, sFlow->dAddr, FindOutputNetDevice(sFlow->sAddr));
     // sFlow->rtt->SentSeq (sFlow->TxSeqNumber, 1);           // notify the RTT
@@ -2794,14 +2747,6 @@ MpTcpSocketBase::InitiateSubflows()
             header.SetDestinationPort(sFlow->dPort);
             header.SetWindowSize(AdvertisedWindowSize());
             AddOptionJOIN(header, remoteToken, addrID);
-            // uint8_t olen = 6;
-            // uint8_t plen = (4 - (olen % 4)) % 4;
-            // olen = (olen + plen) / 4;
-            // uint8_t hlen = 5 + olen;
-            // header.SetLength(hlen);
-            // header.SetOptionsLength(olen);
-            // header.SetPaddingLength(plen);
-            // NS_LOG_ERROR("InitiateSubflow-> hLen: " << (int) hlen);
 
             // Send packet lower down the networking stack
             m_tcp->SendPacket(pkt, header, local, remote, FindOutputNetDevice(local));
@@ -2856,13 +2801,6 @@ MpTcpSocketBase::InitiateSingleSubflows(uint16_t randomPort)
     header.SetWindowSize(AdvertisedWindowSize());
     // header.AddOptJOIN(TcpOption::JOIN, remoteToken, /*addrID*/0);
     AddOptionJOIN(header, remoteToken, 0);
-    // uint8_t olen = 6;
-    // uint8_t plen = (4 - (olen % 4)) % 4;
-    // olen = (olen + plen) / 4;
-    // uint8_t hlen = 5 + olen;
-    // header.SetLength(hlen);
-    // header.SetOptionsLength(olen);
-    // header.SetPaddingLength(plen);
     // NS_LOG_ERROR("InitiateSubflow-> hLen: " << (int) hlen);  //
     // NS_LOG_UNCOND(this << " => "<< Simulator::Now().GetSeconds() <<" [" << m_node->GetId() <<"]
     // (" <<sFlow->routeId << ") InitiateSingleSubflow -> 4-Tuple: " << sFlow->sAddr<< ":"<<
@@ -3887,16 +3825,8 @@ MpTcpSocketBase::AdvertiseAvailableAddresses()
             addrInfo->mask = interfaceAddr.GetMask();
             AddOptionADDR(header, addrInfo->addrID, addrInfo->ipv4Addr);
             // header.AddOptADDR(TcpOption::ADDR, addrInfo->addrID, addrInfo->ipv4Addr);
-            // olen += 6;
             localAddrs.insert(localAddrs.end(), addrInfo);
         }
-        // uint8_t plen = (4 - (olen % 4)) % 4;
-        // header.SetWindowSize(AdvertisedWindowSize());
-        // olen = (olen + plen) / 4;
-        // hlen = 5 + olen;
-        // header.SetLength(hlen);
-        // header.SetOptionsLength(olen);
-        // header.SetPaddingLength(plen);
 
         // m_tcp->SendPacket(pkt, header, m_endPoint->GetLocalAddress(), m_remoteAddress);
         m_tcp->SendPacket(pkt,
