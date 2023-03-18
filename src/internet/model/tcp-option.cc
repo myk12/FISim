@@ -101,6 +101,11 @@ TcpOption::IsKindKnown(uint8_t kind)
     case SACKPERMITTED:
     case SACK:
     case TS:
+    //Multipath TCP option
+    case MPC:
+    case JOIN:
+    case ADDR:
+    case DSN:
         // Do not add UNKNOWN here
         return true;
     }

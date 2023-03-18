@@ -26,12 +26,11 @@
 #include "ns3/gnuplot.h"
 #include "ns3/output-stream-wrapper.h"
 #include "mp-tcp-subflow.h"
-#include "mp-tcp-header.h"
+#include "tcp-option-mptcp.h"
 
-#define A 1
-#define B 2
-#define A_SCALE 512
-
+#define MPTCP_SOCKETBASE_A    (1)
+#define MPTCP_SOCKETBASE_B    (2)
+#define MPTCP_SOCKETBASE_A_SCALE (512)
 namespace ns3
 {
 class Ipv4EndPoint;
@@ -141,7 +140,7 @@ protected: // protected methods
   // MPTCP connection and subflow set up
   int  SetupCallback(void);  // Setup SetRxCallback & SetRxCallback call back for a host
   int  SetupEndpoint (void); // Configure local address for given remote address in a host - it query a routing protocol to find a source
-  void CompleteFork(Ptr<Packet> p, const MPTcpHeader& h, const Address& fromAddress, const Address& toAddress);
+  void CompleteFork(Ptr<Packet> p, const TcpHeader& h, const Address& fromAddress, const Address& toAddress);
   void AdvertiseAvailableAddresses(); // Advertise all addresses to the peer, including the already established address.
   bool InitiateSubflows();            // Initiate new subflows when FullMesh mode is active
   bool InitiateSingleSubflows(uint16_t); // Initiate new subflows when nDiffPorts is active
@@ -156,7 +155,7 @@ protected: // protected methods
   // Connection closing operations
   virtual int DoClose(uint8_t sFlowIdx);
   bool CloseMultipathConnection();      // Close MPTCP connection is possible
-  void PeerClose(uint8_t sFlow, Ptr<Packet> p, const MPTcpHeader& tcpHeader);
+  void PeerClose(uint8_t sFlow, Ptr<Packet> p, const TcpHeader& tcpHeader);
   void DoPeerClose(uint8_t sFlowIdx);
   void CloseAndNotify(uint8_t sFlowIdx);
   void CloseAndNotifyAllSubflows();
@@ -169,15 +168,15 @@ protected: // protected methods
   void TimeWait(uint8_t sFlowIdx);
 
   // State transition functions
-  void ProcessEstablished (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&);
-  void ProcessListen  (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&, const Address&, const Address&);
-  void ProcessListen  (Ptr<Packet>, const MPTcpHeader&, const Address&, const Address&);
-  virtual void ProcessSynSent (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&);
-  void ProcessSynRcvd (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&, const Address&, const Address&);
-  void ProcessWait    (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&);
-  void ProcessClosing (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&);
-  void ProcessLastAck (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&);
-  uint8_t ProcessOption(TcpOptions *opt);
+  void ProcessEstablished (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&);
+  void ProcessListen  (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&, const Address&, const Address&);
+  void ProcessListen  (Ptr<Packet>, const TcpHeader&, const Address&, const Address&);
+  virtual void ProcessSynSent (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&);
+  void ProcessSynRcvd (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&, const Address&, const Address&);
+  void ProcessWait    (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&);
+  void ProcessClosing (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&);
+  void ProcessLastAck (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&);
+  //uint8_t ProcessOption(TcpOptions *opt);
 
   // Window Management
   virtual uint32_t BytesInFlight(uint8_t sFlowIdx);  // Return total bytes in flight of a subflow
@@ -186,16 +185,16 @@ protected: // protected methods
 
   // Manage data Tx/Rx
   virtual Ptr<TcpSocketBase> Fork(void);
-  virtual void ReceivedAck (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&); // Received an ACK packet
-  virtual void ReceivedData (uint8_t sFlowIdx, Ptr<Packet>, const MPTcpHeader&); // Recv of a data, put into buffer, call L7 to get it if necessary
-  virtual void EstimateRtt (uint8_t sFlowIdx, const MPTcpHeader&);
-  virtual void EstimateRtt (const MPTcpHeader&);
-  virtual bool ReadOptions (uint8_t sFlowIdx, Ptr<Packet> pkt, const MPTcpHeader&); // Read option from incoming packets
-  virtual bool ReadOptions (Ptr<Packet> pkt, const MPTcpHeader&); // Read option from incoming packets (Listening Socket only)
-  virtual void DupAck(const MPTcpHeader& t, uint32_t count);  // Not in operation, it's pure virtual function from TcpSocketBase
+  virtual void ReceivedAck (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&); // Received an ACK packet
+  virtual void ReceivedData (uint8_t sFlowIdx, Ptr<Packet>, const TcpHeader&); // Recv of a data, put into buffer, call L7 to get it if necessary
+  virtual void EstimateRtt (uint8_t sFlowIdx, const TcpHeader&);
+  virtual void EstimateRtt (const TcpHeader&);
+  virtual bool ReadOptions (uint8_t sFlowIdx, Ptr<Packet> pkt, const TcpHeader&); // Read option from incoming packets
+  virtual bool ReadOptions (Ptr<Packet> pkt, const TcpHeader&); // Read option from incoming packets (Listening Socket only)
+  virtual void DupAck(const TcpHeader& t, uint32_t count);  // Not in operation, it's pure virtual function from TcpSocketBase
   virtual void DupAck(uint8_t sFlowIdx, DSNMapping * ptrDSN);       // Congestion control algorithms -> loss recovery
-  virtual void NewACK(uint8_t sFlowIdx, const MPTcpHeader&, TcpOptions* opt);
-  void NewAckNewReno(uint8_t sFlowIdx, const MPTcpHeader&, TcpOptions* opt);
+  virtual void NewACK(uint8_t sFlowIdx, const TcpHeader&);
+  void NewAckNewReno(uint8_t sFlowIdx, const TcpHeader&);
   virtual void DoRetransmit (uint8_t sFlowIdx);
   virtual void DoRetransmit (uint8_t sFlowIdx, DSNMapping* ptrDSN);
   void SetReTxTimeout(uint8_t sFlowIdx);
@@ -258,6 +257,12 @@ protected: // protected methods
   uint32_t GetRandom(uint32_t, uint32_t);
   double drand();
   uint32_t GetEstSubflows();
+
+  // Multipaht TCP Options
+  bool AddOptionDSN(TcpHeader &, uint64_t, uint16_t, uint32_t);
+  bool AddOptionMPC(TcpHeader &, uint32_t);
+  bool AddOptionJOIN(TcpHeader &, uint32_t, uint8_t);
+  bool AddOptionADDR(TcpHeader &, uint8_t, Ipv4Address);
 
 protected: // protected variables
 

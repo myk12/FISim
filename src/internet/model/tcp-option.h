@@ -62,6 +62,12 @@ class TcpOption : public Object
         SACKPERMITTED = 4, //!< SACKPERMITTED
         SACK = 5,          //!< SACK
         TS = 8,            //!< TS
+
+        // Multipath TCP option
+        MPC = 30, 
+        JOIN = 31,
+        ADDR = 32,
+        DSN = 34,
         UNKNOWN = 255      //!< not a standardized value; for unknown recv'd options
     };
 

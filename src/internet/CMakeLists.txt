@@ -105,6 +105,7 @@ set(source_files
     model/tcp-option-sack.cc
     model/tcp-option-ts.cc
     model/tcp-option-winscale.cc
+    model/tcp-option-mptcp.cc
     model/tcp-option.cc
     model/tcp-prr-recovery.cc
     model/tcp-rate-ops.cc
@@ -239,6 +240,7 @@ set(header_files
     model/tcp-option-sack.h
     model/tcp-option-ts.h
     model/tcp-option-winscale.h
+    model/tcp-option-mptcp.h
     model/tcp-option.h
     model/tcp-prr-recovery.h
     model/tcp-rate-ops.h
