@@ -353,7 +353,7 @@ TcpOptionDataSeqMapping::GetInstanceTypeId() const
 void
 TcpOptionDataSeqMapping::Print(std::ostream& os) const
 {
-    os << "OPT_ADDR {" << dataSeqNumber << ", " << dataLevelLength << ", " << subflowSeqNumber
+    os << "OPT_DSN {" << dataSeqNumber << ", " << dataLevelLength << ", " << subflowSeqNumber
        << "}";
 }
 

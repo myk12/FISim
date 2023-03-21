@@ -40,18 +40,32 @@ main(int argc, char *argv[])
 {
   LogComponentEnable("MpTcpSocketBase", LOG_ALL);
   LogComponentEnable("MpTcpSocketBase", LOG_PREFIX_TIME);
+  LogComponentEnable("MpTcpTypeDefs", LOG_ALL);
+  LogComponentEnable("MpTcpTypeDefs", LOG_PREFIX_TIME);
   LogComponentEnable("MpTcpPacketSink", LOG_ALL);
   LogComponentEnable("MpTcpPacketSink", LOG_PREFIX_TIME);
   LogComponentEnable("MpTcpBulkSendApplication", LOG_ALL);
   LogComponentEnable("MpTcpBulkSendApplication", LOG_PREFIX_TIME);
-  LogComponentEnable("Socket", LOG_FUNCTION);
-  LogComponentEnable("Socket", LOG_PREFIX_TIME);
-  LogComponentEnable("TcpL4Protocol", LOG_ALL);
-  LogComponentEnable("TcpL4Protocol", LOG_PREFIX_TIME);
+  //LogComponentEnable("Socket", LOG_FUNCTION);
+  //LogComponentEnable("Socket", LOG_PREFIX_TIME);
+  //LogComponentEnable("TcpL4Protocol", LOG_ALL);
+  //LogComponentEnable("TcpL4Protocol", LOG_PREFIX_TIME);
+  //LogComponentEnable("Packet", LOG_ALL);
+  //LogComponentEnable("Packet", LOG_PREFIX_TIME);
+  //LogComponentEnable("Ipv4GlobalRouting", LOG_ALL);
+  //LogComponentEnable("Ipv4GlobalRouting", LOG_PREFIX_TIME);
+  //LogComponentEnable("Ipv4L3Protocol", LOG_ALL);
+  //LogComponentEnable("Ipv4L3Protocol", LOG_PREFIX_TIME);
+  //LogComponentEnable("Ipv4Interface", LOG_ALL);
+  //LogComponentEnable("Ipv4Interface", LOG_PREFIX_TIME);
+  //LogComponentEnable("QueueItem", LOG_ALL);
+  //LogComponentEnable("QueueItem", LOG_PREFIX_TIME);
+  //LogComponentEnable("TcpHeader", LOG_ALL);
+  //LogComponentEnable("TcpHeader", LOG_PREFIX_TIME);
 
   //Config::SetDefault("ns3::Ipv4GlobalRouting::FlowEcmpRouting", BooleanValue(true));
-  //Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1400));
-  //Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(0));
+  Config::SetDefault("ns3::TcpSocket::SegmentSize", UintegerValue(1400));
+  Config::SetDefault("ns3::TcpSocket::DelAckCount", UintegerValue(0));
   //Config::SetDefault("ns3::DropTailQueue::Mode", StringValue("QUEUE_MODE_PACKETS"));
   //Config::SetDefault("ns3::DropTailQueue::MaxPackets", UintegerValue(100));
   //Config::SetDefault("ns3::TcpL4Protocol::SocketType", TypeIdValue(MpTcpSocketBase::GetTypeId()));
@@ -88,7 +102,7 @@ main(int argc, char *argv[])
   sinkApps.Stop(Seconds(10.0));
 
   MpTcpBulkSendHelper source("ns3::TcpSocketFactory", InetSocketAddress(Ipv4Address(i.GetAddress(1)), port));
-  source.SetAttribute("MaxBytes", UintegerValue(0));
+  source.SetAttribute("MaxBytes", UintegerValue(10000));
   ApplicationContainer sourceApps = source.Install(nodes.Get(0));
   sourceApps.Start(Seconds(0.0));
   sourceApps.Stop(Seconds(10.0));

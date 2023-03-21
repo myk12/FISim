@@ -191,7 +191,7 @@ DataBuffer::CreatePacket(uint32_t size)
     if (quantity == 0)
     {
         NS_LOG_INFO("DataBuffer::CreatePacket -> No data ready for sending !");
-        return 0;
+        return nullptr;
     }
     // Copy from front of Buffer to a new uint8_t array pointer
     // uint8_t *ptrBuffer = new uint8_t[quantity];

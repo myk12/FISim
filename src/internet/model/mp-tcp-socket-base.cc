@@ -1214,6 +1214,7 @@ MpTcpSocketBase::SendDataPacket(uint8_t sFlowIdx, uint32_t size, bool withAck)
              (it != sFlow->mapDSN.end() && guard == false);
              ++it)
         { // Look for match a segment from subflow's buffer where it is matched with TxSeqNumber
+            NS_LOG_DEBUG("Look for match a segment from subflow's buffer.");
             IterNumber++;
             DSNMapping* ptr = *it;
             if (ptr->subflowSeqNumber == sFlow->TxSeqNumber)
@@ -1255,7 +1256,7 @@ MpTcpSocketBase::SendDataPacket(uint8_t sFlowIdx, uint32_t size, bool withAck)
         NS_ASSERT(!guard);
         NS_ASSERT(sFlow->maxSeqNb == sFlow->TxSeqNumber - 1);
         p = sendingBuffer.CreatePacket(size);
-        if (p)
+        if (p == nullptr)
         { // TODO I guess we should not return from here - What do we do then kill ourself?
             NS_LOG_WARN("[" << m_node->GetId() << "] (" << sFlow->routeId
                             << ") No data is available in SendingBuffer to create a pkt from it! "
@@ -1915,7 +1916,7 @@ MpTcpSocketBase::FillBuffer(uint32_t size)
 bool
 MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(this<< sFlowIdx);
     // This condition only valid when sendingBuffer is empty!
     if (sendingBuffer.Empty() && sFlowIdx < maxSubflows)
     {
@@ -1977,18 +1978,22 @@ MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
     // buffer)
     while (!sendingBuffer.Empty())
     {
+        NS_LOG_DEBUG("Sending Buffer is not empty.");
         uint32_t window = 0;
         // Search for a subflow with available windows
         for (uint32_t i = 0; i < subflows.size(); i++)
         {
             if (subflows[lastUsedsFlowIdx]->state != MpTcpSubFlow::TcpStates_t::ESTABLISHED)
+            {
+                NS_LOG_DEBUG("Subflow["<< lastUsedsFlowIdx <<"] is not established. Try next.");
                 continue;
-            window = std::min(AvailableWindow(lastUsedsFlowIdx),
-                              sendingBuffer.PendingData()); // Get available window size
+            }
+            // Get available window size
+            window = std::min(AvailableWindow(lastUsedsFlowIdx), sendingBuffer.PendingData()); 
             if (window == 0)
-            { // No more available window in the current subflow, try with another one
-                NS_LOG_LOGIC("SendPendingData -> No window available on (" << (int)lastUsedsFlowIdx
-                                                                           << ") Try next one!");
+            { 
+                // No more available window in the current subflow, try with another one
+                NS_LOG_LOGIC("SendPendingData -> No window available on (" << (uint32_t)lastUsedsFlowIdx << ") Try next one!");
                 lastUsedsFlowIdx = getSubflowToUse();
             }
             else
@@ -2001,7 +2006,10 @@ MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
         }
 
         if (window == 0)
+        {
+            NS_LOG_LOGIC("No data to send, because either no subflow spare or no pending data.");
             break;
+        }
 
         // Take a pointer to the subflow with available window.
         sFlow = subflows[lastUsedsFlowIdx];
@@ -2024,16 +2032,20 @@ MpTcpSocketBase::SendPendingData(uint8_t sFlowIdx)
                     this << " [" << m_node->GetId() << "](" << sFlow->routeId << ")"
                          << " SendDataPacket return -1 -> Return false from SendPendingData()!?");
                 return false;
-            }
-            else
+            }else
+            {
+                NS_LOG_DEBUG(this << " [" << m_node->GetId() << "](" << sFlow->routeId << ") send data : " <<amountSent);
                 nOctetsSent += amountSent; // Count total bytes sent in this loop
+            }
         }                                  // end of if statement
         lastUsedsFlowIdx = getSubflowToUse();
     } // end of main while loop
     // NS_LOG_UNCOND ("["<< m_node->GetId() << "] SendPendingData -> amount data sent = " <<
     // nOctetsSent << "... Notify application.");
     if (nOctetsSent > 0)
+    {
         NotifyDataSent(GetTxAvailable());
+    }
     return (nOctetsSent > 0);
 }
 
@@ -3581,6 +3593,7 @@ MpTcpSocketBase::Close(uint8_t sFlowIdx)
     if (sendingBuffer.PendingData() > 0) // if (m_txBuffer.SizeFromSequence(m_nextTxSequence) > 0)
     { // App close with pending data must wait until all data transmitted from socket buffer
         NS_ASSERT(client);
+        NS_LOG_DEBUG("SendingBuffer is not empty.");
         if (m_closeOnEmpty == false)
         {
             m_closeOnEmpty = true;
