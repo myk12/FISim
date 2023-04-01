@@ -163,6 +163,7 @@ NameResolutionService::QueryResponseHandler(bool status, CybertwinCNRSHeader& rc
     if (!status)
     {
         NS_LOG_DEBUG(this<<"CNRS: query cyebrtwin ID failed!!!");
+        return ;
     }
 
     int method = rcvHeader.GetMethod();
@@ -170,16 +171,18 @@ NameResolutionService::QueryResponseHandler(bool status, CybertwinCNRSHeader& rc
     if (method == CNRS_QUERY_OK)
     {
         CYBERTWINID_t id    = rcvHeader.GetCybertwinID();
-        uint32_t ip         = rcvHeader.GetCybertwinAddr();
-        uint16_t port       = rcvHeader.GetCybertwinPort();
+        CYBERTWIN_INTERFACE_LIST_t interfaces = rcvHeader.GetCybertwinInterface();
+        NS_LOG_DEBUG("Query CybetwinID : "<<id <<" success.");
             
         // insert to cache
-        Ipv4Address addr(ip);
-        itemCache[id] = std::make_pair(addr, port);
-        NS_LOG_DEBUG(this<<"CNRS: Query Cybertwin "<<id<<std::endl<<"ip: "<<ip<<std::endl<<"port: "<<port);
+        itemCache[id] = interfaces;
     }else if (method == CNRS_QUERY_FAIL)
     {
         NS_LOG_DEBUG(this<<"CNRS: query fialed.");
+    }
+    else
+    {
+        NS_LOG_ERROR(this<<"CNRS: Unkown response.");
     }
 }
 
@@ -224,9 +227,9 @@ NameResolutionService::QueryRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<P
     //TODO: packet check
     CYBERTWINID_t id = rcvHeader.GetCybertwinID();
     CybertwinCNRSHeader rspHeader;
-    CYBERTWIN_INTERFACE_t interface;
+    CYBERTWIN_INTERFACE_LIST_t interfaces;
 
-    if (GetCybertwinInterfaceByName(id, interface) < 0)
+    if (GetCybertwinInterfaceByName(id, interfaces) < 0)
     {
         NS_LOG_DEBUG("CNRS: query cybertwinID doesn't exist.");
         rspHeader.SetMethod(CNRS_QUERY_FAIL);
@@ -235,8 +238,7 @@ NameResolutionService::QueryRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<P
         NS_LOG_DEBUG("CNRS: query cybertwinID found.");
         rspHeader.SetMethod(CNRS_QUERY_OK);
         rspHeader.SetCybertwinID(id);
-        rspHeader.SetCybertwinAddr(interface.first.Get());
-        rspHeader.SetCybertwinPort(interface.second);
+        rspHeader.AddCybertwinInterface(interfaces);
     }
     rspPacket->AddHeader(rspHeader);
 }
@@ -248,19 +250,17 @@ NameResolutionService::InsertRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<
     
     CybertwinCNRSHeader rspHeader;
     CYBERTWINID_t name = rcvHeader.GetCybertwinID();
-    CYBERTWIN_INTERFACE_t interface;
-    interface.first = Ipv4Address(rcvHeader.GetCybertwinAddr());
-    interface.second = rcvHeader.GetCybertwinPort();
+    CYBERTWIN_INTERFACE_LIST_t interface_list = rcvHeader.GetCybertwinInterface();
 
     // insert new item to database
-    InsertCybertwinInterfaceName(name, interface);
+    InsertCybertwinInterfaceName(name, interface_list);
 
     rspHeader.SetMethod(CNRS_INSERT_OK);
     rspPacket->AddHeader(rspHeader);
 }
 
 void
-NameResolutionService::ReportName2Superior(CYBERTWINID_t id, uint32_t ip, uint16_t port)
+NameResolutionService::ReportName2Superior(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("Report new item two superior.");
     if (InitReportUDPSocket() < 0)
@@ -273,15 +273,14 @@ NameResolutionService::ReportName2Superior(CYBERTWINID_t id, uint32_t ip, uint16
     CybertwinCNRSHeader header;
     header.SetMethod(CNRS_INSERT);
     header.SetCybertwinID(id);
-    header.SetCybertwinAddr(ip);
-    header.SetCybertwinPort(port);
+    header.AddCybertwinInterface(interfaces);
 
     pack->AddHeader(header);
     reportSocket->Send(pack);
 }
 
 int32_t
-NameResolutionService::GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface)
+NameResolutionService::GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interfaces)
 {
     NS_LOG_DEBUG("Resolve Cybertwin name.");
     static int maxTry = 16;
@@ -290,10 +289,11 @@ NameResolutionService::GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN
     if (itemCache.find(name) != itemCache.end())
     {
         NS_LOG_DEBUG(this<<"CNRS: find in local.");
-        interface = itemCache[name];
+        interfaces = itemCache[name];
         return 1;
     }
 
+    // request superior
     if (maxTry > 0)
     {
         maxTry--;
@@ -317,29 +317,26 @@ NameResolutionService::GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN
                         &NameResolutionService::GetCybertwinInterfaceByName,
                         this,
                         name,
-                        interface);
+                        interfaces);
     }
 
     return -1;
 }
 
 void
-NameResolutionService::InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface)
+NameResolutionService::InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interfaces)
 {
     NS_LOG_DEBUG("CNRS: Insert Cybertwin Interface name.");
     // insert to cache
     //TODO: insert to databse
-    itemCache[name] = interface;
+    itemCache[name] = interfaces;
 
     // report to superior
-    if (InitReportUDPSocket() < 0)
-    {
-        NS_LOG_DEBUG("CNRS: Invaild superior.");
-        return ;
-    }
-
-    // report new item to superior if exist
-    ReportName2Superior(name, interface.first.Get(), interface.second);
+    Simulator::Schedule(TimeStep(1),
+                        &NameResolutionService::ReportName2Superior,
+                        this,
+                        name,
+                        interfaces);
 }
 
 
