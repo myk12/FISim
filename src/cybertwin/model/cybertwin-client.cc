@@ -1,5 +1,7 @@
 #include "cybertwin-client.h"
 
+#include "cybertwin-cert.h"
+
 #include "ns3/address.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
@@ -10,7 +12,6 @@ namespace ns3
 {
 
 NS_LOG_COMPONENT_DEFINE("CybertwinClient");
-
 NS_OBJECT_ENSURE_REGISTERED(CybertwinClient);
 NS_OBJECT_ENSURE_REGISTERED(CybertwinConnClient);
 NS_OBJECT_ENSURE_REGISTERED(CybertwinBulkClient);
@@ -56,7 +57,7 @@ CybertwinClient::DoDispose()
 void
 CybertwinClient::RecvPacket(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(m_localCuid << socket);
     Ptr<Packet> packet;
     Address from;
 
@@ -66,7 +67,8 @@ CybertwinClient::RecvPacket(Ptr<Socket> socket)
         {
             break;
         }
-        CybertwinPacketHeader header;
+        // TODO
+        CybertwinHeader header;
         packet->PeekHeader(header);
         NS_LOG_DEBUG("Client received packet with header " << header << " from " << from);
     }
@@ -117,7 +119,7 @@ CybertwinConnClient::~CybertwinConnClient()
 void
 CybertwinConnClient::DoDispose()
 {
-    NS_LOG_FUNCTION(this->GetTypeId());
+    NS_LOG_FUNCTION(m_localCuid << this->GetTypeId());
     if (!Simulator::IsFinished())
     {
         StopApplication();
@@ -129,7 +131,7 @@ CybertwinConnClient::DoDispose()
 void
 CybertwinConnClient::StartApplication()
 {
-    NS_LOG_FUNCTION(this->GetTypeId());
+    NS_LOG_FUNCTION(m_localCuid << this->GetTypeId());
     if (!m_controllerSocket)
     {
         m_controllerSocket =
@@ -139,16 +141,17 @@ CybertwinConnClient::StartApplication()
         m_controllerSocket->SetConnectCallback(
             MakeCallback(&CybertwinConnClient::ControllerConnectSucceededCallback, this),
             MakeCallback(&CybertwinConnClient::ControllerConnectFailedCallback, this));
-        // TCP socket base will try to connect every 3 seconds. Inherit TcpSocketBase to modify this
+
         DoSocketMethod(&Socket::Connect, m_controllerSocket, m_edgeAddr, m_edgePort);
-        NS_LOG_DEBUG("--[Host-Conn]: Connecting to CybertwinController");
+        NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+                            << "Connecting to CybertwinController");
     }
 }
 
 void
 CybertwinConnClient::StopApplication()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(m_localCuid);
 
     if (m_socket)
     {
@@ -163,26 +166,40 @@ CybertwinConnClient::StopApplication()
 }
 
 void
+CybertwinConnClient::SetDevCert(const CybertwinCert& devCert)
+{
+    m_devCert = devCert;
+    m_localCuid = m_devCert.GetCybertwinId();
+}
+
+void
+CybertwinConnClient::SetUsrCert(const CybertwinCert& usrCert)
+{
+    m_usrCert = usrCert;
+}
+
+void
 CybertwinConnClient::ControllerConnectSucceededCallback(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(m_localCuid << socket);
     m_controllerSocket->SetRecvCallback(
         MakeCallback(&CybertwinConnClient::RecvFromControllerCallback, this));
-    Simulator::ScheduleNow(&CybertwinConnClient::GenerateCybertwin, this);
+    Simulator::ScheduleNow(&CybertwinConnClient::Authenticate, this);
 }
 
 void
 CybertwinConnClient::ControllerConnectFailedCallback(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
-    NS_LOG_ERROR(
-        "--[Host-Conn]: Failed to connect to CybertwinController, errno: " << socket->GetErrno());
+    NS_LOG_FUNCTION(m_localCuid << socket);
+    NS_LOG_ERROR("--[#" << m_localCuid << "-Conn]: "
+                        << "Failed to connect to CybertwinController, errno: "
+                        << socket->GetErrno());
 }
 
 void
 CybertwinConnClient::RecvFromControllerCallback(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(m_localCuid << socket);
     Ptr<Packet> packet;
     Address from;
 
@@ -193,111 +210,147 @@ CybertwinConnClient::RecvFromControllerCallback(Ptr<Socket> socket)
             break;
         }
 
-        CybertwinControllerHeader ctrlHeader;
-        packet->RemoveHeader(ctrlHeader);
+        CybertwinHeader header;
+        packet->RemoveHeader(header);
+        NS_ASSERT_MSG(!header.isDataPacket(),
+                      "--[#" << m_localCuid << "-Conn]: Received invalid packet type");
 
-        switch (ctrlHeader.GetMethod())
+        switch (header.GetCommand())
         {
-        case CYBERTWIN_CONTROLLER_SUCCESS:
-            NS_LOG_DEBUG("--[Host-Conn]: Cybertwin generated successfully");
-            m_localCuid = ctrlHeader.GetCybertwinID();
-            m_cybertwinPort = ctrlHeader.GetCybertwinPort();
-            ConnectCybertwin();
+        case CYBERTWIN_CONNECT_SUCCESS: {
+            NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: Cybertwin generated successfully");
+            m_socket = socket;
+            m_socket->SetCloseCallbacks(
+                MakeCallback(&CybertwinConnClient::CybertwinCloseSucceededCallback, this),
+                MakeCallback(&CybertwinConnClient::CybertwinCloseFailedCallback, this));
+            m_socket->SetRecvCallback(MakeCallback(&CybertwinConnClient::RecvPacket, this));
+            // Set attributes of other applications
+            uint32_t appNums = GetNode()->GetNApplications();
+            for (uint32_t i = 0; i < appNums; ++i)
+            {
+                Ptr<Application> curApp = GetNode()->GetApplication(i);
+                if (curApp != this)
+                {
+                    NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+                                        << "Setting attributes for " << curApp << " at "
+                                        << Simulator::Now());
+                    curApp->SetAttribute("Socket", PointerValue(m_socket));
+                    curApp->SetAttribute("LocalCuid", UintegerValue(m_localCuid));
+                }
+            }
             break;
-        case CYBERTWIN_CONTROLLER_ERROR:
-            NS_LOG_INFO("--[Host-Conn]: Failed to generate a cybertwin, retrying");
-            Simulator::Schedule(Seconds(2.), &CybertwinConnClient::GenerateCybertwin, this);
+        }
+        case CYBERTWIN_CONNECT_ERROR:
+            NS_LOG_INFO("--[#" << m_localCuid << "-Conn]: "
+                               << "Failed to generate a cybertwin, retrying");
+            // TODO: Simulator::Schedule(Seconds(2.), &CybertwinConnClient::Authenticate, this);
             break;
         default:
-            NS_LOG_INFO("--[Host-Conn]: Invalid response from controller, retrying");
-            Simulator::Schedule(Seconds(2.), &CybertwinConnClient::GenerateCybertwin, this);
+            NS_LOG_INFO("--[#" << m_localCuid << "-Conn]: "
+                               << "Invalid response from controller, retrying");
+            // Simulator::Schedule(Seconds(2.), &CybertwinConnClient::Authenticate, this);
             break;
         }
     }
 }
 
 void
-CybertwinConnClient::GenerateCybertwin()
+CybertwinConnClient::Authenticate()
 {
     NS_LOG_FUNCTION(this);
-    CybertwinControllerHeader ctrlHeader;
+    Ptr<Packet> authDevPacket = Create<Packet>(0);
 
-    // temporary, generate a device id
-    srandom((unsigned int)Simulator::Now().GetNanoSeconds());
-
-    ctrlHeader.SetMethod(CYBERTWIN_CREATE);
-    ctrlHeader.SetDeviceName(rand() % 1333333);
-    ctrlHeader.SetNetworkType(rand() % 3);
-
-    Ptr<Packet> connPacket = Create<Packet>(0);
-    connPacket->AddHeader(ctrlHeader);
-
-    // TODO: check if the packet is sent successfully?
-    m_controllerSocket->Send(connPacket);
-    NS_LOG_DEBUG("--[Host-Conn]: Request to generate a cybertwin sent");
-}
-
-void
-CybertwinConnClient::ConnectCybertwin()
-{
-    NS_LOG_FUNCTION(this);
-    if (!m_socket)
+    if (m_devCert.GetIsUserAuthRequired())
     {
-        m_socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
-        DoSocketMethod(&Socket::Bind, m_socket, m_localAddr, m_localPort + 1);
+        NS_ASSERT_MSG(m_usrCert.GetIsCertValid(), "Need to specify a valid user certificate");
+        authDevPacket->AddHeader(m_usrCert);
     }
-    m_socket->SetConnectCallback(
-        MakeCallback(&CybertwinConnClient::CybertwinConnectSucceededCallback, this),
-        MakeCallback(&CybertwinConnClient::CybertwinConnectFailedCallback, this));
-    m_socket->SetCloseCallbacks(
-        MakeCallback(&CybertwinConnClient::CybertwinCloseSucceededCallback, this),
-        MakeCallback(&CybertwinConnClient::CybertwinCloseFailedCallback, this));
-    DoSocketMethod(&Socket::Connect, m_socket, m_edgeAddr, m_cybertwinPort);
-    NS_LOG_DEBUG("--[Host-Conn]: Request to connect to the cybertwin sent");
+
+    authDevPacket->AddHeader(m_devCert);
+
+    CybertwinHeader ctrlHeader;
+    ctrlHeader.SetCommand(HOST_CONNECT);
+    ctrlHeader.SetCybertwin(m_localCuid);
+    // temp
+    ctrlHeader.SetIsLatestOs(true);
+    ctrlHeader.SetIsLatestPatch(true);
+
+    CybertwinCertificate cert;
+    cert.SetCybertwin(m_localCuid);
+    cert.SetIngressCredit(200);
+
+    authDevPacket->AddPacketTag(cert);
+    authDevPacket->AddHeader(ctrlHeader);
+    m_controllerSocket->Send(authDevPacket);
+
+    NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+                        << "Certificate(s) sent");
 }
+
+// void
+// CybertwinConnClient::ConnectCybertwin()
+// {
+//     NS_LOG_FUNCTION(this);
+//     if (!m_socket)
+//     {
+//         m_socket = Socket::CreateSocket(GetNode(),
+//         TypeId::LookupByName("ns3::TcpSocketFactory")); DoSocketMethod(&Socket::Bind, m_socket,
+//         m_localAddr, m_localPort + 1);
+//     }
+//     m_socket->SetConnectCallback(
+//         MakeCallback(&CybertwinConnClient::CybertwinConnectSucceededCallback, this),
+//         MakeCallback(&CybertwinConnClient::CybertwinConnectFailedCallback, this));
+//     m_socket->SetCloseCallbacks(
+//         MakeCallback(&CybertwinConnClient::CybertwinCloseSucceededCallback, this),
+//         MakeCallback(&CybertwinConnClient::CybertwinCloseFailedCallback, this));
+//     DoSocketMethod(&Socket::Connect, m_socket, m_edgeAddr, m_cybertwinPort);
+//     NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+//                         << "Request to connect to the cybertwin sent");
+// }
 
 void
 CybertwinConnClient::DisconnectCybertwin()
 {
     NS_LOG_FUNCTION(this);
-    CybertwinControllerHeader ctrlHeader;
-    ctrlHeader.SetMethod(CYBERTWIN_REMOVE);
-    ctrlHeader.SetCybertwinID(m_localCuid);
+    CybertwinHeader ctrlHeader;
+    ctrlHeader.SetCommand(HOST_DISCONNECT);
+    ctrlHeader.SetCybertwin(m_localCuid);
 
     Ptr<Packet> connPacket = Create<Packet>(0);
     connPacket->AddHeader(ctrlHeader);
 
     m_controllerSocket->Send(connPacket);
-    NS_LOG_DEBUG("--[Host-Conn]: Request to disconnect to the cybertwin sent");
+    NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+                        << "Request to disconnect to the cybertwin sent");
 }
 
-void
-CybertwinConnClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
-{
-    NS_LOG_FUNCTION(this << socket);
-    socket->SetRecvCallback(MakeCallback(&CybertwinConnClient::RecvPacket, this));
+// void
+// CybertwinConnClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
+// {
+//     NS_LOG_FUNCTION(this << socket);
+//     socket->SetRecvCallback(MakeCallback(&CybertwinConnClient::RecvPacket, this));
 
-    // Set attributes of other applications
-    uint32_t appNums = GetNode()->GetNApplications();
-    for (uint32_t i = 0; i < appNums; ++i)
-    {
-        Ptr<Application> curApp = GetNode()->GetApplication(i);
-        if (curApp != this)
-        {
-            NS_LOG_DEBUG("--[Host-Conn]: Setting attributes for " << curApp << " at "
-                                                                  << Simulator::Now());
-            curApp->SetAttribute("Socket", PointerValue(m_socket));
-            curApp->SetAttribute("LocalCuid", UintegerValue(m_localCuid));
-            curApp->SetAttribute("PeerCuid", UintegerValue(m_peerCuid));
-        }
-    }
-}
+//     // Set attributes of other applications
+//     uint32_t appNums = GetNode()->GetNApplications();
+//     for (uint32_t i = 0; i < appNums; ++i)
+//     {
+//         Ptr<Application> curApp = GetNode()->GetApplication(i);
+//         if (curApp != this)
+//         {
+//             NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: "
+//                                 << "Setting attributes for " << curApp << " at "
+//                                 << Simulator::Now());
+//             curApp->SetAttribute("Socket", PointerValue(m_socket));
+//             curApp->SetAttribute("LocalCuid", UintegerValue(m_localCuid));
+//         }
+//     }
+// }
 
-void
-CybertwinConnClient::CybertwinConnectFailedCallback(Ptr<Socket> socket)
-{
-    NS_LOG_FUNCTION(this << socket);
-}
+// void
+// CybertwinConnClient::CybertwinConnectFailedCallback(Ptr<Socket> socket)
+// {
+//     NS_LOG_FUNCTION(this << socket);
+// }
 
 void
 CybertwinConnClient::CybertwinCloseSucceededCallback(Ptr<Socket> socket)
@@ -328,7 +381,7 @@ CybertwinBulkClient::GetTypeId()
                                           MakeUintegerChecker<uint64_t>())
                             .AddAttribute("PacketSize",
                                           "The size of a single packet",
-                                          UintegerValue(2048),
+                                          UintegerValue(512),
                                           MakeUintegerAccessor(&CybertwinBulkClient::m_packetSize),
                                           MakeUintegerChecker<uint32_t>(21));
     return tid;
@@ -348,28 +401,19 @@ void
 CybertwinBulkClient::StartApplication()
 {
     NS_LOG_FUNCTION(this->GetTypeId());
-    NS_LOG_DEBUG("--[Host-Bulk]: StartApplication called at " << Simulator::Now());
     SendData();
 }
 
 void
 CybertwinBulkClient::StopApplication()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(GetTypeId() << Simulator::Now());
 }
-
-// void
-// CybertwinBulkClient::DoInitialize()
-// {
-//     NS_LOG_FUNCTION(this);
-//     // Skip Application::DoInitialize
-//     Object::DoInitialize();
-// }
 
 void
 CybertwinBulkClient::DoDispose()
 {
-    NS_LOG_FUNCTION(this->GetTypeId());
+    NS_LOG_FUNCTION(this->GetTypeId() << Simulator::Now());
     if (m_socket)
     {
         m_socket = nullptr;
@@ -388,7 +432,9 @@ CybertwinBulkClient::SendData()
     }
 
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("--[Host-Bulk]: Started sending data at " << Simulator::Now());
+    NS_LOG_DEBUG("--[#" << m_localCuid << "-Bulk]: "
+                        << "Started sending data at " << Simulator::Now());
+
     while (m_maxBytes == 0 || m_sentBytes < m_maxBytes)
     {
         // uint64_t to allow the comparison later
@@ -407,14 +453,19 @@ CybertwinBulkClient::SendData()
         }
         else
         {
-            CybertwinPacketHeader header;
+            CybertwinHeader header;
+            header.SetCybertwin(m_localCuid);
+            header.SetPeer(m_peerCuid);
             header.SetSize(toSend);
-            header.SetCmd(CYBERTWIN_SEND);
-            header.SetSrc(m_localCuid);
-            header.SetDst(m_peerCuid);
-            // NS_LOG_DEBUG("Client sent packet with header: " << header);
+            header.SetCommand(HOST_SEND);
             NS_ABORT_IF(toSend < header.GetSerializedSize());
             packet = Create<Packet>(toSend - header.GetSerializedSize());
+
+            CybertwinCertificate cert;
+            cert.SetCybertwin(m_localCuid);
+            cert.SetCredit(1000);
+
+            packet->AddPacketTag(cert);
             packet->AddHeader(header);
         }
 

@@ -2,11 +2,12 @@
 #define CYBERTWIN_EDGE_H
 
 #include "cybertwin-common.h"
-#include "cybertwin-packet-header.h"
+#include "cybertwin-header.h"
 #include "cybertwin.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
+#include "ns3/node.h"
 
 #include <unordered_map>
 
@@ -14,6 +15,7 @@ namespace ns3
 {
 
 class CybertwinController : public Application
+
 {
   public:
     static TypeId GetTypeId();
@@ -35,20 +37,59 @@ class CybertwinController : public Application
 
     void ReceiveFromHost(Ptr<Socket>);
 
-    void BornCybertwin(Ptr<Socket>, const CybertwinControllerHeader&);
-    void KillCybertwin(Ptr<Socket>, const CybertwinControllerHeader&);
+    void BornCybertwin(Ptr<Socket>, Ptr<Packet>);
+    void KillCybertwin(Ptr<Socket>, const CybertwinHeader&);
 
     Address m_localAddr;
     uint64_t m_localPort;
-
-    uint16_t m_nextLocalPort{LOCAL_PORT_COUNTER_START};
-    uint16_t m_nextGlobalPort{GLOBAL_PORT_COUNTER_START};
 
     Ptr<Socket> m_socket;
     std::unordered_map<CYBERTWINID_t, Ptr<Cybertwin>> m_cybertwinTable;
 };
 
-void RespToHost(Ptr<Socket>, Ptr<Packet>);
+class CybertwinFirewall
+{
+  public:
+    CybertwinFirewall();
+    CybertwinFirewall(const CybertwinHeader&);
+
+    bool Handle(const CybertwinHeader&);
+    bool Authenticate(const CybertwinCert&);
+    void Dispose();
+
+  private:
+    enum FirewallState_t
+    {
+        NOT_STARTED,
+        PERMITTED,
+        THROTTLED,
+        DENIED
+    };
+
+    uint16_t m_ingressCredit;
+    CYBERTWINID_t m_cuid;
+    bool m_isUsrAuthRequired;
+    CYBERTWINID_t m_usrCuid;
+    FirewallState_t m_state;
+};
+
+class CybertwinTrafficManager : public Application
+{
+  public:
+    static TypeId GetTypeId();
+    CybertwinTrafficManager();
+    ~CybertwinTrafficManager();
+
+  protected:
+    void DoDispose() override;
+
+  private:
+    void StartApplication() override;
+    void StopApplication() override;
+
+    bool InspectPacket(Ptr<NetDevice>, Ptr<const Packet>, uint16_t);
+    std::unordered_map<CYBERTWINID_t, CybertwinFirewall> m_firewallTable;
+};
 
 } // namespace ns3
 

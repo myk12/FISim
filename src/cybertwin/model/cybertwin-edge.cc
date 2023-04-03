@@ -1,14 +1,18 @@
 #include "cybertwin-edge.h"
 
+#include "cybertwin-cert.h"
+
 #include "ns3/callback.h"
+#include "ns3/ipv4-header.h"
 #include "ns3/simulator.h"
+#include "ns3/tcp-header.h"
 #include "ns3/uinteger.h"
 
 namespace ns3
 {
-
 NS_LOG_COMPONENT_DEFINE("CybertwinEdge");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinController);
+NS_OBJECT_ENSURE_REGISTERED(CybertwinTrafficManager);
 
 TypeId
 CybertwinController::GetTypeId()
@@ -33,20 +37,19 @@ CybertwinController::GetTypeId()
 CybertwinController::CybertwinController()
     : m_socket(nullptr)
 {
-    NS_LOG_FUNCTION(this);
 }
 
 CybertwinController::~CybertwinController()
 {
-    NS_LOG_FUNCTION(this);
 }
 
 void
 CybertwinController::DoDispose()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(GetNode()->GetId());
     if (!Simulator::IsFinished())
     {
+        // Close sockets
         StopApplication();
     }
     m_socket = nullptr;
@@ -57,7 +60,7 @@ CybertwinController::DoDispose()
 void
 CybertwinController::StartApplication()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(GetNode()->GetId());
     if (!m_socket)
     {
         m_socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
@@ -73,7 +76,7 @@ CybertwinController::StartApplication()
 void
 CybertwinController::StopApplication()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(GetNode()->GetId());
     if (m_socket)
     {
         m_socket->Close();
@@ -89,14 +92,14 @@ CybertwinController::StopApplication()
 bool
 CybertwinController::HostConnecting(Ptr<Socket> socket, const Address& address)
 {
-    NS_LOG_FUNCTION(this << socket << address);
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket << address);
     return true;
 }
 
 void
 CybertwinController::HostConnected(Ptr<Socket> socket, const Address& address)
 {
-    NS_LOG_FUNCTION(this << socket << address);
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket << address);
     socket->SetRecvCallback(MakeCallback(&CybertwinController::ReceiveFromHost, this));
     socket->SetCloseCallbacks(MakeCallback(&CybertwinController::NormalHostClose, this),
                               MakeCallback(&CybertwinController::ErrorHostClose, this));
@@ -106,7 +109,7 @@ CybertwinController::HostConnected(Ptr<Socket> socket, const Address& address)
 void
 CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
     Ptr<Packet> packet;
     Address from;
 
@@ -117,77 +120,83 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
             break;
         }
 
-        CybertwinControllerHeader reqHeader;
-        packet->PeekHeader(reqHeader);
+        CybertwinHeader header;
+        packet->RemoveHeader(header);
+        NS_ASSERT_MSG(!header.isDataPacket(),
+                      "--[Ctrl-" << GetNode()->GetId() << "]: received invalid header type");
 
-        switch (reqHeader.GetMethod())
+        switch (header.GetCommand())
         {
-        case NOTHING:
-            NS_LOG_DEBUG("--[Edge-Ctrl]: Do nothing");
+        case HOST_CONNECT:
+            BornCybertwin(socket, packet);
+            NS_LOG_DEBUG("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin created");
             break;
-        case CYBERTWIN_CREATE:
-            BornCybertwin(socket, reqHeader);
-            NS_LOG_DEBUG("--[Edge-Ctrl]: Created a new cybertwin");
-            break;
-        case CYBERTWIN_REMOVE:
-            KillCybertwin(socket, reqHeader);
-            NS_LOG_DEBUG("--[Edge-Ctrl]: Removed a cybertwin");
+        case HOST_DISCONNECT:
+            KillCybertwin(socket, header);
+            NS_LOG_DEBUG("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin removed");
             break;
         default:
-            NS_LOG_DEBUG("--[Edge-Ctrl]: Unknown Command");
+            NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: unknown Command");
             break;
         }
     }
 }
 
 void
-CybertwinController::BornCybertwin(Ptr<Socket> socket, const CybertwinControllerHeader& reqHeader)
+CybertwinController::BornCybertwin(Ptr<Socket> socket, Ptr<Packet> packet)
 {
-    NS_LOG_FUNCTION(this << socket << reqHeader);
-    // TODO: check port to prevent port conflict.
-    uint16_t localPort = ++m_nextLocalPort;
-    uint16_t globalPort = ++m_nextGlobalPort;
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
 
-    DEVNAME_t devName = reqHeader.GetDeviceName();
-    NETTYPE_t netType = reqHeader.GetNetworkType();
-    // TODO: A more fancy way to generate CybertwinID
-    CYBERTWINID_t cuid = devName + (netType << 8);
-
-    if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
+    CybertwinCert devCert, usrCert;
+    CYBERTWINID_t cuid;
+    try
     {
-        // TODO: Should return a rspHeader with information related to the existed cybertwin
-        NS_FATAL_ERROR("--[Edge-Ctrl]: TODO, Cybertwin Existed");
+        packet->RemoveHeader(devCert);
+        if (devCert.GetIsCertValid() == false)
+        {
+            throw std::runtime_error("Invalid device certificate");
+        }
+
+        cuid = devCert.GetCybertwinId();
+        if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
+        {
+            // TODO: Should return a rspHeader with information related to the existed cybertwin
+            throw std::runtime_error("");
+        }
+
+        if (devCert.GetIsUserAuthRequired())
+        {
+            // TODO: Check if there's more certificate
+            packet->RemoveHeader(usrCert);
+            if (!usrCert.GetIsCertValid())
+            {
+                throw std::runtime_error("Invalid user certificate");
+            }
+        }
+
+        // create a cybertwin
+        Ptr<Cybertwin> cybertwin = Create<Cybertwin>(cuid, socket);
+        m_cybertwinTable[cuid] = cybertwin;
+
+        // by default, the application will start running right away
+        GetNode()->AddApplication(cybertwin);
     }
-
-    // setup the response header
-    CybertwinControllerHeader rspHeader;
-    rspHeader.SetCybertwinID(cuid);
-    rspHeader.SetCybertwinPort(localPort);
-    rspHeader.SetMethod(CYBERTWIN_CONTROLLER_SUCCESS);
-
-    // create response packet
-    Ptr<Packet> rspPacket = Create<Packet>(0);
-    rspPacket->AddHeader(rspHeader);
-
-    // create a callback for cybertwin to call when it is initialized
-    InitCybertwinCallback initCallback;
-    initCallback = MakeBoundCallback(&RespToHost, socket, rspPacket);
-
-    // create a cybertwin
-    Ptr<Cybertwin> cybertwin = Create<Cybertwin>(initCallback);
-    cybertwin->Setup(cuid, m_localAddr, localPort, m_localAddr, globalPort);
-    m_cybertwinTable[cuid] = cybertwin;
-
-    // by default, the application will start running right away
-    GetNode()->AddApplication(cybertwin);
+    catch (const std::exception& e)
+    {
+        CybertwinHeader rspHeader;
+        rspHeader.SetCommand(CYBERTWIN_CONNECT_ERROR);
+        // create response packet
+        Ptr<Packet> rspPacket = Create<Packet>(0);
+        rspPacket->AddHeader(rspHeader);
+        socket->Send(rspPacket);
+    }
 }
 
 void
-CybertwinController::KillCybertwin(Ptr<Socket> socket, const CybertwinControllerHeader& reqHeader)
+CybertwinController::KillCybertwin(Ptr<Socket> socket, const CybertwinHeader& reqHeader)
 {
-    NS_LOG_FUNCTION(this << socket << reqHeader);
-
-    CYBERTWINID_t cuid = reqHeader.GetCybertwinID();
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket << reqHeader);
+    CYBERTWINID_t cuid = reqHeader.GetCybertwin();
     if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
     {
         Ptr<Cybertwin> cybertwin = m_cybertwinTable[cuid];
@@ -196,14 +205,14 @@ CybertwinController::KillCybertwin(Ptr<Socket> socket, const CybertwinController
     }
     else
     {
-        NS_LOG_ERROR("--[Edge-Ctrl]: CybertwinID not found");
+        NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin not found");
     }
 }
 
 void
 CybertwinController::NormalHostClose(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
     if (socket != m_socket)
     {
         socket->ShutdownSend();
@@ -213,14 +222,185 @@ CybertwinController::NormalHostClose(Ptr<Socket> socket)
 void
 CybertwinController::ErrorHostClose(Ptr<Socket> socket)
 {
-    NS_LOG_ERROR("--[Edge-Ctrl]: A socket error occurs:" << socket->GetErrno());
+    NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId()
+                            << "]: a socket error occurs:" << socket->GetErrno());
+}
+
+CybertwinTrafficManager::CybertwinTrafficManager()
+{
+}
+
+CybertwinTrafficManager::~CybertwinTrafficManager()
+{
+}
+
+TypeId
+CybertwinTrafficManager::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinTrafficManager")
+                            .SetParent<Application>()
+                            .SetGroupName("cybertwin")
+                            .AddConstructor<CybertwinTrafficManager>();
+    return tid;
 }
 
 void
-RespToHost(Ptr<Socket> socket, Ptr<Packet> packet)
+CybertwinTrafficManager::DoDispose()
 {
-    NS_LOG_FUNCTION(socket << packet);
-    socket->Send(packet);
+    NS_LOG_FUNCTION(GetNode()->GetId());
+    if (!Simulator::IsFinished())
+    {
+        StopApplication();
+    }
+    m_firewallTable.clear();
+    Application::DoDispose();
+}
+
+void
+CybertwinTrafficManager::StartApplication()
+{
+    NS_LOG_FUNCTION(this);
+    GetNode()->SetCybertwinFirewall(MakeCallback(&CybertwinTrafficManager::InspectPacket, this));
+}
+
+void
+CybertwinTrafficManager::StopApplication()
+{
+}
+
+bool
+CybertwinTrafficManager::InspectPacket(Ptr<NetDevice> device,
+                                       Ptr<const Packet> packet,
+                                       uint16_t protocol)
+{
+    NS_LOG_FUNCTION(GetNode()->GetId() << packet->ToString());
+
+    PacketTagIterator ti = packet->GetPacketTagIterator();
+    while (ti.HasNext())
+    {
+        PacketTagIterator::Item item = ti.Next();
+        if (item.GetTypeId() == CybertwinCertificate::GetTypeId())
+        {
+            CybertwinCertificate cert;
+            item.GetTag(cert);
+            NS_LOG_DEBUG("Received tag:" << cert.ToString());
+        }
+    }
+
+    PacketMetadata::ItemIterator i = packet->BeginItem();
+    while (i.HasNext())
+    {
+        PacketMetadata::Item item = i.Next();
+        if (!item.isFragment && item.type == PacketMetadata::Item::HEADER)
+        {
+            // assumes header won't be fragmented
+            if (item.tid == CybertwinHeader::GetTypeId())
+            {
+                CybertwinHeader header;
+                header.Deserialize(item.current);
+                CYBERTWINID_t cuid = header.GetCybertwin();
+                if (!header.isDataPacket())
+                {
+                    switch (header.GetCommand())
+                    {
+                    case HOST_CONNECT:
+                        m_firewallTable[cuid] = CybertwinFirewall(header);
+                        break;
+                    case HOST_DISCONNECT:
+                        if (m_firewallTable.find(cuid) == m_firewallTable.end())
+                        {
+                            return false;
+                        }
+                        m_firewallTable[cuid].Dispose();
+                        m_firewallTable.erase(cuid);
+                        break;
+                    default:
+                        break;
+                    }
+                }
+                else if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
+                         !m_firewallTable[cuid].Handle(header))
+                {
+                    return false;
+                }
+            }
+            else if (item.tid == CybertwinCert::GetTypeId())
+            {
+                CybertwinCert cert;
+                cert.Deserialize(item.current);
+                CYBERTWINID_t cuid = cert.GetCybertwinId();
+                if (m_firewallTable.find(cuid) != m_firewallTable.end() &&
+                    !m_firewallTable[cuid].Authenticate(cert))
+                {
+                    // TODO
+                    return false;
+                }
+            }
+        }
+    }
+    NS_LOG_DEBUG("Packet permitted");
+    return true;
+}
+
+CybertwinFirewall::CybertwinFirewall()
+    : m_ingressCredit(0),
+      m_cuid(0),
+      m_isUsrAuthRequired(false),
+      m_usrCuid(0),
+      m_state(NOT_STARTED)
+{
+    NS_LOG_FUNCTION(this);
+}
+
+CybertwinFirewall::CybertwinFirewall(const CybertwinHeader& header)
+    : m_ingressCredit(0),
+      m_cuid(header.GetCybertwin()),
+      m_isUsrAuthRequired(false),
+      m_usrCuid(0),
+      m_state(NOT_STARTED)
+{
+    NS_LOG_FUNCTION(m_cuid);
+}
+
+bool
+CybertwinFirewall::Handle(const CybertwinHeader& header)
+{
+    NS_LOG_FUNCTION(this << header << m_state);
+    if (m_state != PERMITTED ||
+        (header.GetCommand() == CYBERTWIN_SEND && header.GetCredit() < m_ingressCredit))
+    {
+        NS_LOG_DEBUG("Packet blocked");
+        return false;
+    }
+    return true;
+}
+
+bool
+CybertwinFirewall::Authenticate(const CybertwinCert& cert)
+{
+    if (!cert.GetIsCertValid())
+    {
+        NS_LOG_ERROR("Firewall #" << m_cuid << " receives invalid certificate: " << cert);
+        return false;
+    }
+    m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
+    if (cert.GetCybertwinId() == m_cuid)
+    {
+        // device cert
+        m_isUsrAuthRequired = cert.GetIsUserAuthRequired();
+    }
+    else
+    {
+        m_usrCuid = cert.GetCybertwinId();
+    }
+    m_state = PERMITTED;
+    return true;
+}
+
+void
+CybertwinFirewall::Dispose()
+{
+    m_state = NOT_STARTED;
 }
 
 } // namespace ns3

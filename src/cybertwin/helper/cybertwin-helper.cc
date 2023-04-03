@@ -1,7 +1,15 @@
 #include "cybertwin-helper.h"
 
+#include "ns3/log.h"
+
 namespace ns3
 {
+
+NS_LOG_COMPONENT_DEFINE("CybertwinHelper");
+
+CybertwinHelper::CybertwinHelper()
+{
+}
 
 CybertwinHelper::CybertwinHelper(std::string name)
 {
@@ -39,6 +47,39 @@ CybertwinHelper::InstallPriv(Ptr<Node> node) const
     node->AddApplication(app);
 
     return app;
+}
+
+CybertwinConnHelper::CybertwinConnHelper()
+{
+    m_factory.SetTypeId(CybertwinConnClient::GetTypeId());
+}
+
+void
+CybertwinConnHelper::SetDevCert(Ptr<Node> node, const CybertwinCert& devCert)
+{
+    for (uint32_t j = 0; j < node->GetNApplications(); j++)
+    {
+        Ptr<CybertwinConnClient> connClient =
+            DynamicCast<CybertwinConnClient>(node->GetApplication(j));
+        if (connClient)
+        {
+            connClient->SetDevCert(devCert);
+        }
+    }
+}
+
+void
+CybertwinConnHelper::SetUsrCert(Ptr<Node> node, const CybertwinCert& usrCert)
+{
+    for (uint32_t j = 0; j < node->GetNApplications(); j++)
+    {
+        Ptr<CybertwinConnClient> connClient =
+            DynamicCast<CybertwinConnClient>(node->GetApplication(j));
+        if (connClient)
+        {
+            connClient->SetUsrCert(usrCert);
+        }
+    }
 }
 
 } // namespace ns3

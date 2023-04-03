@@ -6,6 +6,7 @@
 #include "ns3/socket.h"
 
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #define TX_MAX_NUM (128)
@@ -23,18 +24,9 @@ typedef uint16_t NETTYPE_t;
 typedef std::pair<ns3::Address, uint16_t> CybertwinInterface;
 typedef std::pair<ns3::Ipv4Address, uint16_t> CYBERTWIN_INTERFACE_t;
 
-typedef ns3::Callback<void> InitCybertwinCallback;
+typedef ns3::Callback<void, ns3::Ptr<ns3::Packet>> InitCybertwinCallback;
 
-enum
-{
-    NOTHING,
-    CYBERTWIN_CREATE,
-    CYBERTWIN_REMOVE,
-    CYBERTWIN_CONTROLLER_SUCCESS,
-    CYBERTWIN_CONTROLLER_ERROR,
-    CYBERTWIN_SEND,
-    CYBERTWIN_RECEIVE,
-};
+static std::unordered_map<CYBERTWINID_t, ns3::Address> GlobalRouteTable;
 
 enum CNRS_METHOD
 {
@@ -49,7 +41,29 @@ enum CNRS_METHOD
 namespace ns3
 {
 
+struct AddressHash
+{
+    size_t operator()(const Address& x) const
+    {
+        if (InetSocketAddress::IsMatchingType(x))
+        {
+            InetSocketAddress a = InetSocketAddress::ConvertFrom(x);
+            return Ipv4AddressHash()(a.GetIpv4());
+        }
+        else if (Inet6SocketAddress::IsMatchingType(x))
+        {
+            Inet6SocketAddress a = Inet6SocketAddress::ConvertFrom(x);
+            return Ipv6AddressHash()(a.GetIpv6());
+        }
+
+        NS_ABORT_MSG("PacketSink: unexpected address type, neither IPv4 nor IPv6");
+        return 0;
+    }
+};
+
 void DoSocketMethod(int (Socket::*)(const Address&), Ptr<Socket>, const Address&, uint16_t);
+uint16_t DoSocketBind(Ptr<Socket>, const Address&);
+uint16_t GetBindPort(Ptr<Socket>);
 
 } // namespace ns3
 

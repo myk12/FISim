@@ -28,4 +28,31 @@ DoSocketMethod(int (Socket::*Method)(const Address&),
     }
 }
 
+uint16_t
+DoSocketBind(Ptr<Socket> socket, const Address& address)
+{
+    uint16_t bindPort = GetBindPort(socket);
+    DoSocketMethod(&Socket::Bind, socket, address, bindPort);
+    return bindPort;
+}
+
+uint16_t
+GetBindPort(Ptr<Socket> socket)
+{
+    int flag = socket->Bind();
+    NS_ASSERT_MSG(flag != -1, "Failed to allocate a port");
+    Address sockAddr;
+    socket->GetSockName(sockAddr);
+    uint16_t ret = 0;
+    if (InetSocketAddress::IsMatchingType(sockAddr))
+    {
+        ret = InetSocketAddress::ConvertFrom(sockAddr).GetPort();
+    }
+    else if (Inet6SocketAddress::IsMatchingType(sockAddr))
+    {
+        ret = Inet6SocketAddress::ConvertFrom(sockAddr).GetPort();
+    }
+    return ret;
+}
+
 } // namespace ns3

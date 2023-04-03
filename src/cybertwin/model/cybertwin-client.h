@@ -1,12 +1,12 @@
 #ifndef CYBERTWIN_CLIENT_H
 #define CYBERTWIN_CLIENT_H
 
+#include "cybertwin-cert.h"
 #include "cybertwin-common.h"
-#include "cybertwin-packet-header.h"
+#include "cybertwin-header.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
-#include "ns3/event-id.h"
 
 namespace ns3
 {
@@ -18,19 +18,16 @@ class CybertwinClient : public Application
 {
   public:
     CybertwinClient();
-
     static TypeId GetTypeId();
 
   protected:
     void DoDispose() override;
-
     virtual void RecvPacket(Ptr<Socket>);
 
     // socket connected to the cybertwin
     Ptr<Socket> m_socket;
     CYBERTWINID_t m_localCuid;
     CYBERTWINID_t m_peerCuid;
-    Time m_startTime;
 };
 
 class CybertwinConnClient : public CybertwinClient
@@ -38,6 +35,9 @@ class CybertwinConnClient : public CybertwinClient
   public:
     CybertwinConnClient();
     ~CybertwinConnClient();
+
+    void SetDevCert(const CybertwinCert&);
+    void SetUsrCert(const CybertwinCert&);
 
     static TypeId GetTypeId();
 
@@ -58,7 +58,7 @@ class CybertwinConnClient : public CybertwinClient
     void CybertwinCloseFailedCallback(Ptr<Socket>);
 
     // Basic Functions
-    void GenerateCybertwin();
+    void Authenticate();
     void ConnectCybertwin();
     void DisconnectCybertwin();
 
@@ -73,6 +73,9 @@ class CybertwinConnClient : public CybertwinClient
 
     Ptr<Socket> m_controllerSocket;
     uint16_t m_cybertwinPort;
+
+    CybertwinCert m_devCert;
+    CybertwinCert m_usrCert;
 };
 
 class CybertwinBulkClient : public CybertwinClient
