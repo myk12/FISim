@@ -1,5 +1,6 @@
 #include "ns3/core-module.h"
 #include "ns3/cybertwin-module.h"
+#include "ns3/cybertwin-tag.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -16,48 +17,102 @@ NS_LOG_COMPONENT_DEFINE("TestEndToEdge");
 
 using namespace ns3;
 
+#define TEST_LOG_LEVEL LOG_LEVEL_ALL
+
 int
 main(int argc, char* argv[])
 {
     CommandLine cmd(__FILE__);
     cmd.Parse(argc, argv);
 
+    Packet::EnablePrinting();
+
     Time::SetResolution(Time::NS);
-    LogComponentEnable("CybertwinController", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinBulkClient", LOG_LEVEL_DEBUG);
-    LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinEdge", TEST_LOG_LEVEL);
+    LogComponentEnable("CybertwinClient", TEST_LOG_LEVEL);
+    LogComponentEnable("Cybertwin", TEST_LOG_LEVEL);
+    LogComponentEnable("CybertwinCert", TEST_LOG_LEVEL);
+    LogComponentEnable("TestEndToEdge", TEST_LOG_LEVEL);
+    // LogComponentEnable("CybertwinHeader", TEST_LOG_LEVEL);
 
     NodeContainer nodes;
-    nodes.Create(2);
+    nodes.Create(4);
 
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
 
-    NetDeviceContainer devices;
-    devices = pointToPoint.Install(nodes);
+    NetDeviceContainer lan1Devices, lan2Devices, e2eDevices;
+    lan1Devices = pointToPoint.Install(nodes.Get(0), nodes.Get(1));
+    e2eDevices = pointToPoint.Install(nodes.Get(1), nodes.Get(3));
+    lan2Devices = pointToPoint.Install(nodes.Get(2), nodes.Get(3));
 
     InternetStackHelper stack;
     stack.Install(nodes);
 
-    Ipv4AddressHelper address;
-    address.SetBase("10.1.1.0", "255.255.255.0");
+    Ipv4AddressHelper lan1Addr, lan2Addr, edgeAddr;
+    lan1Addr.SetBase("10.1.1.0", "255.255.255.0");
+    lan2Addr.SetBase("10.1.2.0", "255.255.255.0");
+    edgeAddr.SetBase("10.1.3.0", "255.255.255.0");
 
-    Ipv4InterfaceContainer interfaces = address.Assign(devices);
+    Ipv4InterfaceContainer lan1Interfaces, lan2Interfaces, edgeInterfaces;
+    lan1Interfaces = lan1Addr.Assign(lan1Devices);
+    lan2Interfaces = lan2Addr.Assign(lan2Devices);
+    edgeInterfaces = edgeAddr.Assign(e2eDevices);
 
-    CybertwinBulkClientHelper bulkClient(1234,
-                                         4321,
-                                         interfaces.GetAddress(0),
-                                         interfaces.GetAddress(1));
-    ApplicationContainer clientApps = bulkClient.Install(nodes.Get(0));
-    clientApps.Start(Seconds(1.0));
-    // clientApps.Stop(Seconds(10.0));
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    CybertwinEdgeServerHelper edgeServer(interfaces.GetAddress(1));
-    ApplicationContainer edgeCloud = edgeServer.Install(nodes.Get(1));
-    edgeCloud.Start(Seconds(0.0));
-    // edgeCloud.Stop(Seconds(10.0));
+    CybertwinCertTag dev1Cert, dev2Cert;
+    dev1Cert.SetCybertwin(1000);
+    dev1Cert.SetInitialCredit(1000);
+    dev1Cert.SetIngressCredit(500);
+    dev1Cert.SetIsUserRequired(true);
+    dev1Cert.SetIsValid(true);
+    dev1Cert.AddUser(2000, 1000, 300);
 
+    dev2Cert.SetCybertwin(1001);
+    dev2Cert.SetInitialCredit(500);
+    dev2Cert.SetIngressCredit(1000);
+    dev2Cert.SetIsUserRequired(false);
+    dev2Cert.SetIsValid(true);
+
+    CybertwinConnHelper connClient1;
+    connClient1.SetAttribute("LocalAddress", AddressValue(lan1Interfaces.GetAddress(0)));
+    connClient1.SetAttribute("EdgeAddress", AddressValue(lan1Interfaces.GetAddress(1)));
+    connClient1.SetAttribute("LocalCuid", UintegerValue(1000));
+    ApplicationContainer clientConn1App = connClient1.Install(nodes.Get(0));
+    connClient1.SetCertificate(nodes.Get(0), dev1Cert);
+
+    CybertwinConnHelper connClient2;
+    connClient2.SetAttribute("LocalAddress", AddressValue(lan2Interfaces.GetAddress(0)));
+    connClient2.SetAttribute("EdgeAddress", AddressValue(lan2Interfaces.GetAddress(1)));
+    connClient2.SetAttribute("LocalCuid", UintegerValue(1001));
+    ApplicationContainer clientConn2App = connClient2.Install(nodes.Get(2));
+    connClient2.SetCertificate(nodes.Get(2), dev2Cert);
+
+    CybertwinHelper bulkClient1("ns3::CybertwinBulkClient");
+    bulkClient1.SetAttribute("PeerCuid", UintegerValue(1001));
+    ApplicationContainer clientBulk1App = bulkClient1.Install(nodes.Get(0));
+    clientConn1App.Start(Seconds(1.0));
+    clientBulk1App.Start(Seconds(1.1));
+
+    CybertwinHelper lan1EdgeCtrl("ns3::CybertwinController"),
+        lan1EdgeTrafficManager("ns3::CybertwinTrafficManager");
+    lan1EdgeCtrl.SetAttribute("LocalAddress", AddressValue(lan1Interfaces.GetAddress(1)));
+    ApplicationContainer lan1EdgeApp = lan1EdgeCtrl.Install(nodes.Get(1)),
+                         lan1EdgeTrafficManagerApp = lan1EdgeTrafficManager.Install(nodes.Get(1));
+    lan1EdgeApp.Start(Seconds(0.0));
+    lan1EdgeTrafficManagerApp.Start(Seconds(0.0));
+
+    CybertwinHelper lan2Edge("ns3::CybertwinController"),
+        lan2EdgeTrafficManager("ns3::CybertwinTrafficManager");
+    lan2Edge.SetAttribute("LocalAddress", AddressValue(lan2Interfaces.GetAddress(1)));
+    ApplicationContainer lan2EdgeApp = lan2Edge.Install(nodes.Get(3)),
+                         lan2EdgeTrafficManagerApp = lan2EdgeTrafficManager.Install(nodes.Get(3));
+    lan2EdgeApp.Start(Seconds(0.0));
+    lan2EdgeTrafficManagerApp.Start(Seconds(0.0));
+
+    Simulator::Stop(Seconds(4.2));
     Simulator::Run();
     Simulator::Destroy();
     return 0;

@@ -207,6 +207,14 @@ class Node : public Object
      */
     void UnregisterDeviceAdditionListener(DeviceAdditionListener listener);
 
+    typedef Callback<bool,
+                     Ptr<NetDevice>,
+                     Ptr<const Packet>,
+                     uint16_t>
+        CybertwinFirewall;
+
+    void SetCybertwinFirewall(CybertwinFirewall firewall);
+
     /**
      * \returns true if checksums are enabled, false otherwise.
      */
@@ -303,6 +311,7 @@ class Node : public Object
     std::vector<Ptr<Application>> m_applications;         //!< Applications associated to this node
     ProtocolHandlerList m_handlers;                       //!< Protocol handlers in the node
     DeviceAdditionListenerList m_deviceAdditionListeners; //!< Device addition listeners in the node
+    CybertwinFirewall m_firewall;
 };
 
 } // namespace ns3

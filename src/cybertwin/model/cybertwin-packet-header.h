@@ -1,8 +1,9 @@
 #ifndef CYBERTWIN_PACKET_HEADER_H
 #define CYBERTWIN_PACKET_HEADER_H
 
-#include "ns3/header.h"
 #include "cybertwin-common.h"
+
+#include "ns3/header.h"
 
 namespace ns3
 {
@@ -40,30 +41,25 @@ class CybertwinPacketHeader : public Header
     uint16_t m_cmd;
 };
 
-class CybertwinControllerHeader: public Header
+class CybertwinControllerHeader : public Header
 {
   public:
     CybertwinControllerHeader();
-  
-    void SetMethod(uint16_t method);
+
+    void SetMethod(uint16_t);
     uint16_t GetMethod() const;
 
-    // request fragment
-    void SetDeviceName(DEVNAME_t devName);
-    DEVNAME_t GetDeviceName() const;
+    void SetCybertwinId(CYBERTWINID_t);
+    CYBERTWINID_t GetCybertwinId() const;
 
-    void SetNetworkType(NETTYPE_t netType);
-    NETTYPE_t GetNetworkType() const;
-
-    void SetCybertwinID(CYBERTWINID_t cybertwinID);
-    CYBERTWINID_t GetCybertwinID() const;
-
-    // response fragment
-    //void SetCybertwinAddress(Address addr);
-    //Ipv4Address GetCybertwinAddress() const;
-    
-    void SetCybertwinPort(uint16_t port);
+    void SetCybertwinPort(uint16_t);
     uint16_t GetCybertwinPort() const;
+
+    void SetIsOsUpdated(uint8_t);
+    uint8_t GetIsOsUpdated() const;
+
+    void SetIsPatchUpdated(uint8_t);
+    uint8_t GetIsPatchUpdated() const;
 
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
@@ -73,16 +69,16 @@ class CybertwinControllerHeader: public Header
     void Serialize(Buffer::Iterator start) const override;
     uint32_t Deserialize(Buffer::Iterator start) override;
     std::string ToString() const;
+
   private:
     uint16_t method;
-    DEVNAME_t devName;
-    NETTYPE_t netType;
-    CYBERTWINID_t cybertwinID;
-    //uint32_t cybertwinAddress; //TODO: support IPv6
+    CYBERTWINID_t cybertwinId;
     uint16_t cybertwinPort;
+    uint8_t isOsUpdated;
+    uint8_t isPatchUpdated;
 };
 
-class CybertwinCNRSHeader: public Header
+class CybertwinCNRSHeader : public Header
 {
   public:
     CybertwinCNRSHeader();

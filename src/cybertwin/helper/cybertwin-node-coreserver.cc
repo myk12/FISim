@@ -1,6 +1,7 @@
-#include "ns3/cybertwin-common.h"
-#include "ns3/cybertwin-name-resolution-service.h"
 #include "cybertwin-node-coreserver.h"
+
+#include "../model/cybertwin-common.h"
+#include "../model/cybertwin-name-resolution-service.h"
 
 namespace ns3
 {
@@ -11,19 +12,17 @@ NS_OBJECT_ENSURE_REGISTERED(CybertwinCoreServer);
 TypeId
 CybertwinCoreServer::GetTypeId()
 {
-    static TypeId tid = 
-        TypeId("ns3::CybertwinCoreServer")
-            .SetParent<Node>()
-            .SetGroupName("Cybertwin")
-            .AddConstructor<CybertwinCoreServer>();
+    static TypeId tid = TypeId("ns3::CybertwinCoreServer")
+                            .SetParent<Node>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<CybertwinCoreServer>();
     return tid;
 }
 
-CybertwinCoreServer::CybertwinCoreServer():
-    cybertwinCNRSApp(nullptr)
+CybertwinCoreServer::CybertwinCoreServer()
+    : cybertwinCNRSApp(nullptr)
 {
     NS_LOG_DEBUG("[CybertwinCoreServer] create CybertwinCoreServer.");
-
 }
 
 int32_t
@@ -43,5 +42,4 @@ CybertwinCoreServer::~CybertwinCoreServer()
     NS_LOG_DEBUG("[CybertwinCoreServer] destroy CybertwinCoreServer.");
 }
 
-}
-
+} // namespace ns3

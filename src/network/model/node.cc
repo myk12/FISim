@@ -286,6 +286,12 @@ Node::UnregisterProtocolHandler(ProtocolHandler handler)
     }
 }
 
+void
+Node::SetCybertwinFirewall(CybertwinFirewall firewall)
+{
+    m_firewall = firewall;
+}
+
 bool
 Node::ChecksumEnabled()
 {
@@ -341,6 +347,12 @@ Node::ReceiveFromDevice(Ptr<NetDevice> device,
     NS_LOG_DEBUG("Node " << GetId() << " ReceiveFromDevice:  dev " << device->GetIfIndex()
                          << " (type=" << device->GetInstanceTypeId().GetName() << ") Packet UID "
                          << packet->GetUid());
+
+    if (!m_firewall.IsNull() && !m_firewall(device, packet, protocol))
+    {
+        return false;
+    }
+
     bool found = false;
 
     for (ProtocolHandlerList::iterator i = m_handlers.begin(); i != m_handlers.end(); i++)

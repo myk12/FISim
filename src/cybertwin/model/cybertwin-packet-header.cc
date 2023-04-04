@@ -7,7 +7,6 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("CybertwinPacketHeader");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinPacketHeader);
 
-
 //********************************************************************
 //*                  Cybertwin Packet Header                         *
 //********************************************************************
@@ -132,11 +131,11 @@ CybertwinPacketHeader::Deserialize(Buffer::Iterator start)
 //*              Cybertwin Controller Header                         *
 //********************************************************************
 
-CybertwinControllerHeader::CybertwinControllerHeader():
-    method(NOTHING),
-    devName(0),
-    netType(0),
-    cybertwinID(0)
+CybertwinControllerHeader::CybertwinControllerHeader()
+    : method(NOTHING),
+      cybertwinPort(0),
+      isOsUpdated(0),
+      isPatchUpdated(0)
 {
 }
 
@@ -159,17 +158,15 @@ CybertwinControllerHeader::GetInstanceTypeId() const
 void
 CybertwinControllerHeader::Print(std::ostream& os) const
 {
-    os << "(method=" << method << ")";
+    os << "(method=" << method << ", " << cybertwinId << ", " << cybertwinPort << ", "
+       << isOsUpdated << ", " << isPatchUpdated << ")";
 }
 
 uint32_t
 CybertwinControllerHeader::GetSerializedSize() const
 {
-    return sizeof(method)
-            + sizeof(devName)
-            + sizeof(netType)
-            + sizeof(cybertwinID)
-            + sizeof(cybertwinPort);
+    return sizeof(method) + sizeof(cybertwinId) + sizeof(cybertwinPort) + sizeof(isOsUpdated) +
+           sizeof(isPatchUpdated);
 }
 
 void
@@ -177,10 +174,10 @@ CybertwinControllerHeader::Serialize(Buffer::Iterator start) const
 {
     Buffer::Iterator i = start;
     i.WriteHtonU16(method);
-    i.WriteHtonU64(devName);
-    i.WriteHtonU16(netType);
-    i.WriteHtonU64(cybertwinID);
+    i.WriteHtonU64(cybertwinId);
     i.WriteHtonU16(cybertwinPort);
+    i.WriteU8(isOsUpdated);
+    i.WriteU8(isPatchUpdated);
 }
 
 uint32_t
@@ -188,10 +185,10 @@ CybertwinControllerHeader::Deserialize(Buffer::Iterator start)
 {
     Buffer::Iterator i = start;
     method = i.ReadNtohU16();
-    devName = i.ReadNtohU64();
-    netType = i.ReadNtohU16();
-    cybertwinID = i.ReadNtohU64();
+    cybertwinId = i.ReadNtohU64();
     cybertwinPort = i.ReadNtohU16();
+    isOsUpdated = i.ReadU8();
+    isPatchUpdated = i.ReadU8();
     return GetSerializedSize();
 }
 
@@ -203,54 +200,64 @@ CybertwinControllerHeader::ToString() const
     return oss.str();
 }
 
-void CybertwinControllerHeader::SetMethod(uint16_t method)
+void
+CybertwinControllerHeader::SetMethod(uint16_t method)
 {
     this->method = method;
 }
 
-uint16_t CybertwinControllerHeader::GetMethod() const
+uint16_t
+CybertwinControllerHeader::GetMethod() const
 {
     return method;
 }
 
-void CybertwinControllerHeader::SetDeviceName(DEVNAME_t devName)
+void
+CybertwinControllerHeader::SetCybertwinId(CYBERTWINID_t id)
 {
-    this->devName = devName;
+    cybertwinId = id;
 }
 
-DEVNAME_t CybertwinControllerHeader::GetDeviceName() const
+CYBERTWINID_t
+CybertwinControllerHeader::GetCybertwinId() const
 {
-    return devName;
+    return cybertwinId;
 }
 
-void CybertwinControllerHeader::SetNetworkType(NETTYPE_t netType)
-{
-    this->netType = netType;
-}
-
-NETTYPE_t CybertwinControllerHeader::GetNetworkType() const
-{
-    return netType;
-}
-
-void CybertwinControllerHeader::SetCybertwinID(CYBERTWINID_t cybertwinID)
-{
-    this->cybertwinID = cybertwinID;
-}
-
-void CybertwinControllerHeader::SetCybertwinPort(uint16_t port)
+void
+CybertwinControllerHeader::SetCybertwinPort(uint16_t port)
 {
     this->cybertwinPort = port;
 }
 
-uint16_t CybertwinControllerHeader::GetCybertwinPort() const
+uint16_t
+CybertwinControllerHeader::GetCybertwinPort() const
 {
     return cybertwinPort;
 }
 
-CYBERTWINID_t CybertwinControllerHeader::GetCybertwinID() const
+void
+CybertwinControllerHeader::SetIsOsUpdated(uint8_t os)
 {
-    return cybertwinID;
+    isOsUpdated = os;
+}
+
+uint8_t
+CybertwinControllerHeader::GetIsOsUpdated() const
+{
+    return isOsUpdated;
+}
+
+void
+CybertwinControllerHeader::SetIsPatchUpdated(uint8_t patch)
+{
+    isPatchUpdated = patch;
+}
+
+uint8_t
+CybertwinControllerHeader::GetIsPatchUpdated() const
+{
+    return isPatchUpdated;
 }
 
 //********************************************************************
@@ -279,21 +286,14 @@ CybertwinCNRSHeader::CybertwinCNRSHeader()
 void
 CybertwinCNRSHeader::Print(std::ostream& os) const
 {
-    os << "\nCybertwinID   : "<<cybertwinID<<std::endl;
+    os << "\nCybertwinID   : " << cybertwinID << "\nCybertwinAddr : " << cybertwinAddr
+       << "\nCybertwinPort : " << cybertwinPort << std::endl;
 }
 
 uint32_t
 CybertwinCNRSHeader::GetSerializedSize() const
 {
-    uint32_t size = 0;
-    //basic
-    size += sizeof(method);
-    size += sizeof(cybertwinID);
-    if (method == CNRS_QUERY_OK)
-    {
-        size += interface_list.size() * (sizeof(uint32_t) + sizeof(uint16_t));
-    }
-    return size;
+    return sizeof(method) + sizeof(cybertwinID) + sizeof(cybertwinAddr) + sizeof(cybertwinPort);
 }
 
 void
