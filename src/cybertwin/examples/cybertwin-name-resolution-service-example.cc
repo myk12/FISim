@@ -43,18 +43,6 @@ main(int argc, char* argv[])
     uint16_t port = 8900;
     CYBERTWIN_INTERFACE_t interface;
 
-    Simulator::Schedule(Seconds(3.),
-                        &NameResolutionService::InsertCybertwinInterfaceName,
-                        &downNodeApp,
-                        1234567,
-                        std::make_pair(ifs.GetAddress(1), port));
-    
-    Simulator::Schedule(Seconds(4.),
-                        &NameResolutionService::GetCybertwinInterfaceByName,
-                        &downNodeApp,
-                        1234567,
-                        interface);
-
     AsciiTraceHelper ascii;
     p2pHelper.EnableAsciiAll(ascii.CreateFileStream("cybertwin-name-resolution-example.tr"));
     /* ... */

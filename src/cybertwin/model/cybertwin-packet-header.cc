@@ -300,10 +300,20 @@ void
 CybertwinCNRSHeader::Serialize(Buffer::Iterator start) const
 {
     Buffer::Iterator i = start;
-    i.WriteHtonU16(method);
-    i.WriteHtonU64(cybertwinID);
-    i.WriteHtonU32(cybertwinAddr);
-    i.WriteHtonU16(cybertwinPort);
+    i.WriteHtonU16(method); // request type or response type
+    i.WriteHtonU64(cybertwinID);    // CybertwinID
+
+    // only serialize when response
+    if (method == CNRS_QUERY_OK)
+    {
+        uint32_t num = interface_list.size();
+        i.WriteU8(num);
+        for (uint32_t idx=0; idx<num; idx++)
+        {
+            i.WriteHtonU32(interface_list[idx].first.Get());
+            i.WriteHtonU16(interface_list[idx].second);
+        }
+    }
 }
 
 uint32_t
@@ -312,8 +322,19 @@ CybertwinCNRSHeader::Deserialize(Buffer::Iterator start)
     Buffer::Iterator i = start;
     method = i.ReadNtohU16();
     cybertwinID = i.ReadNtohU64();
-    cybertwinAddr = i.ReadNtohU32();
-    cybertwinPort = i.ReadNtohU16();
+
+    if (method == CNRS_QUERY_OK)
+    {
+        uint32_t num = i.ReadU8();
+        for (uint32_t idx=0; idx < num; idx++)
+        {
+            // read a inteface
+            Ipv4Address ip(i.ReadNtohU32());
+            uint16_t port = i.ReadNtohU16();
+            interface_list.push_back(std::make_pair(ip, port));
+        }
+        interface_num = interface_list.size();
+    }
     return GetSerializedSize();
 }
 
@@ -349,28 +370,42 @@ CybertwinCNRSHeader::GetCybertwinID() const
     return cybertwinID;
 }
 
-void
-CybertwinCNRSHeader::SetCybertwinAddr(uint32_t addr)
+void 
+CybertwinCNRSHeader::AddCybertwinInterface(Ipv4Address ip, uint16_t port)
 {
-    this->cybertwinAddr = addr;
-}
-
-uint32_t
-CybertwinCNRSHeader::GetCybertwinAddr() const
-{
-    return cybertwinAddr;
+    NS_LOG_FUNCTION(this);
+    interface_list.push_back(std::make_pair(ip, port));
+    interface_num = interface_list.size();
 }
 
 void
-CybertwinCNRSHeader::SetCybertwinPort(uint16_t port)
+CybertwinCNRSHeader::AddCybertwinInterface(CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
-    this->cybertwinPort = port;
+    NS_LOG_FUNCTION(this);
+    for (auto interface:interfaces)
+    {
+        interface_list.push_back(interface);
+    }
+    interface_num = interfaces.size();
 }
 
 uint16_t
-CybertwinCNRSHeader::GetCybertwinPort() const
+CybertwinCNRSHeader::GetCybertwinInterfaceNum()
 {
-    return cybertwinPort;
+    return interface_list.size();
+}
+
+CYBERTWIN_INTERFACE_t
+CybertwinCNRSHeader::GetCybertwinInterface(uint32_t i)
+{
+    NS_ASSERT(0 <= i && i < interface_list.size());
+    return interface_list[i];
+}
+
+CYBERTWIN_INTERFACE_LIST_t
+CybertwinCNRSHeader::GetCybertwinInterface()
+{
+    return interface_list;
 }
 
 } // namespace ns3

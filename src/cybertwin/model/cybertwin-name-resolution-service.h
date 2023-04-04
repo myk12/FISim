@@ -19,8 +19,8 @@ class NameResolutionService: public Application
         ~NameResolutionService();
         static TypeId GetTypeId();
 
-        int32_t GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface);
-        void InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_t &interface);
+        int32_t GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interface);
+        void InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interface);
 
     private:
         void StartApplication() override;
@@ -36,14 +36,14 @@ class NameResolutionService: public Application
         void QueryRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
         void QueryResponseHandler(bool status, CybertwinCNRSHeader& rcvHeader);
         void InsertRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
-        void ReportName2Superior(CYBERTWINID_t id, uint32_t ip, uint16_t port);
+        void ReportName2Superior(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t interfaces);
 
         Ptr<Socket> serviceSocket;
         Ptr<Socket> reportSocket;
         uint16_t m_port;
         Ipv4Address superior;
         std::string databaseName;
-        std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_t> itemCache;
+        std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> itemCache;
 };
 }//ns3
 

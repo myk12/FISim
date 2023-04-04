@@ -23,6 +23,7 @@ typedef uint64_t DEVNAME_t;
 typedef uint16_t NETTYPE_t;
 typedef std::pair<ns3::Address, uint16_t> CybertwinInterface;
 typedef std::pair<ns3::Ipv4Address, uint16_t> CYBERTWIN_INTERFACE_t;
+typedef std::vector<CYBERTWIN_INTERFACE_t> CYBERTWIN_INTERFACE_LIST_t;
 
 typedef ns3::Callback<void, ns3::Ptr<ns3::Packet>> InitCybertwinCallback;
 

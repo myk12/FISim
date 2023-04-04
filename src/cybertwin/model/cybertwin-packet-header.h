@@ -94,21 +94,21 @@ class CybertwinCNRSHeader : public Header
 
     void SetMethod(uint16_t method);
     uint16_t GetMethod();
-
+    
     void SetCybertwinID(CYBERTWINID_t id);
     CYBERTWINID_t GetCybertwinID() const;
 
-    void SetCybertwinAddr(uint32_t addr);
-    uint32_t GetCybertwinAddr() const;
-
-    void SetCybertwinPort(uint16_t port);
-    uint16_t GetCybertwinPort() const;
-
+    void AddCybertwinInterface(Ipv4Address ip, uint16_t port);
+    void AddCybertwinInterface(CYBERTWIN_INTERFACE_LIST_t interfaces);
+    uint16_t GetCybertwinInterfaceNum();
+    CYBERTWIN_INTERFACE_t GetCybertwinInterface(uint32_t i);
+    CYBERTWIN_INTERFACE_LIST_t GetCybertwinInterface();
+ 
   private:
     uint16_t method;
     CYBERTWINID_t cybertwinID;
-    uint32_t cybertwinAddr;
-    uint16_t cybertwinPort;
+    uint8_t interface_num;
+    CYBERTWIN_INTERFACE_LIST_t interface_list;
 };
 
 } // namespace ns3
