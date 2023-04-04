@@ -8,7 +8,7 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("CybertwinCert");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinTag);
 NS_OBJECT_ENSURE_REGISTERED(CybertwinCreditTag);
-NS_OBJECT_ENSURE_REGISTERED(CybertwinCertificate);
+NS_OBJECT_ENSURE_REGISTERED(CybertwinCertTag);
 
 CybertwinTag::CybertwinTag(CYBERTWINID_t cuid)
     : m_cuid(cuid)
@@ -19,7 +19,7 @@ TypeId
 CybertwinTag::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::CybertwinTag")
-                            .SetParent<Header>()
+                            .SetParent<Tag>()
                             .SetGroupName("cybertwin")
                             .AddConstructor<CybertwinTag>();
     return tid;
@@ -55,6 +55,14 @@ CybertwinTag::Print(std::ostream& os) const
     os << "cybertwin=" << m_cuid;
 }
 
+std::string
+CybertwinTag::ToString() const
+{
+    std::ostringstream oss;
+    Print(oss);
+    return oss.str();
+}
+
 void
 CybertwinTag::SetCybertwin(CYBERTWINID_t val)
 {
@@ -67,16 +75,18 @@ CybertwinTag::GetCybertwin() const
     return m_cuid;
 }
 
-CybertwinCreditTag::CybertwinCreditTag(uint16_t credit)
-    : m_credit(credit)
+CybertwinCreditTag::CybertwinCreditTag(uint16_t credit, CYBERTWINID_t cuid, CYBERTWINID_t peer)
+    : m_credit(credit),
+      m_peer(peer)
 {
+    m_cuid = cuid;
 }
 
 TypeId
 CybertwinCreditTag::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::CybertwinCreditTag")
-                            .SetParent<Header>()
+                            .SetParent<CybertwinTag>()
                             .SetGroupName("cybertwin")
                             .AddConstructor<CybertwinCreditTag>();
     return tid;
@@ -91,33 +101,29 @@ CybertwinCreditTag::GetInstanceTypeId() const
 uint32_t
 CybertwinCreditTag::GetSerializedSize() const
 {
-    return sizeof(m_credit);
+    return sizeof(m_cuid) + sizeof(m_credit) + sizeof(m_peer);
 }
 
 void
 CybertwinCreditTag::Serialize(TagBuffer i) const
 {
+    i.WriteU64(m_cuid);
     i.WriteU16(m_credit);
+    i.WriteU64(m_peer);
 }
 
 void
 CybertwinCreditTag::Deserialize(TagBuffer i)
 {
+    m_cuid = i.ReadU64();
     m_credit = i.ReadU16();
+    m_peer = i.ReadU64();
 }
 
 void
 CybertwinCreditTag::Print(std::ostream& os) const
 {
-    os << "credit=" << m_credit;
-}
-
-std::string
-CybertwinCreditTag::ToString() const
-{
-    std::ostringstream oss;
-    Print(oss);
-    return oss.str();
+    os << "cybertwin=" << m_cuid << ", credit=" << m_credit << ", peer=" << m_peer;
 }
 
 void
@@ -132,33 +138,46 @@ CybertwinCreditTag::GetCredit() const
     return m_credit;
 }
 
-TypeId
-CybertwinCertificate::GetTypeId()
+void
+CybertwinCreditTag::SetPeer(CYBERTWINID_t val)
 {
-    static TypeId tid = TypeId("ns3::CybertwinCertificate")
-                            .SetParent<Header>()
+    m_peer = val;
+}
+
+CYBERTWINID_t
+CybertwinCreditTag::GetPeer() const
+{
+    return m_peer;
+}
+
+TypeId
+CybertwinCertTag::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinCertTag")
+                            .SetParent<Tag>()
                             .SetGroupName("cybertwin")
-                            .AddConstructor<CybertwinCertificate>();
+                            .AddConstructor<CybertwinCertTag>();
     return tid;
 }
 
 TypeId
-CybertwinCertificate::GetInstanceTypeId() const
+CybertwinCertTag::GetInstanceTypeId() const
 {
     return GetTypeId();
 }
 
 uint32_t
-CybertwinCertificate::GetSerializedSize() const
+CybertwinCertTag::GetSerializedSize() const
 {
-    return sizeof(m_initialCredit) + sizeof(m_ingressCredit) + sizeof(m_isUserRequired) +
-           sizeof(m_isCertValid) +
+    return sizeof(m_cuid) + sizeof(m_initialCredit) + sizeof(m_ingressCredit) +
+           sizeof(m_isUserRequired) + sizeof(m_isCertValid) +
            (m_isUserRequired ? sizeof(m_usr) + sizeof(m_usrInitialCredit) : 0);
 }
 
 void
-CybertwinCertificate::Serialize(TagBuffer i) const
+CybertwinCertTag::Serialize(TagBuffer i) const
 {
+    i.WriteU64(m_cuid);
     i.WriteU16(m_initialCredit);
     i.WriteU16(m_ingressCredit);
     i.WriteU8(m_isUserRequired);
@@ -171,8 +190,9 @@ CybertwinCertificate::Serialize(TagBuffer i) const
 }
 
 void
-CybertwinCertificate::Deserialize(TagBuffer i)
+CybertwinCertTag::Deserialize(TagBuffer i)
 {
+    m_cuid = i.ReadU64();
     m_initialCredit = i.ReadU16();
     m_ingressCredit = i.ReadU16();
     m_isUserRequired = i.ReadU8();
@@ -185,74 +205,67 @@ CybertwinCertificate::Deserialize(TagBuffer i)
 }
 
 void
-CybertwinCertificate::Print(std::ostream& os) const
+CybertwinCertTag::Print(std::ostream& os) const
 {
-    os << "credit=" << m_initialCredit << ", ingressCredit=" << m_ingressCredit
-       << ", isUserRequired=" << m_isUserRequired << ", isCertValid=" << m_isCertValid;
+    os << "cybertwin=" << m_cuid << ", credit=" << m_initialCredit
+       << ", ingressCredit=" << m_ingressCredit << ", isUserRequired=" << m_isUserRequired
+       << ", isCertValid=" << m_isCertValid;
     if (m_isUserRequired)
     {
         os << ", user=" << m_usr << ", userInitialCredit=" << m_usrInitialCredit;
     }
 }
 
-std::string
-CybertwinCertificate::ToString() const
-{
-    std::ostringstream oss;
-    Print(oss);
-    return oss.str();
-}
-
 void
-CybertwinCertificate::SetInitialCredit(uint16_t val)
+CybertwinCertTag::SetInitialCredit(uint16_t val)
 {
     m_initialCredit = val;
 }
 
 uint16_t
-CybertwinCertificate::GetInitialCredit() const
+CybertwinCertTag::GetInitialCredit() const
 {
     return m_initialCredit;
 }
 
 void
-CybertwinCertificate::SetIngressCredit(uint16_t val)
+CybertwinCertTag::SetIngressCredit(uint16_t val)
 {
     m_ingressCredit = std::max(m_ingressCredit, val);
 }
 
 uint16_t
-CybertwinCertificate::GetIngressCredit() const
+CybertwinCertTag::GetIngressCredit() const
 {
     return m_ingressCredit;
 }
 
 void
-CybertwinCertificate::SetIsUserRequired(bool val)
+CybertwinCertTag::SetIsUserRequired(bool val)
 {
     m_isUserRequired = val;
 }
 
 bool
-CybertwinCertificate::GetIsUserRequired() const
+CybertwinCertTag::GetIsUserRequired() const
 {
     return m_isUserRequired;
 }
 
 void
-CybertwinCertificate::SetIsValid(bool val)
+CybertwinCertTag::SetIsValid(bool val)
 {
     m_isCertValid = val;
 }
 
 bool
-CybertwinCertificate::GetIsValid() const
+CybertwinCertTag::GetIsValid() const
 {
     return m_isCertValid;
 }
 
 void
-CybertwinCertificate::AddUser(CYBERTWINID_t user, uint16_t userCredit, uint16_t userIngressCredit)
+CybertwinCertTag::AddUser(CYBERTWINID_t user, uint16_t userCredit, uint16_t userIngressCredit)
 {
     m_usr = user;
     m_usrInitialCredit = userCredit;
@@ -260,13 +273,13 @@ CybertwinCertificate::AddUser(CYBERTWINID_t user, uint16_t userCredit, uint16_t 
 }
 
 CYBERTWINID_t
-CybertwinCertificate::GetUser() const
+CybertwinCertTag::GetUser() const
 {
     return m_usr;
 }
 
 uint16_t
-CybertwinCertificate::GetUserInitialCredit() const
+CybertwinCertTag::GetUserInitialCredit() const
 {
     return m_usrInitialCredit;
 }

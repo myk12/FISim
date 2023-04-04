@@ -36,7 +36,7 @@ class CybertwinConnClient : public CybertwinClient
     CybertwinConnClient();
     ~CybertwinConnClient();
 
-    void SetCertificate(const CybertwinCertificate&);
+    void SetCertificate(const CybertwinCertTag&);
 
     static TypeId GetTypeId();
 
@@ -72,7 +72,7 @@ class CybertwinConnClient : public CybertwinClient
 
     Ptr<Socket> m_ctrlSocket;
     uint16_t m_cybertwinPort;
-    CybertwinCertificate m_cert;
+    CybertwinCertTag m_cert;
 };
 
 class CybertwinBulkClient : public CybertwinClient

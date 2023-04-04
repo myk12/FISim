@@ -259,7 +259,8 @@ Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
         // TODO: Forward until connected
         m_txBuffer[peerCuid] = txSocket;
     }
-    CybertwinCreditTag credit(1000);
+    // temp
+    CybertwinCreditTag credit(1500, m_cybertwinId, peerCuid);
     packet->AddPacketTag(credit);
     m_txBuffer[peerCuid]->Send(packet);
 }

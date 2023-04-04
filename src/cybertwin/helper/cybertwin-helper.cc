@@ -55,7 +55,7 @@ CybertwinConnHelper::CybertwinConnHelper()
 }
 
 void
-CybertwinConnHelper::SetCertificate(Ptr<Node> node, const CybertwinCertificate& cert)
+CybertwinConnHelper::SetCertificate(Ptr<Node> node, const CybertwinCertTag& cert)
 {
     for (uint32_t j = 0; j < node->GetNApplications(); j++)
     {

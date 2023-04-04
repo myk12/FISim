@@ -240,59 +240,40 @@ CybertwinTrafficManager::InspectPacket(Ptr<NetDevice> device,
                                        uint16_t protocol)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << device->GetIfIndex() << packet->ToString());
-    CybertwinTag idTag;
-    if (!packet->PeekPacketTag(idTag))
-    {
-        // an id tag from the source host should also be presented
-        return true;
-    }
     CybertwinCreditTag creditTag;
-    CybertwinCertificate certTag;
     if (packet->PeekPacketTag(creditTag))
     {
         // packet comes from another cybertwin
-        CYBERTWINID_t cuid = creditTag.GetCybertwin();
-        CYBERTWINID_t src = idTag.GetCybertwin();
-        if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
-            !m_firewallTable[cuid].Filter(src, creditTag))
-        {
-            // firewall not initiated or blocked
-            return false;
-        }
+        CYBERTWINID_t cuid = creditTag.GetPeer();
+        CYBERTWINID_t src = creditTag.GetCybertwin();
+        return m_firewallTable.find(cuid) != m_firewallTable.end() &&
+               m_firewallTable[cuid].Filter(src, creditTag);
     }
-    else
+    CybertwinCertTag certTag;
+    if (packet->PeekPacketTag(certTag))
     {
-        // packet comes from host
-        CYBERTWINID_t cuid = idTag.GetCybertwin();
-        if (packet->PeekPacketTag(certTag))
+        // packet comes from another cybertwin
+        CYBERTWINID_t cuid = certTag.GetCybertwin();
+        if (m_firewallTable.find(cuid) == m_firewallTable.end())
         {
-            // packet contains certificate
-            if (!m_firewallTable[cuid].Authenticate(certTag))
-            {
-                // failed the authentication
-                m_firewallTable[cuid].Dispose();
-                m_firewallTable.erase(cuid);
-                return false;
-            }
+            m_firewallTable[cuid] = CybertwinFirewall(cuid);
         }
-        else
-        {
-            // normal packet
-            if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
-                !m_firewallTable[cuid].Forward(packet))
-            {
-                // firewall not initiated or blocked
-                return false;
-            }
-        }
+        return m_firewallTable[cuid].Authenticate(certTag);
     }
-    NS_LOG_DEBUG("Packet permitted");
+    CybertwinTag idTag;
+    if (packet->PeekPacketTag(idTag))
+    {
+        CYBERTWINID_t cuid = idTag.GetCybertwin();
+        return m_firewallTable.find(cuid) != m_firewallTable.end() &&
+               m_firewallTable[cuid].Forward(packet);
+    }
+    // non cybertwin packet
     return true;
 }
 
-CybertwinFirewall::CybertwinFirewall()
+CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid)
     : m_ingressCredit(0),
-      m_cuid(0),
+      m_cuid(cuid),
       m_isUsrAuthRequired(false),
       m_usrCuid(0),
       m_state(NOT_STARTED)
@@ -308,23 +289,25 @@ CybertwinFirewall::Filter(CYBERTWINID_t src, const CybertwinCreditTag& creditTag
         // TODO: record src and check if it is malicious
         return true;
     }
+    NS_LOG_DEBUG("Global packet from " << src << " got blocked");
     return false;
 }
 
 bool
 CybertwinFirewall::Forward(Ptr<const Packet> packet)
 {
-    NS_LOG_FUNCTION(m_cuid << packet->ToString() << m_state << m_ingressCredit);
+    NS_LOG_FUNCTION(m_cuid << m_state << m_ingressCredit);
     if (m_state == PERMITTED)
     {
         // TODO: examine packet content
         return true;
     }
+    NS_LOG_DEBUG("Local packet from" << m_cuid << " got blocked");
     return false;
 }
 
 bool
-CybertwinFirewall::Authenticate(const CybertwinCertificate& cert)
+CybertwinFirewall::Authenticate(const CybertwinCertTag& cert)
 {
     if (cert.GetIsValid())
     {

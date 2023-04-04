@@ -34,7 +34,7 @@ class CybertwinConnHelper : public CybertwinHelper
   public:
     CybertwinConnHelper();
 
-    void SetCertificate(Ptr<Node>, const CybertwinCertificate&);
+    void SetCertificate(Ptr<Node>, const CybertwinCertTag&);
 };
 
 } // namespace ns3

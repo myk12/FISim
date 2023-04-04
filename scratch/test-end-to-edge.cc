@@ -62,13 +62,15 @@ main(int argc, char* argv[])
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    CybertwinCertificate dev1Cert, dev2Cert;
+    CybertwinCertTag dev1Cert, dev2Cert;
+    dev1Cert.SetCybertwin(1000);
     dev1Cert.SetInitialCredit(1000);
     dev1Cert.SetIngressCredit(500);
     dev1Cert.SetIsUserRequired(true);
     dev1Cert.SetIsValid(true);
     dev1Cert.AddUser(2000, 1000, 300);
 
+    dev2Cert.SetCybertwin(1001);
     dev2Cert.SetInitialCredit(500);
     dev2Cert.SetIngressCredit(1000);
     dev2Cert.SetIsUserRequired(false);

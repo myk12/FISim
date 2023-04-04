@@ -50,12 +50,12 @@ class CybertwinController : public Application
 class CybertwinFirewall
 {
   public:
-    CybertwinFirewall();
+    CybertwinFirewall(CYBERTWINID_t cuid = 0);
 
     bool Filter(CYBERTWINID_t, const CybertwinCreditTag&);
     bool Forward(Ptr<const Packet>);
 
-    bool Authenticate(const CybertwinCertificate&);
+    bool Authenticate(const CybertwinCertTag&);
     void Dispose();
 
   private:

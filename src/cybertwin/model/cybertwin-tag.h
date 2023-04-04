@@ -19,34 +19,37 @@ class CybertwinTag : public Tag
     void Serialize(TagBuffer) const override;
     void Deserialize(TagBuffer) override;
     void Print(std::ostream&) const override;
+    std::string ToString() const;
 
     void SetCybertwin(CYBERTWINID_t);
     CYBERTWINID_t GetCybertwin() const;
 
-  private:
+  protected:
     CYBERTWINID_t m_cuid;
 };
 
 class CybertwinCreditTag : public CybertwinTag
 {
   public:
-    CybertwinCreditTag(uint16_t credit = 0);
+    CybertwinCreditTag(uint16_t credit = 0, CYBERTWINID_t cuid = 0, CYBERTWINID_t peer = 0);
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
     uint32_t GetSerializedSize() const override;
     void Serialize(TagBuffer) const override;
     void Deserialize(TagBuffer) override;
     void Print(std::ostream&) const override;
-    std::string ToString() const;
 
     void SetCredit(uint16_t);
     uint16_t GetCredit() const;
+    void SetPeer(CYBERTWINID_t);
+    CYBERTWINID_t GetPeer() const;
 
   private:
     uint16_t m_credit;
+    CYBERTWINID_t m_peer;
 };
 
-class CybertwinCertificate : public Tag
+class CybertwinCertTag : public CybertwinTag
 {
   public:
     static TypeId GetTypeId();
@@ -55,7 +58,6 @@ class CybertwinCertificate : public Tag
     void Serialize(TagBuffer) const override;
     void Deserialize(TagBuffer) override;
     void Print(std::ostream&) const override;
-    std::string ToString() const;
 
     void SetInitialCredit(uint16_t);
     uint16_t GetInitialCredit() const;

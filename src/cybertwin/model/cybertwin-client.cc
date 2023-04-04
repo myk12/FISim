@@ -160,7 +160,7 @@ CybertwinConnClient::StopApplication()
 }
 
 void
-CybertwinConnClient::SetCertificate(const CybertwinCertificate& cert)
+CybertwinConnClient::SetCertificate(const CybertwinCertTag& cert)
 {
     m_cert = cert;
 }
@@ -226,9 +226,7 @@ CybertwinConnClient::Authenticate()
 {
     NS_LOG_FUNCTION(this);
     Ptr<Packet> authPacket = Create<Packet>(0);
-    CybertwinTag idTag(m_localCuid);
     authPacket->AddPacketTag(m_cert);
-    authPacket->AddPacketTag(idTag);
 
     CybertwinHeader ctrlHeader;
     ctrlHeader.SetCommand(HOST_CONNECT);
