@@ -22,28 +22,22 @@ Cybertwin::GetTypeId()
 Cybertwin::Cybertwin()
     : m_cybertwinId(0),
       m_localSocket(nullptr),
-      m_globalSocket(nullptr)
+      m_localPort(0),
+      m_globalSocket(nullptr),
+      m_globalPort(0)
 {
 }
 
-Cybertwin::Cybertwin(CYBERTWINID_t cuid, Ptr<Socket> socket)
+Cybertwin::Cybertwin(CYBERTWINID_t cuid, Ptr<Socket> ctrlSocket, const Address& address)
     : m_cybertwinId(cuid),
-      m_localSocket(socket),
-      m_globalSocket(nullptr)
+      m_ctrlSocket(ctrlSocket),
+      m_address(address),
+      m_localSocket(nullptr),
+      m_localPort(0),
+      m_globalSocket(nullptr),
+      m_globalPort(0)
 {
-    Address sockAddr;
-    m_localSocket->GetSockName(sockAddr);
-    if (InetSocketAddress::IsMatchingType(sockAddr))
-    {
-        m_address = InetSocketAddress::ConvertFrom(sockAddr).GetIpv4();
-    }
-    else if (Inet6SocketAddress::IsMatchingType(sockAddr))
-    {
-        m_address = Inet6SocketAddress::ConvertFrom(sockAddr).GetIpv6();
-    }
-    m_localSocket->SetRecvCallback(MakeCallback(&Cybertwin::RecvFromSocket, this));
-    m_localSocket->SetCloseCallbacks(MakeCallback(&Cybertwin::LocalNormalCloseCallback, this),
-                                     MakeCallback(&Cybertwin::LocalErrorCloseCallback, this));
+    NS_LOG_FUNCTION(this << cuid << address);
 }
 
 Cybertwin::~Cybertwin()
@@ -54,20 +48,25 @@ void
 Cybertwin::StartApplication()
 {
     NS_LOG_FUNCTION(m_cybertwinId);
-    NS_ASSERT_MSG(m_localSocket, "Connection socket not set");
-    if (!m_globalSocket)
-    {
-        m_globalSocket =
-            Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
-        m_port = DoSocketBind(m_globalSocket, m_address);
-    }
+    m_localSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+    m_localPort = DoSocketBind(m_localSocket, m_address);
+    m_localSocket->SetAcceptCallback(MakeCallback(&Cybertwin::LocalConnRequestCallback, this),
+                                     MakeCallback(&Cybertwin::LocalConnCreatedCallback, this));
+    m_localSocket->SetCloseCallbacks(MakeCallback(&Cybertwin::LocalNormalCloseCallback, this),
+                                     MakeCallback(&Cybertwin::LocalErrorCloseCallback, this));
+    m_localSocket->Listen();
+
+    m_globalSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+    m_globalPort = DoSocketBind(m_globalSocket, m_address);
     m_globalSocket->SetAcceptCallback(MakeCallback(&Cybertwin::GlobalConnRequestCallback, this),
                                       MakeCallback(&Cybertwin::GlobalConnCreatedCallback, this));
     m_globalSocket->SetCloseCallbacks(MakeCallback(&Cybertwin::GlobalNormalCloseCallback, this),
                                       MakeCallback(&Cybertwin::GlobalErrorCloseCallback, this));
     m_globalSocket->Listen();
+
     NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
-                           << "]: starts listening globally at port " << m_port);
+                           << "]: starts listening locally at port " << m_localPort
+                           << " and globally at port " << m_globalPort);
     // Temporary, simulate the initialization process
     Simulator::Schedule(Seconds(3.), &Cybertwin::Initialize, this);
 }
@@ -110,6 +109,7 @@ Cybertwin::Initialize()
     CybertwinHeader rspHeader;
     rspHeader.SetCybertwin(m_cybertwinId);
     rspHeader.SetCommand(CYBERTWIN_CONNECT_SUCCESS);
+    rspHeader.SetCybertwinPort(m_localPort);
 
     Ptr<Packet> rspPacket = Create<Packet>(0);
     rspPacket->AddHeader(rspHeader);
@@ -118,14 +118,28 @@ Cybertwin::Initialize()
     if (Ipv4Address::IsMatchingType(m_address))
     {
         GlobalRouteTable[m_cybertwinId] =
-            InetSocketAddress(Ipv4Address::ConvertFrom(m_address), m_port);
+            InetSocketAddress(Ipv4Address::ConvertFrom(m_address), m_globalPort);
     }
     else
     {
         GlobalRouteTable[m_cybertwinId] =
-            Inet6SocketAddress(Ipv6Address::ConvertFrom(m_address), m_port);
+            Inet6SocketAddress(Ipv6Address::ConvertFrom(m_address), m_globalPort);
     }
-    m_localSocket->Send(rspPacket);
+    NS_ASSERT(m_ctrlSocket);
+    m_ctrlSocket->Send(rspPacket);
+}
+
+bool
+Cybertwin::LocalConnRequestCallback(Ptr<Socket> socket, const Address&)
+{
+    return true;
+}
+
+void
+Cybertwin::LocalConnCreatedCallback(Ptr<Socket> socket, const Address& address)
+{
+    NS_LOG_FUNCTION(this);
+    socket->SetRecvCallback(MakeCallback(&Cybertwin::RecvFromSocket, this));
 }
 
 void
@@ -202,19 +216,20 @@ Cybertwin::RecvFromSocket(Ptr<Socket> socket)
 
         while (buffer->GetSize() >= header.GetSize())
         {
-            if (header.GetCommand() == HOST_SEND)
+            if (header.GetCybertwin() == m_cybertwinId)
             {
-                RecvLocalPacket(buffer->CreateFragment(0, header.GetSize()));
+                // packet from host
+                RecvLocalPacket(header, buffer->CreateFragment(0, header.GetSize()));
             }
-            else if (header.GetCommand() == CYBERTWIN_SEND)
+            else if (header.GetPeer() == m_cybertwinId)
             {
-                RecvGlobalPacket(buffer->CreateFragment(0, header.GetSize()));
+                // packet from cybertwin
+                RecvGlobalPacket(header, buffer->CreateFragment(0, header.GetSize()));
             }
             else
             {
                 NS_LOG_ERROR("UNKNOWN PACKET");
             }
-
             buffer->RemoveAtStart(header.GetSize());
             if (buffer->GetSize() > header.GetSerializedSize())
             {
@@ -229,12 +244,10 @@ Cybertwin::RecvFromSocket(Ptr<Socket> socket)
 }
 
 void
-Cybertwin::RecvLocalPacket(Ptr<Packet> packet)
+Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
-    CybertwinHeader recvHeader;
-    packet->RemoveHeader(recvHeader);
-    CYBERTWINID_t peerCuid = recvHeader.GetPeer();
+    CYBERTWINID_t peerCuid = header.GetPeer();
     // TODO
     InetSocketAddress addr = InetSocketAddress::ConvertFrom(GlobalRouteTable[peerCuid]);
     if (m_txBuffer.find(peerCuid) == m_txBuffer.end())
@@ -243,19 +256,16 @@ Cybertwin::RecvLocalPacket(Ptr<Packet> packet)
             Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
         DoSocketBind(txSocket, m_address);
         txSocket->Connect(addr);
+        // TODO: Forward until connected
         m_txBuffer[peerCuid] = txSocket;
     }
-    CybertwinHeader sendHeader(recvHeader);
-    sendHeader.SetCommand(CYBERTWIN_SEND);
-    sendHeader.SetPeer(recvHeader.GetCybertwin());
-    sendHeader.SetCybertwin(recvHeader.GetPeer());
-    sendHeader.SetCredit(10000);
-    packet->AddHeader(sendHeader);
+    CybertwinCreditTag credit(1000);
+    packet->AddPacketTag(credit);
     m_txBuffer[peerCuid]->Send(packet);
 }
 
 void
-Cybertwin::RecvGlobalPacket(Ptr<Packet> packet)
+Cybertwin::RecvGlobalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
 }

@@ -1,8 +1,8 @@
 #ifndef CYBERTWIN_HELPER_H
 #define CYBERTWIN_HELPER_H
 
-#include "../model/cybertwin-cert.h"
 #include "../model/cybertwin-client.h"
+#include "../model/cybertwin-tag.h"
 
 #include "ns3/application-container.h"
 #include "ns3/attribute.h"
@@ -34,8 +34,7 @@ class CybertwinConnHelper : public CybertwinHelper
   public:
     CybertwinConnHelper();
 
-    void SetDevCert(Ptr<Node>, const CybertwinCert&);
-    void SetUsrCert(Ptr<Node>, const CybertwinCert&);
+    void SetCertificate(Ptr<Node>, const CybertwinCertificate&);
 };
 
 } // namespace ns3

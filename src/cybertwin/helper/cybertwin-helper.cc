@@ -55,7 +55,7 @@ CybertwinConnHelper::CybertwinConnHelper()
 }
 
 void
-CybertwinConnHelper::SetDevCert(Ptr<Node> node, const CybertwinCert& devCert)
+CybertwinConnHelper::SetCertificate(Ptr<Node> node, const CybertwinCertificate& cert)
 {
     for (uint32_t j = 0; j < node->GetNApplications(); j++)
     {
@@ -63,21 +63,7 @@ CybertwinConnHelper::SetDevCert(Ptr<Node> node, const CybertwinCert& devCert)
             DynamicCast<CybertwinConnClient>(node->GetApplication(j));
         if (connClient)
         {
-            connClient->SetDevCert(devCert);
-        }
-    }
-}
-
-void
-CybertwinConnHelper::SetUsrCert(Ptr<Node> node, const CybertwinCert& usrCert)
-{
-    for (uint32_t j = 0; j < node->GetNApplications(); j++)
-    {
-        Ptr<CybertwinConnClient> connClient =
-            DynamicCast<CybertwinConnClient>(node->GetApplication(j));
-        if (connClient)
-        {
-            connClient->SetUsrCert(usrCert);
+            connClient->SetCertificate(cert);
         }
     }
 }

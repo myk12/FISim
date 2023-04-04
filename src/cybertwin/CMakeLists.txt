@@ -6,7 +6,7 @@ build_lib(
         model/cybertwin-edge.cc
         model/cybertwin-common.cc
         model/cybertwin.cc
-        model/cybertwin-cert.cc
+        model/cybertwin-tag.cc
         model/cybertwin-client.cc
     HEADER_FILES
         helper/cybertwin-helper.h
@@ -14,7 +14,7 @@ build_lib(
         model/cybertwin-edge.h
         model/cybertwin-common.h
         model/cybertwin.h
-        model/cybertwin-cert.h
+        model/cybertwin-tag.h
         model/cybertwin-client.h
     LIBRARIES_TO_LINK ${libcore}
                         ${libapplications}

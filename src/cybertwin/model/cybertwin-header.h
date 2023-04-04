@@ -16,8 +16,7 @@ enum CybertwinCommand_t
     CYBERTWIN_CONNECT_SUCCESS,
     CYBERTWIN_CONNECT_ERROR,
     // Data commands
-    HOST_SEND,
-    CYBERTWIN_SEND
+    DATA,
 };
 
 class CybertwinHeader : public Header
@@ -44,34 +43,22 @@ class CybertwinHeader : public Header
     void SetPeer(CYBERTWINID_t);
     CYBERTWINID_t GetPeer() const;
 
-    void SetCredit(uint16_t);
-    uint16_t GetCredit() const;
-
-    void SetIsLatestOs(bool);
-    bool GetIsLatestOs() const;
-
-    void SetIsLatestPatch(bool);
-    bool GetIsLatestPatch() const;
-
     void SetSize(uint32_t);
     uint32_t GetSize() const;
+
+    void SetCybertwinPort(uint16_t);
+    uint16_t GetCybertwinPort() const;
 
   protected:
     uint8_t m_command;
     CYBERTWINID_t m_cybertwin;
 
-    union {
-        struct
-        {
-            bool isLatestOs;
-            bool isLatestPatch;
-        } meta;
-
-        uint16_t score;
-    } m_credit;
-
+    // data packet payload
     CYBERTWINID_t m_peer;
     uint32_t m_size;
+
+    // control packet payload
+    uint16_t m_cybertwinPort;
 };
 
 } // namespace ns3

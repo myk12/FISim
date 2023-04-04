@@ -1,6 +1,6 @@
 #include "ns3/core-module.h"
-#include "ns3/cybertwin-cert.h"
 #include "ns3/cybertwin-module.h"
+#include "ns3/cybertwin-tag.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
@@ -62,21 +62,31 @@ main(int argc, char* argv[])
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    CybertwinCert dev1Cert(1000, 1000, 500, false, true, true),
-        dev2Cert(1001, 500, 1000, true, false, true), usr1Cert(2000, 1000, 300, false, false, true);
+    CybertwinCertificate dev1Cert, dev2Cert;
+    dev1Cert.SetInitialCredit(1000);
+    dev1Cert.SetIngressCredit(500);
+    dev1Cert.SetIsUserRequired(true);
+    dev1Cert.SetIsValid(true);
+    dev1Cert.AddUser(2000, 1000, 300);
+
+    dev2Cert.SetInitialCredit(500);
+    dev2Cert.SetIngressCredit(1000);
+    dev2Cert.SetIsUserRequired(false);
+    dev2Cert.SetIsValid(true);
 
     CybertwinConnHelper connClient1;
     connClient1.SetAttribute("LocalAddress", AddressValue(lan1Interfaces.GetAddress(0)));
     connClient1.SetAttribute("EdgeAddress", AddressValue(lan1Interfaces.GetAddress(1)));
+    connClient1.SetAttribute("LocalCuid", UintegerValue(1000));
     ApplicationContainer clientConn1App = connClient1.Install(nodes.Get(0));
-    connClient1.SetDevCert(nodes.Get(0), dev1Cert);
-    connClient1.SetUsrCert(nodes.Get(0), usr1Cert);
+    connClient1.SetCertificate(nodes.Get(0), dev1Cert);
 
     CybertwinConnHelper connClient2;
     connClient2.SetAttribute("LocalAddress", AddressValue(lan2Interfaces.GetAddress(0)));
     connClient2.SetAttribute("EdgeAddress", AddressValue(lan2Interfaces.GetAddress(1)));
+    connClient2.SetAttribute("LocalCuid", UintegerValue(1001));
     ApplicationContainer clientConn2App = connClient2.Install(nodes.Get(2));
-    connClient2.SetDevCert(nodes.Get(2), dev2Cert);
+    connClient2.SetCertificate(nodes.Get(2), dev2Cert);
 
     CybertwinHelper bulkClient1("ns3::CybertwinBulkClient");
     bulkClient1.SetAttribute("PeerCuid", UintegerValue(1001));

@@ -1,7 +1,5 @@
 #include "cybertwin-edge.h"
 
-#include "cybertwin-cert.h"
-
 #include "ns3/callback.h"
 #include "ns3/ipv4-header.h"
 #include "ns3/simulator.h"
@@ -121,18 +119,18 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
         }
 
         CybertwinHeader header;
-        packet->RemoveHeader(header);
+        packet->PeekHeader(header);
         NS_ASSERT_MSG(!header.isDataPacket(),
                       "--[Ctrl-" << GetNode()->GetId() << "]: received invalid header type");
 
         switch (header.GetCommand())
         {
         case HOST_CONNECT:
-            BornCybertwin(socket, packet);
+            BornCybertwin(header, socket);
             NS_LOG_DEBUG("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin created");
             break;
         case HOST_DISCONNECT:
-            KillCybertwin(socket, header);
+            KillCybertwin(header, socket);
             NS_LOG_DEBUG("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin removed");
             break;
         default:
@@ -143,59 +141,26 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
 }
 
 void
-CybertwinController::BornCybertwin(Ptr<Socket> socket, Ptr<Packet> packet)
+CybertwinController::BornCybertwin(const CybertwinHeader& header, Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
-
-    CybertwinCert devCert, usrCert;
-    CYBERTWINID_t cuid;
-    try
+    NS_LOG_FUNCTION(GetNode()->GetId() << header);
+    CYBERTWINID_t cuid = header.GetCybertwin();
+    if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
     {
-        packet->RemoveHeader(devCert);
-        if (devCert.GetIsCertValid() == false)
-        {
-            throw std::runtime_error("Invalid device certificate");
-        }
-
-        cuid = devCert.GetCybertwinId();
-        if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
-        {
-            // TODO: Should return a rspHeader with information related to the existed cybertwin
-            throw std::runtime_error("");
-        }
-
-        if (devCert.GetIsUserAuthRequired())
-        {
-            // TODO: Check if there's more certificate
-            packet->RemoveHeader(usrCert);
-            if (!usrCert.GetIsCertValid())
-            {
-                throw std::runtime_error("Invalid user certificate");
-            }
-        }
-
-        // create a cybertwin
-        Ptr<Cybertwin> cybertwin = Create<Cybertwin>(cuid, socket);
+        Ptr<Cybertwin> cybertwin = Create<Cybertwin>(cuid, socket, m_localAddr);
         m_cybertwinTable[cuid] = cybertwin;
-
-        // by default, the application will start running right away
         GetNode()->AddApplication(cybertwin);
     }
-    catch (const std::exception& e)
+    else
     {
-        CybertwinHeader rspHeader;
-        rspHeader.SetCommand(CYBERTWIN_CONNECT_ERROR);
-        // create response packet
-        Ptr<Packet> rspPacket = Create<Packet>(0);
-        rspPacket->AddHeader(rspHeader);
-        socket->Send(rspPacket);
+        // TODO: supports multiple connections to a single cybertwin
     }
 }
 
 void
-CybertwinController::KillCybertwin(Ptr<Socket> socket, const CybertwinHeader& reqHeader)
+CybertwinController::KillCybertwin(const CybertwinHeader& reqHeader, Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << socket << reqHeader);
+    NS_LOG_FUNCTION(GetNode()->GetId() << reqHeader);
     CYBERTWINID_t cuid = reqHeader.GetCybertwin();
     if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
     {
@@ -205,6 +170,7 @@ CybertwinController::KillCybertwin(Ptr<Socket> socket, const CybertwinHeader& re
     }
     else
     {
+        // TODO: supports multiple connections to a single cybertwin
         NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin not found");
     }
 }
@@ -273,68 +239,50 @@ CybertwinTrafficManager::InspectPacket(Ptr<NetDevice> device,
                                        Ptr<const Packet> packet,
                                        uint16_t protocol)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << packet->ToString());
-
-    PacketTagIterator ti = packet->GetPacketTagIterator();
-    while (ti.HasNext())
+    NS_LOG_FUNCTION(GetNode()->GetId() << device->GetIfIndex() << packet->ToString());
+    CybertwinTag idTag;
+    if (!packet->PeekPacketTag(idTag))
     {
-        PacketTagIterator::Item item = ti.Next();
-        if (item.GetTypeId() == CybertwinCertificate::GetTypeId())
+        // an id tag from the source host should also be presented
+        return true;
+    }
+    CybertwinCreditTag creditTag;
+    CybertwinCertificate certTag;
+    if (packet->PeekPacketTag(creditTag))
+    {
+        // packet comes from another cybertwin
+        CYBERTWINID_t cuid = creditTag.GetCybertwin();
+        CYBERTWINID_t src = idTag.GetCybertwin();
+        if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
+            !m_firewallTable[cuid].Filter(src, creditTag))
         {
-            CybertwinCertificate cert;
-            item.GetTag(cert);
-            NS_LOG_DEBUG("Received tag:" << cert.ToString());
+            // firewall not initiated or blocked
+            return false;
         }
     }
-
-    PacketMetadata::ItemIterator i = packet->BeginItem();
-    while (i.HasNext())
+    else
     {
-        PacketMetadata::Item item = i.Next();
-        if (!item.isFragment && item.type == PacketMetadata::Item::HEADER)
+        // packet comes from host
+        CYBERTWINID_t cuid = idTag.GetCybertwin();
+        if (packet->PeekPacketTag(certTag))
         {
-            // assumes header won't be fragmented
-            if (item.tid == CybertwinHeader::GetTypeId())
+            // packet contains certificate
+            if (!m_firewallTable[cuid].Authenticate(certTag))
             {
-                CybertwinHeader header;
-                header.Deserialize(item.current);
-                CYBERTWINID_t cuid = header.GetCybertwin();
-                if (!header.isDataPacket())
-                {
-                    switch (header.GetCommand())
-                    {
-                    case HOST_CONNECT:
-                        m_firewallTable[cuid] = CybertwinFirewall(header);
-                        break;
-                    case HOST_DISCONNECT:
-                        if (m_firewallTable.find(cuid) == m_firewallTable.end())
-                        {
-                            return false;
-                        }
-                        m_firewallTable[cuid].Dispose();
-                        m_firewallTable.erase(cuid);
-                        break;
-                    default:
-                        break;
-                    }
-                }
-                else if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
-                         !m_firewallTable[cuid].Handle(header))
-                {
-                    return false;
-                }
+                // failed the authentication
+                m_firewallTable[cuid].Dispose();
+                m_firewallTable.erase(cuid);
+                return false;
             }
-            else if (item.tid == CybertwinCert::GetTypeId())
+        }
+        else
+        {
+            // normal packet
+            if (m_firewallTable.find(cuid) == m_firewallTable.end() ||
+                !m_firewallTable[cuid].Forward(packet))
             {
-                CybertwinCert cert;
-                cert.Deserialize(item.current);
-                CYBERTWINID_t cuid = cert.GetCybertwinId();
-                if (m_firewallTable.find(cuid) != m_firewallTable.end() &&
-                    !m_firewallTable[cuid].Authenticate(cert))
-                {
-                    // TODO
-                    return false;
-                }
+                // firewall not initiated or blocked
+                return false;
             }
         }
     }
@@ -349,52 +297,48 @@ CybertwinFirewall::CybertwinFirewall()
       m_usrCuid(0),
       m_state(NOT_STARTED)
 {
-    NS_LOG_FUNCTION(this);
-}
-
-CybertwinFirewall::CybertwinFirewall(const CybertwinHeader& header)
-    : m_ingressCredit(0),
-      m_cuid(header.GetCybertwin()),
-      m_isUsrAuthRequired(false),
-      m_usrCuid(0),
-      m_state(NOT_STARTED)
-{
-    NS_LOG_FUNCTION(m_cuid);
 }
 
 bool
-CybertwinFirewall::Handle(const CybertwinHeader& header)
+CybertwinFirewall::Filter(CYBERTWINID_t src, const CybertwinCreditTag& creditTag)
 {
-    NS_LOG_FUNCTION(this << header << m_state);
-    if (m_state != PERMITTED ||
-        (header.GetCommand() == CYBERTWIN_SEND && header.GetCredit() < m_ingressCredit))
+    NS_LOG_FUNCTION(m_cuid << src << creditTag.ToString() << m_state << m_ingressCredit);
+    if (m_state == PERMITTED && creditTag.GetCredit() >= m_ingressCredit)
     {
-        NS_LOG_DEBUG("Packet blocked");
-        return false;
+        // TODO: record src and check if it is malicious
+        return true;
     }
-    return true;
+    return false;
 }
 
 bool
-CybertwinFirewall::Authenticate(const CybertwinCert& cert)
+CybertwinFirewall::Forward(Ptr<const Packet> packet)
 {
-    if (!cert.GetIsCertValid())
+    NS_LOG_FUNCTION(m_cuid << packet->ToString() << m_state << m_ingressCredit);
+    if (m_state == PERMITTED)
     {
-        NS_LOG_ERROR("Firewall #" << m_cuid << " receives invalid certificate: " << cert);
-        return false;
+        // TODO: examine packet content
+        return true;
     }
-    m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
-    if (cert.GetCybertwinId() == m_cuid)
+    return false;
+}
+
+bool
+CybertwinFirewall::Authenticate(const CybertwinCertificate& cert)
+{
+    if (cert.GetIsValid())
     {
-        // device cert
-        m_isUsrAuthRequired = cert.GetIsUserAuthRequired();
+        m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
+        m_isUsrAuthRequired = cert.GetIsUserRequired();
+        if (m_isUsrAuthRequired)
+        {
+            m_usrCuid = cert.GetUser();
+        }
+        m_state = PERMITTED;
+        // TODO: update the credit score of this cybertwin
+        return true;
     }
-    else
-    {
-        m_usrCuid = cert.GetCybertwinId();
-    }
-    m_state = PERMITTED;
-    return true;
+    return false;
 }
 
 void

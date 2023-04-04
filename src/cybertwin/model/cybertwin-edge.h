@@ -37,8 +37,8 @@ class CybertwinController : public Application
 
     void ReceiveFromHost(Ptr<Socket>);
 
-    void BornCybertwin(Ptr<Socket>, Ptr<Packet>);
-    void KillCybertwin(Ptr<Socket>, const CybertwinHeader&);
+    void BornCybertwin(const CybertwinHeader&, Ptr<Socket>);
+    void KillCybertwin(const CybertwinHeader&, Ptr<Socket>);
 
     Address m_localAddr;
     uint64_t m_localPort;
@@ -51,10 +51,11 @@ class CybertwinFirewall
 {
   public:
     CybertwinFirewall();
-    CybertwinFirewall(const CybertwinHeader&);
 
-    bool Handle(const CybertwinHeader&);
-    bool Authenticate(const CybertwinCert&);
+    bool Filter(CYBERTWINID_t, const CybertwinCreditTag&);
+    bool Forward(Ptr<const Packet>);
+
+    bool Authenticate(const CybertwinCertificate&);
     void Dispose();
 
   private:

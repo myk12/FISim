@@ -1,9 +1,9 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
-#include "cybertwin-cert.h"
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
+#include "cybertwin-tag.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -16,7 +16,7 @@ class Cybertwin : public Application
 {
   public:
     Cybertwin();
-    Cybertwin(CYBERTWINID_t, Ptr<Socket>);
+    Cybertwin(CYBERTWINID_t, Ptr<Socket>, const Address&);
     ~Cybertwin();
 
     static TypeId GetTypeId();
@@ -32,11 +32,11 @@ class Cybertwin : public Application
 
     void RecvFromSocket(Ptr<Socket>);
 
-    void RecvLocalPacket(Ptr<Packet>);
-    void RecvGlobalPacket(Ptr<Packet>);
+    void RecvLocalPacket(const CybertwinHeader&, Ptr<Packet>);
+    void RecvGlobalPacket(const CybertwinHeader&, Ptr<Packet>);
 
-    // bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
-    // void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
+    bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
+    void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
 
@@ -50,14 +50,12 @@ class Cybertwin : public Application
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txBuffer;
 
     CYBERTWINID_t m_cybertwinId;
-    Ptr<Socket> m_localSocket;
-    Ptr<Socket> m_globalSocket;
-
+    Ptr<Socket> m_ctrlSocket;
     Address m_address;
-    uint16_t m_port;
-
-    CybertwinCert m_devCert;
-    CybertwinCert m_usrCert;
+    Ptr<Socket> m_localSocket;
+    uint16_t m_localPort;
+    Ptr<Socket> m_globalSocket;
+    uint16_t m_globalPort;
 };
 
 } // namespace ns3

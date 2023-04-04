@@ -1,9 +1,9 @@
 #ifndef CYBERTWIN_CLIENT_H
 #define CYBERTWIN_CLIENT_H
 
-#include "cybertwin-cert.h"
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
+#include "cybertwin-tag.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -36,8 +36,7 @@ class CybertwinConnClient : public CybertwinClient
     CybertwinConnClient();
     ~CybertwinConnClient();
 
-    void SetDevCert(const CybertwinCert&);
-    void SetUsrCert(const CybertwinCert&);
+    void SetCertificate(const CybertwinCertificate&);
 
     static TypeId GetTypeId();
 
@@ -71,11 +70,9 @@ class CybertwinConnClient : public CybertwinClient
     Address m_edgeAddr;
     uint16_t m_edgePort;
 
-    Ptr<Socket> m_controllerSocket;
+    Ptr<Socket> m_ctrlSocket;
     uint16_t m_cybertwinPort;
-
-    CybertwinCert m_devCert;
-    CybertwinCert m_usrCert;
+    CybertwinCertificate m_cert;
 };
 
 class CybertwinBulkClient : public CybertwinClient
