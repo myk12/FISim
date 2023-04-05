@@ -3,6 +3,8 @@
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
+#include "cybertwin-packet-header.h"
+#include "cybertwin-packet-tags.h"
 
 namespace ns3
 {
@@ -263,6 +265,19 @@ Cybertwin::RecvGlobalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
     // TODO
+}
+
+void 
+Cybertwin::InitDataTransferService()
+{
+    if (dataTransferServer != nullptr)
+    {
+        NS_LOG_DEBUG("Data transfer service already exists.");
+        return ;
+    }
+
+    dataTransferServer = new CybertwinDataTransferServer();
+    //TODO: init data transfer server
 }
 
 } // namespace ns3

@@ -9,6 +9,14 @@
 #include "ns3/application.h"
 #include "ns3/callback.h"
 #include "ns3/socket.h"
+#include "ns3/ipv4-address.h"
+#include "ns3/internet-module.h"
+#include "ns3/network-module.h"
+#include "cybertwin-common.h"
+#include "cybertwin-multipath-controller.h"
+#include <string>
+#include <unordered_map>
+#include <queue>
 
 namespace ns3
 {
@@ -65,8 +73,23 @@ class Cybertwin : public Application
     uint16_t m_localPort;
     Ptr<Socket> m_globalSocket;
     uint16_t m_globalPort;
-};
+    void InitDataTransferService();
+    
 
-} // namespace ns3
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
+
+    std::unordered_map<CYBERTWINID_t, Ptr<Socket> > globalTxSocket;
+    // TODO: Add traffic logger
+    // TODO: Add other functionality
+    std::unordered_map<CYBERTWINID_t, CybertwinInterface> nameResolutionCache;
+
+    // Cybretwin multiple interfaces 
+    CYBERTWIN_INTERFACE_LIST_t interfaces;
+
+    // Cybertwin Connections
+    CybertwinDataTransferServer* dataTransferServer;
+};
+}; // namespace ns3
 
 #endif

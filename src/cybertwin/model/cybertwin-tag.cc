@@ -293,4 +293,108 @@ CybertwinCertTag::GetUserInitialCredit() const
     return m_usrInitialCredit;
 }
 
+
+//*****************************************************************************
+//*                 Multipath Connection Tag                                  *
+//*****************************************************************************
+NS_OBJECT_ENSURE_REGISTERED(MultipathTagConn);
+
+TypeId MultipathTagConn::GetTypeId (void)
+{
+  static TypeId tid = TypeId ("MultipathTagConn")
+    .SetParent<Tag> ()
+    .AddConstructor<MultipathTagConn> ();
+  return tid;
+}
+
+TypeId MultipathTagConn::GetInstanceTypeId (void) const
+{
+  return GetTypeId ();
+}
+
+uint32_t MultipathTagConn::GetSerializedSize (void) const
+{
+  return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) + sizeof(m_connId);
+}
+
+void MultipathTagConn::Serialize (TagBuffer i) const
+{
+  i.WriteU32 (m_pathId);
+  i.WriteU64 (m_cuid);
+  i.WriteU32 (m_senderKey);
+  i.WriteU32 (m_recverKey);
+  i.WriteU64 (m_connId);
+}
+
+void MultipathTagConn::Deserialize (TagBuffer i)
+{
+  m_pathId = i.ReadU32 ();
+  m_cuid = i.ReadU64 ();
+  m_senderKey = i.ReadU32 ();
+  m_recverKey = i.ReadU32 ();
+  m_connId = i.ReadU64 ();
+}
+
+void MultipathTagConn::Print (std::ostream &os) const
+{
+  os << " MultipathTagConn {" ;
+  os << "pathId=" << m_pathId << ", ";
+  os << "cuid=" << m_cuid << ", ";
+  os << "senderKey=" << m_senderKey << ", ";
+  os << "recverKey=" << m_recverKey << ", ";
+  os << "connId=" << m_connId;
+  os << "} ";
+}
+
+void MultipathTagConn::SetPathId (uint32_t pathId)
+{
+  m_pathId = pathId;
+}
+
+void MultipathTagConn::SetCuid (uint64_t cuid)
+{
+  m_cuid = cuid;
+}
+
+void MultipathTagConn::SetSenderKey (uint32_t senderKey)
+{
+  m_senderKey = senderKey;
+}
+
+void MultipathTagConn::SetRecverKey (uint32_t recverKey)
+{
+  m_recverKey = recverKey;
+}
+
+void MultipathTagConn::SetConnId (uint64_t connId)
+{
+  m_connId = connId;
+}
+
+uint32_t MultipathTagConn::GetPathId (void) const
+{
+  return m_pathId;
+}
+
+uint64_t MultipathTagConn::GetCuid (void) const
+{
+  return m_cuid;
+}
+
+uint32_t MultipathTagConn::GetSenderKey (void) const
+{
+  return m_senderKey;
+}
+
+uint32_t MultipathTagConn::GetRecverKey (void) const
+{
+  return m_recverKey;
+}
+
+uint64_t MultipathTagConn::GetConnId (void) const
+{
+  return m_connId;
+}
+
+
 } // namespace ns3

@@ -163,4 +163,127 @@ CybertwinHeader::GetCybertwinPort() const
     return m_cybertwinPort;
 }
 
+
+//********************************************************************
+//*             CyberTwin Multipath Header                           *
+//********************************************************************
+NS_OBJECT_ENSURE_REGISTERED(MultipathHeader);
+
+MultipathHeader::MultipathHeader() :
+    m_pathId(0),
+    m_cuid(0),
+    m_senderKey(0),
+    m_recverKey(0),
+    m_connId(0)
+{
+}
+
+MultipathHeader::~MultipathHeader()
+{
+}
+
+TypeId MultipathHeader::GetTypeId()
+{
+  static TypeId tid = TypeId("ns3::MultipathHeader")
+                      .SetParent<Header>()
+                      .AddConstructor<MultipathHeader>();
+  return tid;
+}
+
+TypeId MultipathHeader::GetInstanceTypeId() const
+{
+  return GetTypeId();
+}
+
+uint32_t MultipathHeader::GetSize()
+{
+  return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) + sizeof(m_connId);
+}
+
+uint32_t MultipathHeader::GetSerializedSize() const
+{
+  return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) + sizeof(m_connId);
+}
+
+void MultipathHeader::Serialize(Buffer::Iterator start) const
+{
+  start.WriteHtonU32(m_pathId);
+  start.WriteHtonU64(m_cuid);
+  start.WriteHtonU32(m_senderKey);
+  start.WriteHtonU32(m_recverKey);
+  start.WriteHtonU64(m_connId);
+}
+
+uint32_t MultipathHeader::Deserialize(Buffer::Iterator start)
+{
+  m_pathId = start.ReadNtohU32();
+  m_cuid = start.ReadNtohU64();
+  m_senderKey = start.ReadNtohU32();
+  m_recverKey = start.ReadNtohU32();
+  m_connId = start.ReadNtohU64();
+
+  return GetSerializedSize();
+}
+
+void MultipathHeader::Print(std::ostream& os) const
+{
+  os << "------- Multipath Header -------" <<std::endl
+     << "| Path ID: " << m_pathId << std::endl
+     << "| CyberTwin ID: " << m_cuid << std::endl
+     << "| Sender Key: " << m_senderKey << std::endl
+     << "| Receiver Key: " << m_recverKey << std::endl
+     << "| Connection ID: " << m_connId << std::endl
+     << "--------------------------------" << std::endl;
+}
+
+MP_PATH_ID_t MultipathHeader::GetPathId() const
+{
+  return m_pathId;
+}
+
+void MultipathHeader::SetPathId(MP_PATH_ID_t pathId)
+{
+  m_pathId = pathId;
+}
+
+CYBERTWINID_t MultipathHeader::GetCuid() const
+{
+  return m_cuid;
+}
+
+void MultipathHeader::SetCuid(CYBERTWINID_t cuid)
+{
+  m_cuid = cuid;
+}
+
+MP_CONN_KEY_t MultipathHeader::GetSenderKey() const
+{
+  return m_senderKey;
+}
+
+void MultipathHeader::SetSenderKey(MP_CONN_KEY_t senderKey)
+{
+  m_senderKey = senderKey;
+}
+
+MP_CONN_KEY_t MultipathHeader::GetRecverKey() const
+{
+  return m_recverKey;
+}
+
+void MultipathHeader::SetRecverKey(MP_CONN_KEY_t recverKey)
+{
+  m_recverKey = recverKey;
+}
+
+MP_CONN_ID_t MultipathHeader::GetConnId() const
+{
+  return m_connId;
+}
+
+void MultipathHeader::SetConnId(MP_CONN_ID_t connId)
+{
+  m_connId = connId;
+}
+
 } // namespace ns3

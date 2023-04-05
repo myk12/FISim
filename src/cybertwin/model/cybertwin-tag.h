@@ -87,6 +87,36 @@ class CybertwinCertTag : public CybertwinTag
     uint16_t m_usrInitialCredit;
 };
 
+class MultipathTagConn : public ns3::Tag
+{
+public:
+  static TypeId GetTypeId (void);
+  virtual TypeId GetInstanceTypeId (void) const;
+  virtual uint32_t GetSerializedSize (void) const;
+  virtual void Serialize (TagBuffer i) const;
+  virtual void Deserialize (TagBuffer i);
+  virtual void Print (std::ostream &os) const;
+  
+  void SetPathId (uint32_t pathId);
+  void SetCuid (uint64_t cuid);
+  void SetSenderKey (uint32_t senderKey);
+  void SetRecverKey (uint32_t recverKey);
+  void SetConnId (uint64_t connId);
+
+  uint32_t GetPathId (void) const;
+  uint64_t GetCuid (void) const;
+  uint32_t GetSenderKey (void) const;
+  uint32_t GetRecverKey (void) const;
+  uint64_t GetConnId (void) const;
+
+private:
+  uint32_t m_pathId;
+  uint64_t m_cuid;
+  uint32_t m_senderKey;
+  uint32_t m_recverKey;
+  uint64_t m_connId;
+};
+
 } // namespace ns3
 
 #endif
