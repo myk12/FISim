@@ -14,6 +14,10 @@
 namespace ns3
 {
 
+// class CybertwinCreditMonitor
+// {
+// };
+
 class CybertwinFirewall : public Application
 {
   public:
@@ -45,6 +49,7 @@ class CybertwinFirewall : public Application
     CYBERTWINID_t m_cuid;
     bool m_isUsrAuthRequired;
     CYBERTWINID_t m_usrCuid;
+    uint16_t m_usrCredit;
     FirewallState_t m_state;
 };
 
