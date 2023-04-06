@@ -62,19 +62,8 @@ main(int argc, char* argv[])
 
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    CybertwinCertTag dev1Cert, dev2Cert;
-    dev1Cert.SetCybertwin(1000);
-    dev1Cert.SetInitialCredit(1000);
-    dev1Cert.SetIngressCredit(500);
-    dev1Cert.SetIsUserRequired(true);
-    dev1Cert.SetIsValid(true);
-    dev1Cert.AddUser(2000, 1000, 300);
-
-    dev2Cert.SetCybertwin(1001);
-    dev2Cert.SetInitialCredit(500);
-    dev2Cert.SetIngressCredit(1000);
-    dev2Cert.SetIsUserRequired(false);
-    dev2Cert.SetIsValid(true);
+    CybertwinCertTag dev1Cert(1000, 1000, 500, true, true, 2000, 1000),
+        dev2Cert(1001, 500, 1000, false, true);
 
     CybertwinConnHelper connClient1;
     connClient1.SetAttribute("LocalAddress", AddressValue(lan1Interfaces.GetAddress(0)));

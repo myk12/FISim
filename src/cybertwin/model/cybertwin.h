@@ -18,9 +18,14 @@ class Cybertwin : public Application
   public:
     typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
     typedef Callback<int, CYBERTWINID_t, Ptr<Socket>, Ptr<const Packet>> CybertwinSendCallback;
+    typedef Callback<int, Ptr<Socket>, Ptr<const Packet>> CybertwinReceiveCallback;
 
     Cybertwin();
-    Cybertwin(CYBERTWINID_t, const Address&, CybertwinInitCallback, CybertwinSendCallback);
+    Cybertwin(CYBERTWINID_t,
+              const Address&,
+              CybertwinInitCallback,
+              CybertwinSendCallback,
+              CybertwinReceiveCallback);
     ~Cybertwin();
 
     static TypeId GetTypeId();
@@ -48,6 +53,7 @@ class Cybertwin : public Application
 
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
+    CybertwinReceiveCallback ReceivePacket;
 
     // buffer for handling packet fragments; also used for recording all accepted sockets
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;

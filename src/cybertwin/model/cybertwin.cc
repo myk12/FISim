@@ -31,9 +31,11 @@ Cybertwin::Cybertwin()
 Cybertwin::Cybertwin(CYBERTWINID_t cuid,
                      const Address& address,
                      CybertwinInitCallback initCallback,
-                     CybertwinSendCallback sendCallback)
+                     CybertwinSendCallback sendCallback,
+                     CybertwinReceiveCallback receiveCallback)
     : InitCybertwin(initCallback),
       SendPacket(sendCallback),
+      ReceivePacket(receiveCallback),
       m_cybertwinId(cuid),
       m_address(address)
 {
@@ -260,6 +262,7 @@ void
 Cybertwin::RecvGlobalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
+    // TODO
 }
 
 } // namespace ns3

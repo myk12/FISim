@@ -27,7 +27,9 @@ class CybertwinFirewall : public Application
     bool ReceiveFromGlobal(CYBERTWINID_t, const CybertwinCreditTag&);
     bool ReceiveFromLocal(Ptr<const Packet>);
     bool ReceiveCertificate(const CybertwinCertTag&);
-    int Forward(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
+
+    int ForwardToGlobal(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
+    int ForwardToLocal(Ptr<Socket>, Ptr<Packet>);
 
   protected:
     void DoDispose() override;
@@ -78,6 +80,7 @@ class CybertwinController : public Application
 
     void CybertwinInit(Ptr<Socket>, const CybertwinHeader&);
     int CybertwinSend(CYBERTWINID_t, CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
+    int CybertwinReceive(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
 
     Address m_localAddr;
     uint64_t m_localPort;
