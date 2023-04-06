@@ -75,7 +75,7 @@ CybertwinTag::GetCybertwin() const
     return m_cuid;
 }
 
-CybertwinCreditTag::CybertwinCreditTag(uint16_t credit, CYBERTWINID_t cuid, CYBERTWINID_t peer)
+CybertwinCreditTag::CybertwinCreditTag(CYBERTWINID_t cuid, uint16_t credit, CYBERTWINID_t peer)
     : m_credit(credit),
       m_peer(peer)
 {

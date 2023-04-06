@@ -96,21 +96,15 @@ main(int argc, char* argv[])
     clientConn1App.Start(Seconds(1.0));
     clientBulk1App.Start(Seconds(1.1));
 
-    CybertwinHelper lan1EdgeCtrl("ns3::CybertwinController"),
-        lan1EdgeTrafficManager("ns3::CybertwinTrafficManager");
+    CybertwinHelper lan1EdgeCtrl("ns3::CybertwinController");
     lan1EdgeCtrl.SetAttribute("LocalAddress", AddressValue(lan1Interfaces.GetAddress(1)));
-    ApplicationContainer lan1EdgeApp = lan1EdgeCtrl.Install(nodes.Get(1)),
-                         lan1EdgeTrafficManagerApp = lan1EdgeTrafficManager.Install(nodes.Get(1));
+    ApplicationContainer lan1EdgeApp = lan1EdgeCtrl.Install(nodes.Get(1));
     lan1EdgeApp.Start(Seconds(0.0));
-    lan1EdgeTrafficManagerApp.Start(Seconds(0.0));
 
-    CybertwinHelper lan2Edge("ns3::CybertwinController"),
-        lan2EdgeTrafficManager("ns3::CybertwinTrafficManager");
+    CybertwinHelper lan2Edge("ns3::CybertwinController");
     lan2Edge.SetAttribute("LocalAddress", AddressValue(lan2Interfaces.GetAddress(1)));
-    ApplicationContainer lan2EdgeApp = lan2Edge.Install(nodes.Get(3)),
-                         lan2EdgeTrafficManagerApp = lan2EdgeTrafficManager.Install(nodes.Get(3));
+    ApplicationContainer lan2EdgeApp = lan2Edge.Install(nodes.Get(3));
     lan2EdgeApp.Start(Seconds(0.0));
-    lan2EdgeTrafficManagerApp.Start(Seconds(0.0));
 
     Simulator::Stop(Seconds(4.2));
     Simulator::Run();

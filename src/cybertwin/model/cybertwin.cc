@@ -28,16 +28,15 @@ Cybertwin::Cybertwin()
 {
 }
 
-Cybertwin::Cybertwin(CYBERTWINID_t cuid, Ptr<Socket> ctrlSocket, const Address& address)
-    : m_cybertwinId(cuid),
-      m_ctrlSocket(ctrlSocket),
-      m_address(address),
-      m_localSocket(nullptr),
-      m_localPort(0),
-      m_globalSocket(nullptr),
-      m_globalPort(0)
+Cybertwin::Cybertwin(CYBERTWINID_t cuid,
+                     const Address& address,
+                     CybertwinInitCallback initCallback,
+                     CybertwinSendCallback sendCallback)
+    : InitCybertwin(initCallback),
+      SendPacket(sendCallback),
+      m_cybertwinId(cuid),
+      m_address(address)
 {
-    NS_LOG_FUNCTION(this << cuid << address);
 }
 
 Cybertwin::~Cybertwin()
@@ -111,9 +110,6 @@ Cybertwin::Initialize()
     rspHeader.SetCommand(CYBERTWIN_CONNECT_SUCCESS);
     rspHeader.SetCybertwinPort(m_localPort);
 
-    Ptr<Packet> rspPacket = Create<Packet>(0);
-    rspPacket->AddHeader(rspHeader);
-
     // simulate a simple GNRS
     if (Ipv4Address::IsMatchingType(m_address))
     {
@@ -125,8 +121,8 @@ Cybertwin::Initialize()
         GlobalRouteTable[m_cybertwinId] =
             Inet6SocketAddress(Ipv6Address::ConvertFrom(m_address), m_globalPort);
     }
-    NS_ASSERT(m_ctrlSocket);
-    m_ctrlSocket->Send(rspPacket);
+
+    InitCybertwin(rspHeader);
 }
 
 bool
@@ -211,9 +207,7 @@ Cybertwin::RecvFromSocket(Ptr<Socket> socket)
 
         CybertwinHeader header;
         buffer->PeekHeader(header);
-        NS_ASSERT_MSG(header.isDataPacket(),
-                      "--[Edge-#" << m_cybertwinId << "]: received invalid packet type");
-
+        NS_ASSERT(header.isDataPacket());
         while (buffer->GetSize() >= header.GetSize())
         {
             if (header.GetCybertwin() == m_cybertwinId)
@@ -256,13 +250,10 @@ Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
             Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
         DoSocketBind(txSocket, m_address);
         txSocket->Connect(addr);
-        // TODO: Forward until connected
+        // TODO: Forward only after connected
         m_txBuffer[peerCuid] = txSocket;
     }
-    // temp
-    CybertwinCreditTag credit(1500, m_cybertwinId, peerCuid);
-    packet->AddPacketTag(credit);
-    m_txBuffer[peerCuid]->Send(packet);
+    SendPacket(peerCuid, m_txBuffer[peerCuid], packet);
 }
 
 void
