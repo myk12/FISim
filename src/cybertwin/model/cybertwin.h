@@ -7,6 +7,7 @@
 
 #include "ns3/address.h"
 #include "ns3/application.h"
+#include "ns3/callback.h"
 #include "ns3/socket.h"
 
 namespace ns3
@@ -15,13 +16,14 @@ namespace ns3
 class Cybertwin : public Application
 {
   public:
+    typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
+    typedef Callback<int, CYBERTWINID_t, Ptr<Socket>, Ptr<const Packet>> CybertwinSendCallback;
+
     Cybertwin();
-    Cybertwin(CYBERTWINID_t, Ptr<Socket>, const Address&);
+    Cybertwin(CYBERTWINID_t, const Address&, CybertwinInitCallback, CybertwinSendCallback);
     ~Cybertwin();
 
     static TypeId GetTypeId();
-
-  protected:
     void DoDispose() override;
 
   private:
@@ -31,7 +33,6 @@ class Cybertwin : public Application
     void Initialize();
 
     void RecvFromSocket(Ptr<Socket>);
-
     void RecvLocalPacket(const CybertwinHeader&, Ptr<Packet>);
     void RecvGlobalPacket(const CybertwinHeader&, Ptr<Packet>);
 
@@ -45,12 +46,14 @@ class Cybertwin : public Application
     void GlobalNormalCloseCallback(Ptr<Socket>);
     void GlobalErrorCloseCallback(Ptr<Socket>);
 
+    CybertwinInitCallback InitCybertwin;
+    CybertwinSendCallback SendPacket;
+
     // buffer for handling packet fragments; also used for recording all accepted sockets
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txBuffer;
 
     CYBERTWINID_t m_cybertwinId;
-    Ptr<Socket> m_ctrlSocket;
     Address m_address;
     Ptr<Socket> m_localSocket;
     uint16_t m_localPort;

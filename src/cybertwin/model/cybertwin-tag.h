@@ -31,7 +31,7 @@ class CybertwinTag : public Tag
 class CybertwinCreditTag : public CybertwinTag
 {
   public:
-    CybertwinCreditTag(uint16_t credit = 0, CYBERTWINID_t cuid = 0, CYBERTWINID_t peer = 0);
+    CybertwinCreditTag(CYBERTWINID_t cuid = 0, uint16_t credit = 0, CYBERTWINID_t peer = 0);
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
     uint32_t GetSerializedSize() const override;
