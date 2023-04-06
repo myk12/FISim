@@ -52,6 +52,13 @@ class CybertwinCreditTag : public CybertwinTag
 class CybertwinCertTag : public CybertwinTag
 {
   public:
+    CybertwinCertTag(CYBERTWINID_t cuid = 0,
+                     uint16_t initialCredit = 0,
+                     uint16_t ingressCredit = 0,
+                     bool isUserRequired = false,
+                     bool isCertValid = false,
+                     CYBERTWINID_t m_usr = 0,
+                     uint16_t m_usrInitialCredit = 0);
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
     uint32_t GetSerializedSize() const override;
@@ -67,7 +74,6 @@ class CybertwinCertTag : public CybertwinTag
     bool GetIsUserRequired() const;
     void SetIsValid(bool);
     bool GetIsValid() const;
-    void AddUser(CYBERTWINID_t, uint16_t, uint16_t);
     CYBERTWINID_t GetUser() const;
     uint16_t GetUserInitialCredit() const;
 

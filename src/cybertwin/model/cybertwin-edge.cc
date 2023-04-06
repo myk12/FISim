@@ -173,7 +173,8 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
                     cuid,
                     m_localAddr,
                     MakeCallback(&CybertwinController::CybertwinInit, this, socket),
-                    MakeCallback(&CybertwinController::CybertwinSend, this, cuid));
+                    MakeCallback(&CybertwinController::CybertwinSend, this, cuid),
+                    MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
                 cybertwin->SetStartTime(Seconds(0.0));
                 GetNode()->AddApplication(cybertwin);
                 m_cybertwinTable[cuid] = cybertwin;
@@ -207,10 +208,21 @@ CybertwinController::CybertwinSend(CYBERTWINID_t cuid,
                                    Ptr<Socket> socket,
                                    Ptr<Packet> packet)
 {
-    NS_LOG_DEBUG(GetNode()->GetId() << cuid << peer << socket << packet);
+    NS_LOG_FUNCTION(GetNode()->GetId() << cuid << peer);
     if (m_firewallTable.find(cuid) != m_firewallTable.end())
     {
-        return m_firewallTable[cuid]->Forward(peer, socket, packet);
+        return m_firewallTable[cuid]->ForwardToGlobal(peer, socket, packet);
+    }
+    return -1;
+}
+
+int
+CybertwinController::CybertwinReceive(CYBERTWINID_t cuid, Ptr<Socket> socket, Ptr<Packet> packet)
+{
+    NS_LOG_FUNCTION(GetNode()->GetId() << cuid);
+    if (m_firewallTable.find(cuid) != m_firewallTable.end())
+    {
+        return m_firewallTable[cuid]->ForwardToLocal(socket, packet);
     }
     return -1;
 }
@@ -238,6 +250,7 @@ CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid)
       m_cuid(cuid),
       m_isUsrAuthRequired(false),
       m_usrCuid(0),
+      m_usrCredit(0),
       m_state(NOT_STARTED)
 {
 }
@@ -304,25 +317,43 @@ CybertwinFirewall::ReceiveCertificate(const CybertwinCertTag& cert)
 {
     if (cert.GetIsValid())
     {
+        if (m_state == NOT_STARTED)
+        {
+            // only update credit score on initialization
+            m_credit = cert.GetInitialCredit();
+        }
         m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
         m_isUsrAuthRequired = cert.GetIsUserRequired();
-        if (m_isUsrAuthRequired)
-        {
-            m_usrCuid = cert.GetUser();
-        }
+        // the user might change. returns 0 if user authentication is not required
+        m_usrCuid = cert.GetUser();
+        m_usrCredit = cert.GetUserInitialCredit();
         m_state = PERMITTED;
-        // TODO: update the credit score of this cybertwin
         return true;
     }
     return false;
 }
 
 int
-CybertwinFirewall::Forward(CYBERTWINID_t peer, Ptr<Socket> socket, Ptr<Packet> packet)
+CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer, Ptr<Socket> socket, Ptr<Packet> packet)
 {
-    NS_LOG_FUNCTION(m_cuid << peer << socket << packet);
-    CybertwinCreditTag creditTag(m_cuid, m_credit, peer);
+    NS_LOG_FUNCTION(m_cuid << peer);
+    CybertwinCreditTag creditTag(m_cuid, m_credit + m_usrCredit, peer);
     packet->AddPacketTag(creditTag);
+    return socket->Send(packet);
+}
+
+int
+CybertwinFirewall::ForwardToLocal(Ptr<Socket> socket, Ptr<Packet> packet)
+{
+    NS_LOG_FUNCTION(m_cuid);
+    CybertwinCertTag certTag(m_cuid,
+                             m_credit,
+                             m_ingressCredit,
+                             m_isUsrAuthRequired,
+                             m_state != NOT_STARTED,
+                             m_usrCuid,
+                             m_usrCredit);
+    packet->AddPacketTag(certTag);
     return socket->Send(packet);
 }
 

@@ -76,10 +76,10 @@ CybertwinTag::GetCybertwin() const
 }
 
 CybertwinCreditTag::CybertwinCreditTag(CYBERTWINID_t cuid, uint16_t credit, CYBERTWINID_t peer)
-    : m_credit(credit),
+    : CybertwinTag(cuid),
+      m_credit(credit),
       m_peer(peer)
 {
-    m_cuid = cuid;
 }
 
 TypeId
@@ -148,6 +148,23 @@ CYBERTWINID_t
 CybertwinCreditTag::GetPeer() const
 {
     return m_peer;
+}
+
+CybertwinCertTag::CybertwinCertTag(CYBERTWINID_t cuid,
+                                   uint16_t initialCredit,
+                                   uint16_t ingressCredit,
+                                   bool isUserRequired,
+                                   bool isCertValid,
+                                   CYBERTWINID_t usr,
+                                   uint16_t usrInitialCredit)
+    : CybertwinTag(cuid),
+      m_initialCredit(initialCredit),
+      m_ingressCredit(ingressCredit),
+      m_isUserRequired(isUserRequired),
+      m_isCertValid(isCertValid),
+      m_usr(usr),
+      m_usrInitialCredit(usrInitialCredit)
+{
 }
 
 TypeId
@@ -262,14 +279,6 @@ bool
 CybertwinCertTag::GetIsValid() const
 {
     return m_isCertValid;
-}
-
-void
-CybertwinCertTag::AddUser(CYBERTWINID_t user, uint16_t userCredit, uint16_t userIngressCredit)
-{
-    m_usr = user;
-    m_usrInitialCredit = userCredit;
-    m_ingressCredit = std::max(m_ingressCredit, userIngressCredit);
 }
 
 CYBERTWINID_t
