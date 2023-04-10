@@ -19,6 +19,12 @@ public:
     void RecvHandler(MultipathConnection* conn);
     void ConnectSucceedHandler(MultipathConnection* conn);
     void ConnectFailedHandler(MultipathConnection* conn);
+    void ClientConnectSucceedHandler(MultipathConnection* conn);
+    void ServerConnectSucceedHandler(MultipathConnection* conn);
+
+
+    //test data transportation
+    void PeriodicSender(MultipathConnection* conn);
 
 private:
     void StartApplication();

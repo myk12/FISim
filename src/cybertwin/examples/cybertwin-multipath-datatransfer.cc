@@ -20,15 +20,17 @@ int
 main(int argc, char* argv[])
 {
     LogComponentEnable("CybertwinMultipathDataTransferExample", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
-    LogComponentEnable("TcpSocketBase", LOG_LEVEL_DEBUG);
-    LogComponentEnable("Packet", LOG_LEVEL_DEBUG);
-    LogComponentEnable("PacketTagList", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_INFO);
+    //LogComponentEnable("TcpSocketBase", LOG_LEVEL_DEBUG);
+    //LogComponentEnable("Packet", LOG_LEVEL_DEBUG);
+    //LogComponentEnable("PacketTagList", LOG_LEVEL_DEBUG);
     //LogComponentEnable("PacketTagList", LOG_LEVEL_FUNCTION);
     //--------------------------------------------------------------------------
     //-                         build topology                                 -
     //--------------------------------------------------------------------------
-    NS_LOG_UNCOND(">> >> >> >> >> Building topology.");
+    NS_LOG_UNCOND("*************************************************************************");
+    NS_LOG_UNCOND("*                          Building topology                            *");
+    NS_LOG_UNCOND("*************************************************************************");
     NodeContainer p2pNodes, lanNodes;
     NetDeviceContainer p2pDevs, csmaDevs;
 
@@ -70,11 +72,17 @@ main(int argc, char* argv[])
     csmaDevs = csmaHelper.Install(lanNodes);
     addrHelper.SetBase("10.1.4.0", "255.255.255.0");
     addrHelper.Assign(csmaDevs);
+    NS_LOG_DEBUG("\n\n\n");
+    NS_LOG_DEBUG("|`````|----------[10.1.1.0]-------------|``````|");
+    NS_LOG_DEBUG("| n0  |----------[10.1.2.0]-------------| n1   |         n2         n3   ");
+    NS_LOG_DEBUG("|_____|----------[10.1.3.0]-------------|______|         |          | ");
+    NS_LOG_DEBUG("                                         ==============================");
+    NS_LOG_DEBUG("            3 point-to-point links                LAN 10.1.4.0");
+    NS_LOG_DEBUG("\n\n\n");
 
     //----------------------------------------------------------------------
     //-                     run simulation                                 -
     //----------------------------------------------------------------------
-    NS_LOG_UNCOND(">> >> >> >> >> Installing Application.");
     Ptr<Node> client = p2pNodes.Get(0);
     Ptr<Node> server = p2pNodes.Get(1);
     MultipathDataTransferApp appClient, appServer;
@@ -86,7 +94,7 @@ main(int argc, char* argv[])
     // cybertwin interfaces
     CYBERTWIN_INTERFACE_LIST_t clientIfs, serverIfs;
     CYBERTWINID_t clientID, serverID;
-    NS_LOG_DEBUG(">> >> >> Generating IP Address.");
+    NS_LOG_DEBUG(">> Connecting with point-to-pint link...");
     for (uint32_t i=0; i<ipNode0.GetN(); i++)
     {
         CYBERTWIN_INTERFACE_t ift_client, ift_server;
@@ -97,14 +105,14 @@ main(int argc, char* argv[])
 
         clientIfs.push_back(ift_client);
         serverIfs.push_back(ift_server);
-        NS_LOG_DEBUG(">> INTERFACE_" << i<< "\nclient: "<<ift_client.first<<"\nserver: "<<ift_server.first);
+        NS_LOG_DEBUG(" INTERFACE_" << i<< " client: "<<ift_client.first<<" server: "<<ift_server.first);
     }
 
     // cybertwin id
     Ptr<UniformRandomVariable> randv = CreateObject<UniformRandomVariable>();
     clientID = (CYBERTWINID_t)(randv->GetValue()*1000);
     serverID = (CYBERTWINID_t)(randv->GetValue()*10000);
-    NS_LOG_DEBUG("# Generating Cybertwin ID ...\nClientID :"<<clientID<<"\nServerID :"<<serverID);
+    NS_LOG_DEBUG("\n>> Generating Cybertwin ID ...\n ClientID :"<<clientID<<"\n ServerID :"<<serverID);
 
     // set cybertwin related information
     appClient.SetLocalInterface(clientID, clientIfs);
@@ -120,7 +128,11 @@ main(int argc, char* argv[])
     client->AddApplication(&appClient);
     server->AddApplication(&appServer);
 
-    NS_LOG_UNCOND(">> Runing simulation.");
+    NS_LOG_DEBUG("\n\n\n");
+    NS_LOG_UNCOND("*************************************************************************");
+    NS_LOG_UNCOND("*                          Run simulation                               *");
+    NS_LOG_UNCOND("*************************************************************************");
+    NS_LOG_DEBUG("\n\n\n");
     Simulator::Run();
     Simulator::Destroy();
 
@@ -139,14 +151,13 @@ MultipathDataTransferApp::GetTypeId()
 void
 MultipathDataTransferApp::StartApplication()
 {
-    NS_LOG_DEBUG("Start Application.");
     if (is_client)
     {
-        NS_LOG_DEBUG("Start Client.");
+        NS_LOG_DEBUG(">> Start Client.");
         test_client();
     }else
     {
-        NS_LOG_DEBUG("Start Server.");
+        NS_LOG_DEBUG(">> Start Server.");
         test_server();
     }
 
@@ -184,6 +195,39 @@ MultipathDataTransferApp::ConnectSucceedHandler(MultipathConnection* conn)
 }
 
 void
+MultipathDataTransferApp::ClientConnectSucceedHandler(MultipathConnection* conn)
+{
+    NS_LOG_UNCOND("------ Client Build connection succeed! ----------");
+    NS_LOG_UNCOND(" ID: " << conn->GetConnectionID());
+    NS_LOG_UNCOND("--------------------------------------------------");
+    Ptr<Packet> pkt = Create<Packet>(100);
+    int sec = 1;
+    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+}
+
+void
+MultipathDataTransferApp::PeriodicSender(MultipathConnection* conn)
+{
+    Ptr<Packet> pkt = Create<Packet>(100);
+    conn->Send(pkt);
+    Simulator::Schedule(Seconds(1), &MultipathDataTransferApp::PeriodicSender, this, conn);
+}
+
+void
+MultipathDataTransferApp::ServerConnectSucceedHandler(MultipathConnection* conn)
+{
+    NS_LOG_UNCOND("------ Server Build connection succeed! ----------");
+    NS_LOG_UNCOND(" ID: " << conn->GetConnectionID());
+    NS_LOG_UNCOND("--------------------------------------------------");
+    //conn->Send(Create<Packet>(100));
+    conn->SetRecvCallback(MakeCallback(&MultipathDataTransferApp::RecvHandler, this));
+}
+
+void
 MultipathDataTransferApp::ConnectFailedHandler(MultipathConnection* conn)
 {
     NS_LOG_UNCOND("Failed to connect...");
@@ -198,7 +242,7 @@ MultipathDataTransferApp::test_client()
     conn_client->Setup(GetNode(), m_localCyberID);
     conn_client->Connect(m_remoteCyberID);
 
-    conn_client->SetConnectCallback(MakeCallback(&MultipathDataTransferApp::ConnectSucceedHandler, this),
+    conn_client->SetConnectCallback(MakeCallback(&MultipathDataTransferApp::ClientConnectSucceedHandler, this),
                                     MakeCallback(&MultipathDataTransferApp::ConnectFailedHandler, this));
     conn_client->SetRecvCallback(MakeCallback(&MultipathDataTransferApp::RecvHandler, this));
 }
@@ -210,7 +254,7 @@ MultipathDataTransferApp::test_server()
     m_dataServer->Setup(GetNode(), m_localCyberID, m_localIfs);
     m_dataServer->Listen();
 
-    m_dataServer->SetNewConnectCreatedCallback(MakeCallback(&MultipathDataTransferApp::ConnectSucceedHandler, this));
+    m_dataServer->SetNewConnectCreatedCallback(MakeCallback(&MultipathDataTransferApp::ServerConnectSucceedHandler, this));
 }
 
 void

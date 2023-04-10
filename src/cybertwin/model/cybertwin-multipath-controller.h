@@ -43,9 +43,9 @@ public:
 
     void InsertCNRSCache(CYBERTWINID_t , CYBERTWIN_INTERFACE_LIST_t );
 
-    void NewConnectionCreatedCallback(SinglePath *path);
+    void NewConnectionBuilt(SinglePath *path);
     bool ValidConnectionID(MP_CONN_ID_t connid);
-    void AddPath2Connection(SinglePath* path);
+    void NewPathJoinConnection(SinglePath* path);
 
     void SetNewConnectCreatedCallback(Callback<void, MultipathConnection*> newConnCb);
 
@@ -104,10 +104,14 @@ public:
     };
 
     Ptr<Packet> Recv();
-    //int32_t Send();
+    int32_t Send(Ptr<Packet> packet);
     //int32_t Listen();
     void Setup(Ptr<Node> node, CYBERTWINID_t localCybertwinID);
     void Connect(CYBERTWINID_t cyberid);
+
+    //data transfer
+    SinglePath* ChoosePathRoundRobin();
+    void PathRecvedData(SinglePath* path);
 
     //member accessor
     void InitIdentity(Ptr<Node> node,
@@ -115,9 +119,6 @@ public:
                       CYBERTWINID_t remoteid,
                       MP_CONN_ID_t connid);
 
-    void InitConnection(CYBERTWINID_t localid,
-                        CYBERTWINID_t remoteid,
-                        MP_CONN_ID_t connid);
     void SetNode(Ptr<Node> node);
     void SetLocalKey(MP_CONN_KEY_t key);
     void SetRemoteKey(MP_CONN_KEY_t key);
@@ -126,20 +127,18 @@ public:
     void SetConnID(MP_CONN_ID_t id);
     void SetConnState(MP_CONN_STATE state);
 
-    //path manangement
-    void AddRawPath(SinglePath* path, bool ready);
 
     //callback
     void SetConnectCallback(Callback<void, MultipathConnection*> succeedCb,
                             Callback<void, MultipathConnection*> failCb);
     void SetRecvCallback(Callback<void, MultipathConnection*> recvCb);
 
-    //memeber accesser
+    //path manangement
+    void AddRawPath(SinglePath* path, bool ready);
     void AddInitConnectPath(SinglePath* path);
     void AddOtherConnectPath(SinglePath* path);
     void BuildConnection();
     void ConnectOtherPath();
-
     void PathJoinResult(SinglePath* path, bool success);
 
     void InsertCNRSItem(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs);
@@ -147,6 +146,7 @@ public:
     //MultipathConnection* GetConnFromLocalKey(MP_CONN_KEY_t key);
 
     MP_CONN_ID_t GetConnectionID();
+
 
 private:
     MP_CONN_ID_t m_connID;
@@ -157,12 +157,21 @@ private:
     CYBERTWINID_t m_localCyberID;
     CYBERTWINID_t m_peerCyberID;
 
+    //data transfer
+    std::vector<SinglePath*> m_paths;
+    int32_t m_lastPathIndex;
+
+    // test data transfer
+    std::queue<Ptr<Packet>> m_rxBuffer;
+
     MpRxBuffer* rxBuffer;
     std::queue<Ptr<Packet>> txBuffer;
 
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> CNRSCache;
+
     //path queue
     std::queue<SinglePath*> m_readyPath;
+    std::unordered_set<SinglePath*> m_errorPath;
 
     int32_t m_pathNum;
     std::queue<SinglePath*> m_rawReadyPath;
@@ -198,6 +207,10 @@ public:
         SINGLE_PATH_ERROR
     };
     SinglePath();
+
+    //data transfer
+    int32_t Send(Ptr<Packet> packet);
+    Ptr<Packet> Recv();
 
     //path management
     int32_t PathConnect();
@@ -275,6 +288,11 @@ private:
     //data buffer
     std::queue<DataItem*> rxQueue;
     std::queue<DataItem*> txQueue;
+
+
+    // test data transfer
+    std::queue<Ptr<Packet>> rxBuffer;
+    Callback<void, SinglePath*> m_recvCallback;
 };
 
 #endif
