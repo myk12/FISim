@@ -200,13 +200,12 @@ MultipathDataTransferApp::ClientConnectSucceedHandler(MultipathConnection* conn)
     NS_LOG_UNCOND("------ Client Build connection succeed! ----------");
     NS_LOG_UNCOND(" ID: " << conn->GetConnectionID());
     NS_LOG_UNCOND("--------------------------------------------------");
-    Ptr<Packet> pkt = Create<Packet>(100);
-    int sec = 1;
-    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
-    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
-    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
-    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
-    Simulator::Schedule(Seconds(sec++), &MultipathConnection::Send, conn, pkt);
+    int sec = 2;
+    Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
+    Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
+    Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
+    Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
+    Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
 }
 
 void
@@ -214,7 +213,6 @@ MultipathDataTransferApp::PeriodicSender(MultipathConnection* conn)
 {
     Ptr<Packet> pkt = Create<Packet>(100);
     conn->Send(pkt);
-    Simulator::Schedule(Seconds(1), &MultipathDataTransferApp::PeriodicSender, this, conn);
 }
 
 void

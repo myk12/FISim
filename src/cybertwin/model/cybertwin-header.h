@@ -108,7 +108,43 @@ private:
   MP_CONN_ID_t m_connId;
 };
 
+class MultipathHeaderDSN : public Header
+{
+public:
+  MultipathHeaderDSN ();
+  virtual ~MultipathHeaderDSN ();
 
+  static TypeId GetTypeId ();
+  virtual TypeId GetInstanceTypeId() const;
+
+  // Header size in bytes
+  virtual uint32_t GetSerializedSize () const;
+
+  // Serialize object to buffer
+  virtual void Serialize (Buffer::Iterator start) const;
+
+  // Deserialize object from buffer
+  virtual uint32_t Deserialize (Buffer::Iterator start);
+
+  // Print header data
+  virtual void Print (std::ostream &os) const;
+
+  // Getter and Setter methods for private variables
+  void SetCuid (CYBERTWINID_t cuid);
+  CYBERTWINID_t GetCuid () const;
+
+  void SetDataSeqNum (MpDataSeqNum dataSeqNum);
+  MpDataSeqNum GetDataSeqNum () const;
+
+  void SetDataLen (uint32_t dataLen);
+  uint32_t GetDataLen () const;
+
+private:
+  CYBERTWINID_t m_cuid;
+  MpDataSeqNum m_dataSeqNum;
+  uint32_t m_dataLen;
+};
+  
 } // namespace ns3
 
 #endif

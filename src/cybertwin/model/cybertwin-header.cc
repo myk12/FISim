@@ -286,4 +286,101 @@ void MultipathHeader::SetConnId(MP_CONN_ID_t connId)
   m_connId = connId;
 }
 
+//********************************************************************
+//*             CyberTwin Multipath Header DSN                       *
+//********************************************************************
+
+MultipathHeaderDSN::MultipathHeaderDSN ()
+  : m_cuid (0),
+    m_dataSeqNum (0),
+    m_dataLen (0)
+{
+}
+
+MultipathHeaderDSN::~MultipathHeaderDSN ()
+{
+}
+
+TypeId
+MultipathHeaderDSN::GetTypeId ()
+{
+  static TypeId tid = TypeId ("ns3::MultipathHeaderDSN")
+    .SetParent<Header> ()
+    .AddConstructor<MultipathHeaderDSN> ();
+  return tid;
+}
+TypeId
+MultipathHeaderDSN::GetInstanceTypeId() const
+{
+  return GetTypeId ();
+}
+
+uint32_t
+MultipathHeaderDSN::GetSerializedSize () const
+{
+  return sizeof (m_cuid) + sizeof (m_dataSeqNum) + sizeof (m_dataLen);
+}
+
+void
+MultipathHeaderDSN::Serialize (Buffer::Iterator start) const
+{
+  start.WriteHtonU64 (m_cuid);
+  start.WriteHtonU64 (m_dataSeqNum.GetValue());
+  start.WriteHtonU32 (m_dataLen);
+}
+
+uint32_t
+MultipathHeaderDSN::Deserialize (Buffer::Iterator start)
+{
+  m_cuid = start.ReadNtohU64 ();
+  m_dataSeqNum = start.ReadNtohU64 ();
+  m_dataLen = start.ReadNtohU32 ();
+
+  return GetSerializedSize ();
+}
+
+void
+MultipathHeaderDSN::Print (std::ostream &os) const
+{
+  os << "CUID: " << m_cuid << std::endl;
+  os << "DataSeqNum: " << m_dataSeqNum << std::endl;
+  os << "DataLen: " << m_dataLen << std::endl;
+}
+
+void
+MultipathHeaderDSN::SetCuid (CYBERTWINID_t cuid)
+{
+  m_cuid = cuid;
+}
+
+CYBERTWINID_t
+MultipathHeaderDSN::GetCuid () const
+{
+  return m_cuid;
+}
+
+void
+MultipathHeaderDSN::SetDataSeqNum (MpDataSeqNum dataSeqNum)
+{
+  m_dataSeqNum = dataSeqNum;
+}
+
+MpDataSeqNum
+MultipathHeaderDSN::GetDataSeqNum () const
+{
+  return m_dataSeqNum;
+}
+
+void
+MultipathHeaderDSN::SetDataLen (uint32_t dataLen)
+{
+  m_dataLen = dataLen;
+}
+
+uint32_t
+MultipathHeaderDSN::GetDataLen () const
+{
+  return m_dataLen;
+}
+
 } // namespace ns3

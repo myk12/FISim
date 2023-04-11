@@ -15,14 +15,12 @@
 
 using namespace ns3;
 
-typedef uint64_t CYBERTWIN_MPCONN_ID;
-typedef std::vector<Ptr<Socket>> CYBERTWIN_SOCKS; 
 struct DataItem
-    {
-        SinglePathSeqNum seqStart;
-        Ptr<Packet> packet;
-        uint32_t length;
-    };
+{
+    MpDataSeqNum seqStart;
+    Ptr<Packet> packet;
+    uint32_t length;
+};
 
 class SinglePath;
 class MultipathConnection;
@@ -85,7 +83,7 @@ class MpRxBuffer
 public:
     MpRxBuffer();
     int32_t AddItem(DataItem *item);
-    SinglePathSeqNum exceptSeqNum;
+    MpDataSeqNum exceptSeqNum;
     std::queue<Ptr<Packet>> rxQueue;
     uint64_t size;
 };
@@ -94,6 +92,7 @@ class MultipathConnection
 {
 public:
     MultipathConnection();
+    MultipathConnection(SinglePath* path);
 
     enum MP_CONN_STATE
     {
@@ -110,7 +109,8 @@ public:
     void Connect(CYBERTWINID_t cyberid);
 
     //data transfer
-    SinglePath* ChoosePathRoundRobin();
+    void SendData();
+    uint32_t ChoosePathRoundRobin();
     void PathRecvedData(SinglePath* path);
 
     //member accessor
@@ -160,14 +160,14 @@ private:
     //data transfer
     std::vector<SinglePath*> m_paths;
     int32_t m_lastPathIndex;
+    
+    MpDataSeqNum m_sendSeqNum;
+    std::queue<Ptr<Packet>> m_txBuffer;
 
     // test data transfer
+    MpDataSeqNum m_recvSeqNum;
     std::queue<Ptr<Packet>> m_rxBuffer;
 
-    MpRxBuffer* rxBuffer;
-    std::queue<Ptr<Packet>> txBuffer;
-
-    std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> CNRSCache;
 
     //path queue
     std::queue<SinglePath*> m_readyPath;
@@ -176,10 +176,9 @@ private:
     int32_t m_pathNum;
     std::queue<SinglePath*> m_rawReadyPath;
     std::queue<SinglePath*> m_rawFailPath;
-    
-    std::unordered_map<MP_CONN_KEY_t, MultipathConnection*> key2ConnMap;
-    std::unordered_set<MP_CONN_KEY_t> keySet;
+
     Ptr<UniformRandomVariable> rand;
+    std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> CNRSCache;
 
     //callback
     Callback<void, MultipathConnection*> m_connectSucceedCallback;
@@ -193,6 +192,8 @@ private:
 class SinglePath
 {
 public:
+    friend class MultipathConnection;
+
     enum PathStatus
     {
         SINGLE_PATH_INIT,
@@ -244,7 +245,7 @@ public:
     MP_PATH_ID_t GetPathId();
     void SetSocket(Ptr<Socket> sock);
     void SetServer(CybertwinDataTransferServer* server);
-    //MP_CONN_KEY_t GetLocalKey();
+    MP_CONN_KEY_t GetLocalKey();
     void SetLocalKey(MP_CONN_KEY_t key);
     MP_CONN_KEY_t GetRemoteKey();
     void SetRemoteKey(MP_CONN_KEY_t key);
@@ -264,8 +265,6 @@ public:
     int32_t SendPacketWithJoinTag(MultipathTagConn tag);
     //int32_t SendPacketWithDataTag(MultipathTagConn tag);
     int32_t SendPacketWithHeader(MultipathHeader header);
-
-    //void pullItem();
     
 private:
     MP_PATH_ID_t m_pathId;
@@ -282,16 +281,10 @@ private:
     PathStatus m_pathState;
     MP_CONN_ID_t m_connID;
 
-    SinglePathSeqNum nextExceptSeqNum;  //next sequence number except to receive
-    SinglePathSeqNum nextSendSeqNum;    //next send sequence number
-
-    //data buffer
-    std::queue<DataItem*> rxQueue;
-    std::queue<DataItem*> txQueue;
-
+    MpDataSeqNum m_rxHeadSeqNum;
 
     // test data transfer
-    std::queue<Ptr<Packet>> rxBuffer;
+    std::queue<Ptr<Packet>> m_rxBuffer;
     Callback<void, SinglePath*> m_recvCallback;
 };
 
