@@ -13,6 +13,7 @@ build_lib(
         model/cybertwin-client.cc
         model/cybertwin-multipath-controller.cc
         model/cybertwin-packet-tags.cc
+        model/cybertwin-name-resolution-service.cc
     HEADER_FILES
         helper/cybertwin-helper.h
         #helper/cybertwin-node-coreserver.h
@@ -26,6 +27,7 @@ build_lib(
         model/cybertwin-client.h
         model/cybertwin-multipath-controller.h
         model/cybertwin-packet-tags.h
+        model/cybertwin-name-resolution-service.h
     LIBRARIES_TO_LINK ${libcore}
                         ${libapplications}
                         ${libinternet}

@@ -163,18 +163,17 @@ CybertwinHeader::GetCybertwinPort() const
     return m_cybertwinPort;
 }
 
-
 //********************************************************************
 //*             CyberTwin Multipath Header                           *
 //********************************************************************
 NS_OBJECT_ENSURE_REGISTERED(MultipathHeader);
 
-MultipathHeader::MultipathHeader() :
-    m_pathId(0),
-    m_cuid(0),
-    m_senderKey(0),
-    m_recverKey(0),
-    m_connId(0)
+MultipathHeader::MultipathHeader()
+    : m_pathId(0),
+      m_cuid(0),
+      m_senderKey(0),
+      m_recverKey(0),
+      m_connId(0)
 {
 }
 
@@ -182,205 +181,374 @@ MultipathHeader::~MultipathHeader()
 {
 }
 
-TypeId MultipathHeader::GetTypeId()
+TypeId
+MultipathHeader::GetTypeId()
 {
-  static TypeId tid = TypeId("ns3::MultipathHeader")
-                      .SetParent<Header>()
-                      .AddConstructor<MultipathHeader>();
-  return tid;
+    static TypeId tid =
+        TypeId("ns3::MultipathHeader").SetParent<Header>().AddConstructor<MultipathHeader>();
+    return tid;
 }
 
-TypeId MultipathHeader::GetInstanceTypeId() const
+TypeId
+MultipathHeader::GetInstanceTypeId() const
 {
-  return GetTypeId();
+    return GetTypeId();
 }
 
-uint32_t MultipathHeader::GetSize()
+uint32_t
+MultipathHeader::GetSize()
 {
-  return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) + sizeof(m_connId);
+    return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) +
+           sizeof(m_connId);
 }
 
-uint32_t MultipathHeader::GetSerializedSize() const
+uint32_t
+MultipathHeader::GetSerializedSize() const
 {
-  return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) + sizeof(m_connId);
+    return sizeof(m_pathId) + sizeof(m_cuid) + sizeof(m_senderKey) + sizeof(m_recverKey) +
+           sizeof(m_connId);
 }
 
-void MultipathHeader::Serialize(Buffer::Iterator start) const
+void
+MultipathHeader::Serialize(Buffer::Iterator start) const
 {
-  start.WriteHtonU32(m_pathId);
-  start.WriteHtonU64(m_cuid);
-  start.WriteHtonU32(m_senderKey);
-  start.WriteHtonU32(m_recverKey);
-  start.WriteHtonU64(m_connId);
+    start.WriteHtonU32(m_pathId);
+    start.WriteHtonU64(m_cuid);
+    start.WriteHtonU32(m_senderKey);
+    start.WriteHtonU32(m_recverKey);
+    start.WriteHtonU64(m_connId);
 }
 
-uint32_t MultipathHeader::Deserialize(Buffer::Iterator start)
+uint32_t
+MultipathHeader::Deserialize(Buffer::Iterator start)
 {
-  m_pathId = start.ReadNtohU32();
-  m_cuid = start.ReadNtohU64();
-  m_senderKey = start.ReadNtohU32();
-  m_recverKey = start.ReadNtohU32();
-  m_connId = start.ReadNtohU64();
+    m_pathId = start.ReadNtohU32();
+    m_cuid = start.ReadNtohU64();
+    m_senderKey = start.ReadNtohU32();
+    m_recverKey = start.ReadNtohU32();
+    m_connId = start.ReadNtohU64();
 
-  return GetSerializedSize();
+    return GetSerializedSize();
 }
 
-void MultipathHeader::Print(std::ostream& os) const
+void
+MultipathHeader::Print(std::ostream& os) const
 {
-  os << "------- Multipath Header -------" <<std::endl
-     << "| Path ID: " << m_pathId << std::endl
-     << "| CyberTwin ID: " << m_cuid << std::endl
-     << "| Sender Key: " << m_senderKey << std::endl
-     << "| Receiver Key: " << m_recverKey << std::endl
-     << "| Connection ID: " << m_connId << std::endl
-     << "--------------------------------" << std::endl;
+    os << "------- Multipath Header -------" << std::endl
+       << "| Path ID: " << m_pathId << std::endl
+       << "| CyberTwin ID: " << m_cuid << std::endl
+       << "| Sender Key: " << m_senderKey << std::endl
+       << "| Receiver Key: " << m_recverKey << std::endl
+       << "| Connection ID: " << m_connId << std::endl
+       << "--------------------------------" << std::endl;
 }
 
-MP_PATH_ID_t MultipathHeader::GetPathId() const
+MP_PATH_ID_t
+MultipathHeader::GetPathId() const
 {
-  return m_pathId;
+    return m_pathId;
 }
 
-void MultipathHeader::SetPathId(MP_PATH_ID_t pathId)
+void
+MultipathHeader::SetPathId(MP_PATH_ID_t pathId)
 {
-  m_pathId = pathId;
+    m_pathId = pathId;
 }
 
-CYBERTWINID_t MultipathHeader::GetCuid() const
+CYBERTWINID_t
+MultipathHeader::GetCuid() const
 {
-  return m_cuid;
+    return m_cuid;
 }
 
-void MultipathHeader::SetCuid(CYBERTWINID_t cuid)
+void
+MultipathHeader::SetCuid(CYBERTWINID_t cuid)
 {
-  m_cuid = cuid;
+    m_cuid = cuid;
 }
 
-MP_CONN_KEY_t MultipathHeader::GetSenderKey() const
+MP_CONN_KEY_t
+MultipathHeader::GetSenderKey() const
 {
-  return m_senderKey;
+    return m_senderKey;
 }
 
-void MultipathHeader::SetSenderKey(MP_CONN_KEY_t senderKey)
+void
+MultipathHeader::SetSenderKey(MP_CONN_KEY_t senderKey)
 {
-  m_senderKey = senderKey;
+    m_senderKey = senderKey;
 }
 
-MP_CONN_KEY_t MultipathHeader::GetRecverKey() const
+MP_CONN_KEY_t
+MultipathHeader::GetRecverKey() const
 {
-  return m_recverKey;
+    return m_recverKey;
 }
 
-void MultipathHeader::SetRecverKey(MP_CONN_KEY_t recverKey)
+void
+MultipathHeader::SetRecverKey(MP_CONN_KEY_t recverKey)
 {
-  m_recverKey = recverKey;
+    m_recverKey = recverKey;
 }
 
-MP_CONN_ID_t MultipathHeader::GetConnId() const
+MP_CONN_ID_t
+MultipathHeader::GetConnId() const
 {
-  return m_connId;
+    return m_connId;
 }
 
-void MultipathHeader::SetConnId(MP_CONN_ID_t connId)
+void
+MultipathHeader::SetConnId(MP_CONN_ID_t connId)
 {
-  m_connId = connId;
+    m_connId = connId;
 }
 
 //********************************************************************
 //*             CyberTwin Multipath Header DSN                       *
 //********************************************************************
 
-MultipathHeaderDSN::MultipathHeaderDSN ()
-  : m_cuid (0),
-    m_dataSeqNum (0),
-    m_dataLen (0)
+MultipathHeaderDSN::MultipathHeaderDSN()
+    : m_cuid(0),
+      m_dataSeqNum(0),
+      m_dataLen(0)
 {
 }
 
-MultipathHeaderDSN::~MultipathHeaderDSN ()
+MultipathHeaderDSN::~MultipathHeaderDSN()
 {
 }
 
 TypeId
-MultipathHeaderDSN::GetTypeId ()
+MultipathHeaderDSN::GetTypeId()
 {
-  static TypeId tid = TypeId ("ns3::MultipathHeaderDSN")
-    .SetParent<Header> ()
-    .AddConstructor<MultipathHeaderDSN> ();
-  return tid;
+    static TypeId tid =
+        TypeId("ns3::MultipathHeaderDSN").SetParent<Header>().AddConstructor<MultipathHeaderDSN>();
+    return tid;
 }
+
 TypeId
 MultipathHeaderDSN::GetInstanceTypeId() const
 {
-  return GetTypeId ();
+    return GetTypeId();
 }
 
 uint32_t
-MultipathHeaderDSN::GetSerializedSize () const
+MultipathHeaderDSN::GetSerializedSize() const
 {
-  return sizeof (m_cuid) + sizeof (m_dataSeqNum) + sizeof (m_dataLen);
+    return sizeof(m_cuid) + sizeof(m_dataSeqNum) + sizeof(m_dataLen);
 }
 
 void
-MultipathHeaderDSN::Serialize (Buffer::Iterator start) const
+MultipathHeaderDSN::Serialize(Buffer::Iterator start) const
 {
-  start.WriteHtonU64 (m_cuid);
-  start.WriteHtonU64 (m_dataSeqNum.GetValue());
-  start.WriteHtonU32 (m_dataLen);
+    start.WriteHtonU64(m_cuid);
+    start.WriteHtonU64(m_dataSeqNum.GetValue());
+    start.WriteHtonU32(m_dataLen);
 }
 
 uint32_t
-MultipathHeaderDSN::Deserialize (Buffer::Iterator start)
+MultipathHeaderDSN::Deserialize(Buffer::Iterator start)
 {
-  m_cuid = start.ReadNtohU64 ();
-  m_dataSeqNum = start.ReadNtohU64 ();
-  m_dataLen = start.ReadNtohU32 ();
+    m_cuid = start.ReadNtohU64();
+    m_dataSeqNum = start.ReadNtohU64();
+    m_dataLen = start.ReadNtohU32();
 
-  return GetSerializedSize ();
+    return GetSerializedSize();
 }
 
 void
-MultipathHeaderDSN::Print (std::ostream &os) const
+MultipathHeaderDSN::Print(std::ostream& os) const
 {
-  os << "CUID: " << m_cuid << std::endl;
-  os << "DataSeqNum: " << m_dataSeqNum << std::endl;
-  os << "DataLen: " << m_dataLen << std::endl;
+    os << "CUID: " << m_cuid << std::endl;
+    os << "DataSeqNum: " << m_dataSeqNum << std::endl;
+    os << "DataLen: " << m_dataLen << std::endl;
 }
 
 void
-MultipathHeaderDSN::SetCuid (CYBERTWINID_t cuid)
+MultipathHeaderDSN::SetCuid(CYBERTWINID_t cuid)
 {
-  m_cuid = cuid;
+    m_cuid = cuid;
 }
 
 CYBERTWINID_t
-MultipathHeaderDSN::GetCuid () const
+MultipathHeaderDSN::GetCuid() const
 {
-  return m_cuid;
+    return m_cuid;
 }
 
 void
-MultipathHeaderDSN::SetDataSeqNum (MpDataSeqNum dataSeqNum)
+MultipathHeaderDSN::SetDataSeqNum(MpDataSeqNum dataSeqNum)
 {
-  m_dataSeqNum = dataSeqNum;
+    m_dataSeqNum = dataSeqNum;
 }
 
 MpDataSeqNum
-MultipathHeaderDSN::GetDataSeqNum () const
+MultipathHeaderDSN::GetDataSeqNum() const
 {
-  return m_dataSeqNum;
+    return m_dataSeqNum;
 }
 
 void
-MultipathHeaderDSN::SetDataLen (uint32_t dataLen)
+MultipathHeaderDSN::SetDataLen(uint32_t dataLen)
 {
-  m_dataLen = dataLen;
+    m_dataLen = dataLen;
 }
 
 uint32_t
-MultipathHeaderDSN::GetDataLen () const
+MultipathHeaderDSN::GetDataLen() const
 {
-  return m_dataLen;
+    return m_dataLen;
+}
+
+//************************************************************************
+//*                             CNRS Header                              *
+//************************************************************************
+NS_OBJECT_ENSURE_REGISTERED(CNRSHeader);
+
+CNRSHeader::CNRSHeader()
+    : m_method(0),
+      m_queryId(0),
+      m_cuid(0),
+      m_interfaceNum(0)
+{
+}
+
+TypeId
+CNRSHeader::GetTypeId(void)
+{
+    static TypeId tid = TypeId("ns3::CNRSHeader").SetParent<Header>().AddConstructor<CNRSHeader>();
+    return tid;
+}
+
+TypeId
+CNRSHeader::GetInstanceTypeId(void) const
+{
+    return GetTypeId();
+}
+
+uint32_t
+CNRSHeader::GetSerializedSize(void) const
+{
+    uint32_t size = sizeof(uint8_t) 
+                  + sizeof(QUERY_ID_t)
+                  + sizeof(CYBERTWINID_t)
+                  + sizeof(uint8_t)
+                  + m_interfaceNum * (sizeof(uint32_t) + sizeof(uint16_t));
+
+    return size;
+}
+
+void
+CNRSHeader::Serialize(Buffer::Iterator start) const
+{
+    start.WriteU8(m_method);
+    start.WriteHtonU32(m_queryId);
+    start.WriteHtonU64(m_cuid);
+    start.WriteU8(m_interfaceNum);
+    if (m_method == CNRS_INSERT || m_method == CNRS_QUERY_OK)
+    {
+        for (auto& interface : m_interfaceList)
+        {
+            start.WriteHtonU32(interface.first.Get());
+            start.WriteHtonU16(interface.second);
+        }
+    }
+}
+
+uint32_t
+CNRSHeader::Deserialize(Buffer::Iterator start)
+{
+    m_method = start.ReadU8();
+    m_queryId = start.ReadNtohU32();
+    m_cuid = start.ReadNtohU64();
+    m_interfaceNum = start.ReadU8();
+    if (m_method == CNRS_INSERT || m_method == CNRS_QUERY_OK)
+    {
+        for (uint8_t i = 0; i < m_interfaceNum; i++)
+        {
+            ns3::Ipv4Address address(start.ReadNtohU32());
+            uint16_t port = start.ReadNtohU16();
+            m_interfaceList.push_back({address, port});
+        }
+    }
+    return GetSerializedSize();
+}
+
+void
+CNRSHeader::Print(std::ostream& os) const
+{
+    os << "CNRS Header [Method: " << static_cast<uint32_t>(m_method) << ", Query ID: " << m_queryId
+       << ", CUID: " << m_cuid;
+    if (m_method == CNRS_INSERT || m_method == CNRS_QUERY_OK)
+    {
+        os << ", Interface Num: " << static_cast<uint32_t>(m_interfaceNum);
+        for (auto& interface : m_interfaceList)
+        {
+            os << ", Address: " << interface.first << ", Port: " << interface.second;
+        }
+    }
+    os << "]";
+}
+
+void
+CNRSHeader::SetMethod(CNRSMethod method)
+{
+    m_method = method;
+}
+
+uint8_t
+CNRSHeader::GetMethod() const
+{
+    return m_method;
+}
+
+void
+CNRSHeader::SetQueryId(QUERY_ID_t queryId)
+{
+    m_queryId = queryId;
+}
+
+QUERY_ID_t
+CNRSHeader::GetQueryId() const
+{
+    return m_queryId;
+}
+
+void
+CNRSHeader::SetCuid(CYBERTWINID_t cuid)
+{
+    m_cuid = cuid;
+}
+
+CYBERTWINID_t
+CNRSHeader::GetCuid() const
+{
+    return m_cuid;
+}
+
+void
+CNRSHeader::SetInterfaceList(CYBERTWIN_INTERFACE_LIST_t interfaceList)
+{
+    m_interfaceList = interfaceList;
+    m_interfaceNum = m_interfaceList.size();
+}
+
+CYBERTWIN_INTERFACE_LIST_t
+CNRSHeader::GetInterfaceList() const
+{
+    return m_interfaceList;
+}
+
+uint8_t
+CNRSHeader::GetInterfaceNum() const
+{
+    return m_interfaceNum;
+}
+
+void
+CNRSHeader::SetInterfaceNum(uint8_t interfaceNum)
+{
+    m_interfaceNum = interfaceNum;
 }
 
 } // namespace ns3

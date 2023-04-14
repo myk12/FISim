@@ -15,3 +15,14 @@ build_lib_example(
                     ${libnetwork}
                     ${libcsma}
 )
+
+build_lib_example(
+    NAME cybertwin-name-resolution-service
+    SOURCE_FILES cybertwin-name-resolution-service.cc
+    LIBRARIES_TO_LINK ${libcybertwin}
+                    ${libpoint-to-point}
+                    ${libapplications}
+                    ${libinternet}
+                    ${libnetwork}
+                    ${libcsma}
+)

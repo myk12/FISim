@@ -1,50 +1,85 @@
 #ifndef CYBERTWIN_NAME_RESOLUTION_SERVICE_H
 #define CYBERTWIN_NAME_RESOLUTION_SERVICE_H
+#include "cybertwin-common.h"
+#include "cybertwin-header.h"
+
 #include "ns3/application.h"
 #include "ns3/socket.h"
-#include "cybertwin-common.h"
-#include "cybertwin-packet-header.h"
 
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 
+typedef std::pair<Ptr<Socket>, Address> PeerInfo_t;
 namespace ns3
 {
-
-class NameResolutionService: public Application
+class NameResolutionService : public Application
 {
-    public:
-        NameResolutionService();
-        NameResolutionService(Ipv4Address superior);
-        ~NameResolutionService();
-        static TypeId GetTypeId();
+  public:
+    NameResolutionService();
+    NameResolutionService(Ipv4Address superior);
+    ~NameResolutionService();
+    static TypeId GetTypeId();
 
-        int32_t GetCybertwinInterfaceByName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interface);
-        void InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t &interface);
+    void SetSuperior(Ipv4Address superior);
+    void DefaultGetInterfaceCallback(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs);
 
-    private:
-        void StartApplication() override;
-        void StopApplication() override;
+    /**
+     * @brief get cybertwin interface by name call by application
+     *
+     * @param name  cybertwin name
+     * @param callback  callback when get result
+     *
+     * @return int32_t 0: success, -1: fail
+     */
+    int32_t GetCybertwinInterfaceByName(CYBERTWINID_t name,
+                                        Callback<void,CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t>);
+    int32_t InsertCybertwinInterfaceName(CYBERTWINID_t name, CYBERTWIN_INTERFACE_LIST_t& interface);
 
-        void LoadDatabase();
-        void InitNameResolutionServer();
-        int32_t InitReportUDPSocket();
+  private:
+    void StartApplication() override;
+    void StopApplication() override;
 
-        void ServiceRecvHandler(Ptr<Socket> socket);
-        void ReportRecvHandler(Ptr<Socket> socket);
+    void LoadDatabase();
+    void InitNameResolutionServer();
+    int32_t InitClientUDPSocket();
 
-        void QueryRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
-        void QueryResponseHandler(bool status, CybertwinCNRSHeader& rcvHeader);
-        void InsertRequestHandler(CybertwinCNRSHeader &rcvHeader, Ptr<Packet> rspPacket);
-        void ReportName2Superior(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t interfaces);
+    void ServiceRecvHandler(Ptr<Socket> socket);
+    void ClientRecvHandler(Ptr<Socket> socket);
 
-        Ptr<Socket> serviceSocket;
-        Ptr<Socket> reportSocket;
-        uint16_t m_port;
-        Ipv4Address superior;
-        std::string databaseName;
-        std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> itemCache;
+    void ProcessQuery(CNRSHeader& rcvHeader, Ptr<Socket> socekt, Address &from);
+    void QueryResponseHandler(bool status, CNRSHeader& rcvHeader);
+    void ProcessInsert(CNRSHeader& rcvHeader, Ptr<Socket> socket);
+    void ReportName2Superior(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t interfaces);
+
+    void InformCNRSResult(CYBERTWINID_t id, QUERY_ID_t qId, Ptr<Socket> socket, Address& from);
+
+    /**
+     * @brief query superior for cybertwin interface
+     * 
+     * @param id cybertwin id
+     * @param qid query id
+     * 
+    */
+    int32_t QuerySuperior(CYBERTWINID_t id, QUERY_ID_t qid);
+    void QueryResponseCallback(CYBERTWINID_t, QUERY_ID_t, CYBERTWIN_INTERFACE_LIST_t);
+    void QuerySuperiorFail(CYBERTWINID_t id, QUERY_ID_t qid);
+    //void QuerySuperiorSuccess(QUERY_ID qid, CYBERTWIN_INTERFACE_LIST_t interfaces);
+    void QueryResponse(PeerInfo_t peerInfo, CYBERTWINID_t, QUERY_ID_t, CYBERTWIN_INTERFACE_LIST_t);
+
+    QUERY_ID_t GetQueryID();
+
+    Ptr<Socket> serviceSocket;
+    Ptr<Socket> clientSocket;
+    uint16_t m_port;
+    Ipv4Address superior;
+    std::string databaseName;
+    std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> itemCache;
+
+    std::unordered_map<QUERY_ID_t, Callback<void, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t>> m_queryCache;
+    std::unordered_map<QUERY_ID_t, PeerInfo_t> m_queryClientCache; 
+    Ptr<UniformRandomVariable> m_rand;
 };
-}//ns3
+} // namespace ns3
 
 #endif

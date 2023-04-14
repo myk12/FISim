@@ -61,6 +61,10 @@ class CybertwinHeader : public Header
     uint16_t m_cybertwinPort;
 };
 
+//************************************************************************
+//*                        Multipath Header                              *
+//************************************************************************
+
 /**
  * Multipath Header
  *
@@ -144,7 +148,57 @@ private:
   MpDataSeqNum m_dataSeqNum;
   uint32_t m_dataLen;
 };
-  
+
+
+//************************************************************************
+//*                             CNRS Header                              *
+//************************************************************************
+
+enum CNRSMethod {
+  CNRS_INSERT = 1,
+  CNRS_INSERT_OK,
+  CNRS_INSERT_FAIL,
+  CNRS_QUERY,
+  CNRS_QUERY_OK,
+  CNRS_QUERY_FAIL
+};
+
+class CNRSHeader : public Header 
+{
+public:
+  CNRSHeader();
+
+  static TypeId GetTypeId(void);
+  virtual TypeId GetInstanceTypeId(void) const;
+
+  virtual void Serialize(Buffer::Iterator start) const;
+  virtual uint32_t Deserialize(Buffer::Iterator start);
+  virtual uint32_t GetSerializedSize(void) const;
+  virtual void Print(std::ostream& os) const;
+
+  uint8_t GetMethod() const;
+  void SetMethod(CNRSMethod method);
+
+  QUERY_ID_t GetQueryId() const;
+  void SetQueryId(QUERY_ID_t queryId);
+
+  CYBERTWINID_t GetCuid() const;
+  void SetCuid(CYBERTWINID_t cuid);
+
+  uint8_t GetInterfaceNum() const;
+  void SetInterfaceNum(uint8_t interfaceNum);
+
+  CYBERTWIN_INTERFACE_LIST_t GetInterfaceList() const;
+  void SetInterfaceList(CYBERTWIN_INTERFACE_LIST_t interfaceList);
+
+private:
+  uint8_t m_method;
+  QUERY_ID_t m_queryId;
+  CYBERTWINID_t m_cuid;
+  uint8_t m_interfaceNum;
+  CYBERTWIN_INTERFACE_LIST_t m_interfaceList;
+};
+
 } // namespace ns3
 
 #endif
