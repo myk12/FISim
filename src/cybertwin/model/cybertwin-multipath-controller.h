@@ -99,7 +99,9 @@ public:
         MP_CONN_INIT,
         MP_CONN_BIND,
         MP_CONN_SEND,
-        MP_CONN_CONNECT
+        MP_CONN_CONNECT,
+        MP_CONN_CLOSING,
+        MP_CONN_CLOSED,
     };
 
     Ptr<Packet> Recv();
@@ -107,6 +109,7 @@ public:
     //int32_t Listen();
     void Setup(Ptr<Node> node, CYBERTWINID_t localCybertwinID);
     void Connect(CYBERTWINID_t cyberid);
+    int32_t Close();    //close the connection
 
     //data transfer
     void SendData();
@@ -132,6 +135,7 @@ public:
     void SetConnectCallback(Callback<void, MultipathConnection*> succeedCb,
                             Callback<void, MultipathConnection*> failCb);
     void SetRecvCallback(Callback<void, MultipathConnection*> recvCb);
+    void SetCloseCallback(Callback<void, MultipathConnection*> closeCb);
 
     //path manangement
     void AddRawPath(SinglePath* path, bool ready);
@@ -184,6 +188,7 @@ private:
     Callback<void, MultipathConnection*> m_connectSucceedCallback;
     Callback<void, MultipathConnection*> m_connectFailedCallback;
     Callback<void, MultipathConnection*> m_recvCallback;
+    Callback<void, MultipathConnection*> m_closeCallback;
 };
 
 //*****************************************************************************
@@ -216,11 +221,13 @@ public:
     //path management
     int32_t PathConnect();
     int32_t PathListen();
+    int32_t PathClose();
+    void PathClean();
 
     //socket processer
     void PathRecvHandler(Ptr<Socket> socket);
-    void SPNormalCloseHandler(Ptr<Socket> socket);
-    void SPErrorCloseHandler(Ptr<Socket> socket);
+    void PathCloseSucceeded(Ptr<Socket> socket);
+    void PathCloseFailed(Ptr<Socket> socket);
 
     void PathConnectSucceeded(Ptr<Socket> sock);
     void PathConnectFailed(Ptr<Socket> sock);

@@ -1,4 +1,5 @@
 #include "cybertwin-multipath-datatransfer.h"
+#include "../model/cybertwin-name-resolution-service.h"
 // Default Network Topology
 //           
 // |`````|----------[10.1.1.0]-------------|``````|
@@ -20,7 +21,8 @@ int
 main(int argc, char* argv[])
 {
     LogComponentEnable("CybertwinMultipathDataTransferExample", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_INFO);
+    //LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_INFO);
+    LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
     //LogComponentEnable("TcpSocketBase", LOG_LEVEL_DEBUG);
     //LogComponentEnable("Packet", LOG_LEVEL_DEBUG);
     //LogComponentEnable("PacketTagList", LOG_LEVEL_DEBUG);
@@ -86,6 +88,11 @@ main(int argc, char* argv[])
     Ptr<Node> client = p2pNodes.Get(0);
     Ptr<Node> server = p2pNodes.Get(1);
     MultipathDataTransferApp appClient, appServer;
+    NameResolutionService nameServiceClient, nameServiceServer;
+
+    // set application
+    nameServiceClient.SetSuperior(ipNode1.GetAddress(0));
+    nameServiceServer.SetSuperior(ipNode0.GetAddress(1));
 
     // set app property
     appClient.SetRole(true);
@@ -123,10 +130,14 @@ main(int argc, char* argv[])
     // set app start time
     appClient.SetStartTime(Seconds(2));
     appServer.SetStartTime(Seconds(1));
+    nameServiceClient.SetStartTime(Seconds(1));
+    nameServiceServer.SetStartTime(Seconds(1));
 
     // aggrate app to node
     client->AddApplication(&appClient);
     server->AddApplication(&appServer);
+    client->AddApplication(&nameServiceClient);
+    server->AddApplication(&nameServiceServer);
 
     NS_LOG_DEBUG("\n\n\n");
     NS_LOG_UNCOND("*************************************************************************");
@@ -229,6 +240,13 @@ void
 MultipathDataTransferApp::ConnectFailedHandler(MultipathConnection* conn)
 {
     NS_LOG_UNCOND("Failed to connect...");
+}
+
+void
+MultipathDataTransferApp::ConnectCloseHandler(MultipathConnection* conn)
+{
+    NS_LOG_UNCOND("Connection closed...");
+    delete  conn;
 }
 
 void

@@ -304,6 +304,7 @@ MultipathConnection::SendData()
         return ;
     }
 
+
     Ptr<Packet> sendPkt = m_txBuffer.front();
     m_txBuffer.pop();
 
@@ -359,6 +360,57 @@ MultipathConnection::PathRecvedData(SinglePath* path)
         //NS_LOG_DEBUG("Connection Recved Data, notify upper layer.");
         m_recvCallback(this);
     }
+}
+
+/**
+ * @brief Close the connection
+*/
+int32_t
+MultipathConnection::Close()
+{
+    NS_LOG_FUNCTION(this);
+    //if rxBuffer is empty then close
+    //else wait for 10ms and check again
+    int closedNum = 0;
+    if (m_rxBuffer.empty())
+    {
+        m_connState = MP_CONN_CLOSING;
+        int32_t num = m_paths.size();
+        for (int32_t i=0; i<num; i++)
+        {
+            if (m_paths[i] == nullptr)
+            {
+                closedNum++;
+                continue;
+            }
+
+            if (m_paths[i]->m_pathState == SinglePath::SINGLE_PATH_CLOSED)
+            {
+                //delete path
+                m_paths[i]->PathClean();
+                delete m_paths[i];
+            }
+            
+            m_paths[i]->PathClose();
+        }
+    }
+
+    if (closedNum == (int32_t)m_paths.size())
+    {
+        NS_LOG_INFO("Connection Closed.");
+        m_connState = MP_CONN_CLOSED;
+        if (!m_closeCallback.IsNull())
+        {
+            NS_LOG_INFO("Connection Closed, notify upper layer."); 
+            m_closeCallback(this);  //notify upper layer
+        }
+    }else
+    {
+        NS_LOG_INFO("Connection Closing.");
+        Simulator::Schedule(MilliSeconds(10), &MultipathConnection::Close, this);
+    }
+
+    return 0;
 }
 
 void
@@ -582,6 +634,12 @@ MultipathConnection::SetRecvCallback(Callback<void, MultipathConnection*> recvCb
 }
 
 void
+MultipathConnection::SetCloseCallback(Callback<void, MultipathConnection*> closeCb)
+{
+    m_closeCallback = closeCb;
+}
+
+void
 MultipathConnection::PathJoinResult(SinglePath* path, bool success)
 {
     NS_LOG_INFO("Path join result call.");
@@ -688,6 +746,8 @@ SinglePath::PathConnect()
 
     m_socket->SetConnectCallback(MakeCallback(&SinglePath::PathConnectSucceeded, this),
                                  MakeCallback(&SinglePath::PathConnectFailed, this));
+    m_socket->SetCloseCallbacks(MakeCallback(&SinglePath::PathCloseSucceeded, this),
+                                MakeCallback(&SinglePath::PathCloseFailed, this));
     return 0;
 }
 
@@ -704,6 +764,25 @@ SinglePath::PathListen()
     m_socket->SetRecvCallback(MakeCallback(&SinglePath::PathRecvHandler, this));
 
     return 0;
+}
+
+int32_t
+SinglePath::PathClose()
+{
+    if (m_socket == nullptr)
+    {
+        NS_LOG_ERROR("Socket not initialized.");
+        return -1;
+    }
+        
+    m_socket->Close();
+    return 0;
+}
+
+void
+SinglePath::PathClean()
+{
+    //TODO: clean all the data, currently just close the socket
 }
 
 void
@@ -738,7 +817,7 @@ SinglePath::PathRecvHandler(Ptr<Socket> socket)
 }
 
 void
-SinglePath::SPNormalCloseHandler(Ptr<Socket> socket)
+SinglePath::PathCloseSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_INFO("Path close normally.");
     m_pathState = SINGLE_PATH_CLOSED;
@@ -746,7 +825,7 @@ SinglePath::SPNormalCloseHandler(Ptr<Socket> socket)
 }
 
 void
-SinglePath::SPErrorCloseHandler(Ptr<Socket> socket)
+SinglePath::PathCloseFailed(Ptr<Socket> socket)
 {
     NS_LOG_INFO("Path close with error.");
     m_pathState = SINGLE_PATH_ERROR;
@@ -874,7 +953,7 @@ SinglePath::ProcessError()
 }
 
 void
-SinglePath::ProcessClosed()
+SinglePath:: ProcessClosed()
 {
     NS_LOG_INFO("Process Closed.");
 }

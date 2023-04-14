@@ -19,6 +19,7 @@ public:
     void RecvHandler(MultipathConnection* conn);
     void ConnectSucceedHandler(MultipathConnection* conn);
     void ConnectFailedHandler(MultipathConnection* conn);
+    void ConnectCloseHandler(MultipathConnection* conn);
     void ClientConnectSucceedHandler(MultipathConnection* conn);
     void ServerConnectSucceedHandler(MultipathConnection* conn);
 
