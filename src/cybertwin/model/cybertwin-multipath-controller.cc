@@ -158,6 +158,24 @@ void
 CybertwinDataTransferServer::SetNewConnectCreatedCallback(Callback<void, MultipathConnection*> newConn)
 {
     m_notifyNewConnection = newConn;
+    m_rxBytes = 0;
+}
+
+void
+CybertwinDataTransferServer::DtServerBulkSend(MultipathConnection *conn)
+{
+    NS_LOG_INFO("Server bulk send.");
+    NS_ASSERT_MSG(conn, "conn is null.");
+
+    if (m_rxBytes < 100*1024*1024) // 100GB
+    {
+       Ptr<Packet> packet = Create<Packet>(1024);
+       conn->Send(packet); 
+       m_rxBytes++;
+
+        // 1024B/ns = 102.4MBps
+        Simulator::Schedule(NanoSeconds(10), &CybertwinDataTransferServer::DtServerBulkSend, this, conn);
+    }
 }
 
 //*****************************************************************************

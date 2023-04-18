@@ -84,7 +84,6 @@ class Cybertwin : public Application
 
     // Cybretwin multiple interfaces 
     CYBERTWIN_INTERFACE_LIST_t m_interfaces;
-    Ptr<CybertwinEdgeServer> m_node;
 
     // Cybertwin Connections
     CybertwinDataTransferServer* m_dtServer;

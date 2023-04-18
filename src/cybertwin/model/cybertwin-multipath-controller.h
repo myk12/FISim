@@ -46,6 +46,7 @@ public:
     void NewPathJoinConnection(SinglePath* path);
 
     void SetNewConnectCreatedCallback(Callback<void, MultipathConnection*> newConnCb);
+    void DtServerBulkSend(MultipathConnection* conn);
 
     // path management
 private:
@@ -73,6 +74,10 @@ private:
     //std::unordered_map<SP_CONNID_t, MultipathConnection*> mpConnections
     std::unordered_set<MultipathConnection*> m_connections;
     std::unordered_map<MP_CONN_ID_t, MultipathConnection*> m_connectionIDs;
+    
+    // test number
+    uint64_t m_testNum;
+    uint64_t m_rxBytes; // number of Sent KB
 };
 
 //*****************************************************************************

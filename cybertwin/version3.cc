@@ -68,6 +68,7 @@ main (int argc, char *argv[])
   LogComponentEnable("CybertwinEndHost", LOG_LEVEL_DEBUG);
   LogComponentEnable("CybertwinClient", LOG_LEVEL_DEBUG);
   LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
+  LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
 
   //***********************************************************************
   //*                   Building Topology                                 *

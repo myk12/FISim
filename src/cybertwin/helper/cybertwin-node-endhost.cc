@@ -38,12 +38,12 @@ CybertwinEndHost::Setup(Ipv4Address edgeServerAddr)
     edgeServerAddress = edgeServerAddr;
 
     // install endhost app
-    m_connClient = CreateObject<CybertwinConnClient>();
-    this->AddApplication(m_connClient);
+    //m_connClient = CreateObject<CybertwinConnClient>();
+    //this->AddApplication(m_connClient);
     //m_connClient->SetStartTime(Simulator::Now());
 
-    m_bulkClinet = CreateObject<CybertwinBulkClient>();
-    this->AddApplication(m_bulkClinet);
+    //m_bulkClinet = CreateObject<CybertwinBulkClient>();
+    //this->AddApplication(m_bulkClinet);
     //m_bulkClinet->SetStartTime(Simulator::Now());
 
     return 0;

@@ -46,8 +46,8 @@ CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
 
     // install Cybertwin Controller application
-    cybertwinControllerApp = CreateObject<CybertwinController>();
-    this->AddApplication(cybertwinControllerApp);
+    //cybertwinControllerApp = CreateObject<CybertwinController>();
+    //this->AddApplication(cybertwinControllerApp);
     //cybertwinControllerApp->SetStartTime(Simulator::Now());
 
     return 0;
