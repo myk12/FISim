@@ -1,4 +1,7 @@
 #!/bin/bash
 exec_name=ns3.37-cybertwin-debug
+exec_name2=ns3.37-cybertwin-default
 exec_dir="./build/cybertwin/cybertwinexec/"
+exec_dir2="./cmake-cache/cybertwin/cybertwinexec/"
 ./${exec_dir}${exec_name}
+./${exec_dir2}${exec_name2}
