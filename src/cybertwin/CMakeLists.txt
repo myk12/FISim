@@ -2,9 +2,9 @@ build_lib(
     LIBNAME cybertwin
     SOURCE_FILES
         helper/cybertwin-helper.cc
-        #helper/cybertwin-node-coreserver.cc
-        #helper/cybertwin-node-edgeserver.cc
-        #helper/cybertwin-node-endhost.cc
+        helper/cybertwin-node-coreserver.cc
+        helper/cybertwin-node-edgeserver.cc
+        helper/cybertwin-node-endhost.cc
         model/cybertwin-header.cc
         model/cybertwin-edge.cc
         model/cybertwin-common.cc
@@ -16,9 +16,9 @@ build_lib(
         model/cybertwin-name-resolution-service.cc
     HEADER_FILES
         helper/cybertwin-helper.h
-        #helper/cybertwin-node-coreserver.h
-        #helper/cybertwin-node-edgeserver.h
-        #helper/cybertwin-node-endhost.h
+        helper/cybertwin-node-coreserver.h
+        helper/cybertwin-node-edgeserver.h
+        helper/cybertwin-node-endhost.h
         model/cybertwin-header.h
         model/cybertwin-edge.h
         model/cybertwin-common.h

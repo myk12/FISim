@@ -22,7 +22,6 @@ class CybertwinEdgeServer: public Node
         Ipv4Address CNRSUpNodeAddress;
         Ptr<Application> cybertwinCNRSApp;
         Ptr<Application> cybertwinControllerApp;
-
 };
 }
 
