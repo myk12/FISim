@@ -33,7 +33,8 @@ CybertwinController::GetTypeId()
 }
 
 CybertwinController::CybertwinController()
-    : m_socket(nullptr)
+    : m_socket(nullptr),
+      m_lastAssignedPort(2000)
 {
 }
 
@@ -169,12 +170,19 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
             CYBERTWINID_t cuid = header.GetCybertwin();
             if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
             {
+                // assign interfaces for new cybertwin
+                CYBERTWIN_INTERFACE_LIST_t g_interfaces; 
+                AssignInterfaces(g_interfaces);
+
+                // create new cybertwin
                 Ptr<Cybertwin> cybertwin = Create<Cybertwin>(
                     cuid,
+                    g_interfaces,
                     m_localAddr,
                     MakeCallback(&CybertwinController::CybertwinInit, this, socket),
                     MakeCallback(&CybertwinController::CybertwinSend, this, cuid),
                     MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
+
                 cybertwin->SetStartTime(Seconds(0.0));
                 GetNode()->AddApplication(cybertwin);
                 m_cybertwinTable[cuid] = cybertwin;
@@ -242,6 +250,30 @@ CybertwinController::ErrorHostClose(Ptr<Socket> socket)
 {
     NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId()
                             << "]: a socket error occurs:" << socket->GetErrno());
+}
+
+void
+CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
+{
+    NS_LOG_FUNCTION(this);
+    for (auto addr : m_localIpv4AddrList)
+    {
+        CYBERTWIN_INTERFACE_t interface;
+
+        do{
+            interface = std::make_pair(addr, m_lastAssignedPort++);
+        } while (m_assignedPorts.find(interface.second) != m_assignedPorts.end() &&
+                 m_lastAssignedPort < 65535);
+
+        if (m_lastAssignedPort < 65535)
+        {
+            ifs.push_back(interface);
+            m_assignedPorts.insert(interface.second);
+        }else if(m_lastAssignedPort == 65535){
+            NS_FATAL_ERROR("--[Ctrl-" << GetNode()->GetId()
+                            << "]: no more interfaces available");
+        }
+    }
 }
 
 CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid)

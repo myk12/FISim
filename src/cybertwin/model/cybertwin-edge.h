@@ -10,6 +10,7 @@
 #include "ns3/node.h"
 
 #include <unordered_map>
+#include <unordered_set>
 
 namespace ns3
 {
@@ -17,6 +18,7 @@ namespace ns3
 // class CybertwinCreditMonitor
 // {
 // };
+class Cybertwin;
 
 class CybertwinFirewall : public Application
 {
@@ -82,12 +84,18 @@ class CybertwinController : public Application
     int CybertwinSend(CYBERTWINID_t, CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
     int CybertwinReceive(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
 
+    void AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t&);
+
     Address m_localAddr;
     uint64_t m_localPort;
+    std::vector<Ipv4Address> m_localIpv4AddrList;
 
     Ptr<Socket> m_socket;
     std::unordered_map<CYBERTWINID_t, Ptr<Cybertwin>> m_cybertwinTable;
     std::unordered_map<CYBERTWINID_t, Ptr<CybertwinFirewall>> m_firewallTable;
+
+    std::unordered_set<uint16_t> m_assignedPorts;
+    uint16_t m_lastAssignedPort;
 };
 
 } // namespace ns3

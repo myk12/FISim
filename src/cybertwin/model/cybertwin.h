@@ -14,12 +14,15 @@
 #include "ns3/network-module.h"
 #include "cybertwin-common.h"
 #include "cybertwin-multipath-controller.h"
+#include "cybertwin-name-resolution-service.h"
+#include "../helper/cybertwin-node-edgeserver.h"
 #include <string>
 #include <unordered_map>
 #include <queue>
 
 namespace ns3
 {
+class CybertwinEdgeServer;
 
 class Cybertwin : public Application
 {
@@ -30,6 +33,7 @@ class Cybertwin : public Application
 
     Cybertwin();
     Cybertwin(CYBERTWINID_t,
+              CYBERTWIN_INTERFACE_LIST_t g_interfaces,
               const Address&,
               CybertwinInitCallback,
               CybertwinSendCallback,
@@ -59,6 +63,8 @@ class Cybertwin : public Application
     void GlobalNormalCloseCallback(Ptr<Socket>);
     void GlobalErrorCloseCallback(Ptr<Socket>);
 
+    void NewMpConnectionCreatedCallback(MultipathConnection* conn);
+
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
     CybertwinReceiveCallback ReceivePacket;
@@ -73,22 +79,15 @@ class Cybertwin : public Application
     uint16_t m_localPort;
     Ptr<Socket> m_globalSocket;
     uint16_t m_globalPort;
-    void InitDataTransferService();
-    
 
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> txPacketBuffer;
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> rxPacketBuffer;
-
-    std::unordered_map<CYBERTWINID_t, Ptr<Socket> > globalTxSocket;
-    // TODO: Add traffic logger
-    // TODO: Add other functionality
-    std::unordered_map<CYBERTWINID_t, CybertwinInterface> nameResolutionCache;
+    std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
 
     // Cybretwin multiple interfaces 
-    CYBERTWIN_INTERFACE_LIST_t interfaces;
+    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+    Ptr<CybertwinEdgeServer> m_node;
 
     // Cybertwin Connections
-    CybertwinDataTransferServer* dataTransferServer;
+    CybertwinDataTransferServer* m_dtServer;
 };
 }; // namespace ns3
 

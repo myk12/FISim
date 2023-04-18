@@ -31,6 +31,7 @@ Cybertwin::Cybertwin()
 }
 
 Cybertwin::Cybertwin(CYBERTWINID_t cuid,
+                     CYBERTWIN_INTERFACE_LIST_t g_interfaces,
                      const Address& address,
                      CybertwinInitCallback initCallback,
                      CybertwinSendCallback sendCallback,
@@ -39,8 +40,25 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
       SendPacket(sendCallback),
       ReceivePacket(receiveCallback),
       m_cybertwinId(cuid),
-      m_address(address)
+      m_address(address),
+      m_interfaces(g_interfaces)
 {
+    // init data server
+    m_dtServer = new CybertwinDataTransferServer();
+    m_dtServer->Setup(m_node, m_cybertwinId, m_interfaces);
+    m_dtServer->Listen();
+    m_dtServer->SetNewConnectCreatedCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
+
+    // report interfaces to CNRS
+    Ptr<NameResolutionService> cnrs = m_node->GetCNRSApp();
+    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);  
+}
+
+void
+Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
+{
+    NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
+    //TODO: Handle data recv
 }
 
 Cybertwin::~Cybertwin()
@@ -265,19 +283,6 @@ Cybertwin::RecvGlobalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
     // TODO
-}
-
-void 
-Cybertwin::InitDataTransferService()
-{
-    if (dataTransferServer != nullptr)
-    {
-        NS_LOG_DEBUG("Data transfer service already exists.");
-        return ;
-    }
-
-    dataTransferServer = new CybertwinDataTransferServer();
-    //TODO: init data transfer server
 }
 
 } // namespace ns3
