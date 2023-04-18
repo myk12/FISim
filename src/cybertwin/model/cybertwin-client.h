@@ -91,6 +91,7 @@ class CybertwinBulkClient : public CybertwinClient
     void StartApplication() override;
     void StopApplication() override;
 
+    void WaitForConnection();
     void SendData();
 
     uint64_t m_maxBytes;

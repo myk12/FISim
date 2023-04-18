@@ -1,0 +1,30 @@
+{
+    "cybertwin_assets": [
+        {
+            "cuid": 1000,
+            "credit": 1000,
+            "type": "personal_device",
+            "login_records": [],
+            "login_city_records": [],
+            "patterns": {
+                "avg_bytes_transferred_per_flow": 0,
+                "max_bytes_transferred_per_flow": 0,
+                "avg_peer_contacted_per_session": 0,
+                "max_peer_contacted_per_session": 0,
+                "aggregated_records": 0
+            },
+            "recent_violation_nb": 0,
+            "last_visited_time": null
+        },
+        {
+            "cuid": 2000,
+            "credit": 1000,
+            "type": "user",
+            "login_records": [],
+            "login_city_records": [],
+            "recent_violation_nb": 0,
+            "last_visited_time": null
+        }
+    ],
+    "edge_assets": {}
+}

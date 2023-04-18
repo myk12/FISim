@@ -17,7 +17,7 @@ NS_LOG_COMPONENT_DEFINE("TestEndToEdge");
 
 using namespace ns3;
 
-#define TEST_LOG_LEVEL LOG_LEVEL_ALL
+#define TEST_LOG_LEVEL LOG_LEVEL_DEBUG
 
 int
 main(int argc, char* argv[])
@@ -39,7 +39,7 @@ main(int argc, char* argv[])
     nodes.Create(4);
 
     PointToPointHelper pointToPoint;
-    pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
+    pointToPoint.SetDeviceAttribute("DataRate", StringValue("40Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
 
     NetDeviceContainer lan1Devices, lan2Devices, e2eDevices;
@@ -95,7 +95,7 @@ main(int argc, char* argv[])
     ApplicationContainer lan2EdgeApp = lan2Edge.Install(nodes.Get(3));
     lan2EdgeApp.Start(Seconds(0.0));
 
-    Simulator::Stop(Seconds(4.2));
+    Simulator::Stop(Seconds(10));
     Simulator::Run();
     Simulator::Destroy();
     return 0;

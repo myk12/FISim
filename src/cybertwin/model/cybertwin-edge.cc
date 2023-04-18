@@ -6,6 +6,8 @@
 #include "ns3/tcp-header.h"
 #include "ns3/uinteger.h"
 
+#include <fstream>
+
 namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("CybertwinEdge");
@@ -132,7 +134,12 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
             GetNode()->AddApplication(cybertwinFirewall);
             m_firewallTable[cuid] = cybertwinFirewall;
         }
-        return m_firewallTable[cuid]->ReceiveCertificate(certTag);
+        if (m_firewallTable[cuid]->ReceiveCertificate(certTag))
+        {
+            return true;
+        }
+        m_firewallTable.erase(cuid);
+        return false;
     }
     CybertwinTag idTag;
     if (packet->PeekPacketTag(idTag))
@@ -171,7 +178,7 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
             if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
             {
                 // assign interfaces for new cybertwin
-                CYBERTWIN_INTERFACE_LIST_t g_interfaces; 
+                CYBERTWIN_INTERFACE_LIST_t g_interfaces;
                 AssignInterfaces(g_interfaces);
 
                 // create new cybertwin
@@ -206,8 +213,6 @@ CybertwinController::CybertwinInit(Ptr<Socket> socket, const CybertwinHeader& he
     packet->AddHeader(header);
     // TODO: check if sent successfully
     socket->Send(packet);
-    // Close the socket immediately
-    socket->Close();
 }
 
 int
@@ -260,7 +265,8 @@ CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
     {
         CYBERTWIN_INTERFACE_t interface;
 
-        do{
+        do
+        {
             interface = std::make_pair(addr, m_lastAssignedPort++);
         } while (m_assignedPorts.find(interface.second) != m_assignedPorts.end() &&
                  m_lastAssignedPort < 65535);
@@ -269,22 +275,32 @@ CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
         {
             ifs.push_back(interface);
             m_assignedPorts.insert(interface.second);
-        }else if(m_lastAssignedPort == 65535){
-            NS_FATAL_ERROR("--[Ctrl-" << GetNode()->GetId()
-                            << "]: no more interfaces available");
+        }
+        else if (m_lastAssignedPort == 65535)
+        {
+            NS_FATAL_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: no more interfaces available");
         }
     }
 }
 
-CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid)
-    : m_credit(0),
+CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid,
+                                     LookupCredit_cb lookupCb,
+                                     UpdateCredit_cb updateCb)
+    : LookupCredit(lookupCb),
+      UpdateCredit(updateCb),
+      m_state(NOT_STARTED),
       m_ingressCredit(0),
       m_cuid(cuid),
-      m_isUsrAuthRequired(false),
-      m_usrCuid(0),
-      m_usrCredit(0),
-      m_state(NOT_STARTED)
+      m_burstBytes(0),
+      m_burstLimit(5000000),
+      m_flowBytes(0),
+      m_flowLimit(600000000)
 {
+}
+
+CybertwinFirewall::~CybertwinFirewall()
+{
+    NS_LOG_FUNCTION(m_cuid);
 }
 
 TypeId
@@ -298,6 +314,17 @@ CybertwinFirewall::GetTypeId()
 }
 
 void
+CybertwinFirewall::DoDispose()
+{
+    m_state = NOT_STARTED;
+    if (!Simulator::IsFinished())
+    {
+        StopApplication();
+    }
+    Application::DoDispose();
+}
+
+void
 CybertwinFirewall::StartApplication()
 {
 }
@@ -307,15 +334,10 @@ CybertwinFirewall::StopApplication()
 {
 }
 
-void
-CybertwinFirewall::DoDispose()
+uint16_t
+CybertwinFirewall::GetCredit() const
 {
-    m_state = NOT_STARTED;
-    if (!Simulator::IsFinished())
-    {
-        StopApplication();
-    }
-    Application::DoDispose();
+    return LookupCredit(m_cuid) + m_user ? LookupCredit(m_user) : 0;
 }
 
 bool
@@ -338,7 +360,26 @@ CybertwinFirewall::ReceiveFromLocal(Ptr<const Packet> packet)
     if (m_state == PERMITTED)
     {
         // TODO: examine packet content
-        return true;
+        Time current = Simulator::Now();
+        if (m_burstTs.IsZero() || current - m_burstTs >= Seconds(1.0))
+        {
+            m_burstTs = current;
+            NS_LOG_DEBUG("Instantaneous speed: " << m_burstBytes / 1000 << "kb/s");
+            m_burstBytes = 0;
+        }
+        if (m_flowTs.IsZero() || current - m_flowTs >= Minutes(3))
+        {
+            m_flowTs = current;
+            NS_LOG_DEBUG("Average speed: " << m_flowBytes / 180000 << "kb/s");
+            m_flowBytes = 0;
+        }
+        uint32_t packetSize = packet->GetSize();
+        if (packetSize + m_burstBytes <= m_burstLimit && packetSize + m_flowBytes <= m_flowLimit)
+        {
+            m_burstBytes += packetSize;
+            m_flowBytes += packetSize;
+            return true;
+        }
     }
     NS_LOG_DEBUG("Local packet from" << m_cuid << " got blocked");
     return false;
@@ -347,21 +388,17 @@ CybertwinFirewall::ReceiveFromLocal(Ptr<const Packet> packet)
 bool
 CybertwinFirewall::ReceiveCertificate(const CybertwinCertTag& cert)
 {
-    if (cert.GetIsValid())
+    if (cert.GetIsValid() && cert.GetCybertwin() == m_cuid)
     {
-        if (m_state == NOT_STARTED)
-        {
-            // only update credit score on initialization
-            m_credit = cert.GetInitialCredit();
-        }
+        // would return 0 if there's no user anyway
+        m_user = cert.GetUser();
         m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
-        m_isUsrAuthRequired = cert.GetIsUserRequired();
-        // the user might change. returns 0 if user authentication is not required
-        m_usrCuid = cert.GetUser();
-        m_usrCredit = cert.GetUserInitialCredit();
         m_state = PERMITTED;
         return true;
     }
+    // failed to authenticate, deduct 10% of device's and user's credit score
+    UpdateCredit(m_cuid, -10);
+    UpdateCredit(m_user, -10);
     return false;
 }
 
@@ -369,7 +406,7 @@ int
 CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer, Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid << peer);
-    CybertwinCreditTag creditTag(m_cuid, m_credit + m_usrCredit, peer);
+    CybertwinCreditTag creditTag(m_cuid, GetCredit(), peer);
     packet->AddPacketTag(creditTag);
     return socket->Send(packet);
 }
@@ -378,15 +415,15 @@ int
 CybertwinFirewall::ForwardToLocal(Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid);
-    CybertwinCertTag certTag(m_cuid,
-                             m_credit,
-                             m_ingressCredit,
-                             m_isUsrAuthRequired,
-                             m_state != NOT_STARTED,
-                             m_usrCuid,
-                             m_usrCredit);
-    packet->AddPacketTag(certTag);
-    return socket->Send(packet);
+    // CybertwinCertTag certTag(m_cuid,
+    //                          m_credit,
+    //                          m_ingressCredit,
+    //                          m_isUsrAuthRequired,
+    //                          m_state != NOT_STARTED,
+    //                          m_usrCuid,
+    //                          m_usrCredit);
+    // packet->AddPacketTag(certTag);
+    // return socket->Send(packet);
 }
 
 } // namespace ns3

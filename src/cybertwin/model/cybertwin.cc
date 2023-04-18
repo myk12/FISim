@@ -3,8 +3,6 @@
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
-#include "cybertwin-packet-header.h"
-#include "cybertwin-packet-tags.h"
 
 namespace ns3
 {
@@ -47,18 +45,19 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
     m_dtServer = new CybertwinDataTransferServer();
     m_dtServer->Setup(m_node, m_cybertwinId, m_interfaces);
     m_dtServer->Listen();
-    m_dtServer->SetNewConnectCreatedCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
+    m_dtServer->SetNewConnectCreatedCallback(
+        MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
 
     // report interfaces to CNRS
     Ptr<NameResolutionService> cnrs = m_node->GetCNRSApp();
-    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);  
+    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
 }
 
 void
 Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
 {
     NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
-    //TODO: Handle data recv
+    // TODO: Handle data recv
 }
 
 Cybertwin::~Cybertwin()

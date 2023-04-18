@@ -349,7 +349,7 @@ void
 CybertwinBulkClient::StartApplication()
 {
     NS_LOG_FUNCTION(this->GetTypeId());
-    SendData();
+    WaitForConnection();
 }
 
 void
@@ -370,19 +370,25 @@ CybertwinBulkClient::DoDispose()
 }
 
 void
+CybertwinBulkClient::WaitForConnection()
+{
+    if (m_socket)
+    {
+        SendData();
+    }
+    else
+    {
+        Simulator::Schedule(MilliSeconds(100), &CybertwinBulkClient::WaitForConnection, this);
+    }
+}
+
+void
 CybertwinBulkClient::SendData()
 {
-    if (!m_socket)
-    {
-        // block until CybertwinConnClient completes connection
-        Simulator::Schedule(Seconds(0.1), &CybertwinBulkClient::SendData, this);
-        return;
-    }
+    // NS_LOG_DEBUG("--[#" << m_localCuid << "-Bulk]: started sending data at " <<
+    // Simulator::Now());
 
-    NS_LOG_FUNCTION(this << m_socket);
-    NS_LOG_DEBUG("--[#" << m_localCuid << "-Bulk]: started sending data at " << Simulator::Now());
-
-    while (m_maxBytes == 0 || m_sentBytes < m_maxBytes)
+    while (m_socket && (m_maxBytes == 0 || m_sentBytes < m_maxBytes))
     {
         // uint64_t to allow the comparison later
         uint64_t toSend = m_packetSize;
@@ -394,7 +400,7 @@ CybertwinBulkClient::SendData()
         Ptr<Packet> packet;
         if (m_unsentPacket)
         {
-            NS_LOG_DEBUG("Resending an unsent packet");
+            // NS_LOG_DEBUG("Resending an unsent packet");
             packet = m_unsentPacket;
             toSend = packet->GetSize();
         }
@@ -420,7 +426,7 @@ CybertwinBulkClient::SendData()
         }
         else if (actual == -1)
         {
-            NS_LOG_DEBUG("Unable to send packet; caching for later attempt");
+            // NS_LOG_DEBUG("Unable to send packet; caching for later attempt");
             m_unsentPacket = packet;
             break;
         }
@@ -440,6 +446,10 @@ CybertwinBulkClient::SendData()
         {
             NS_FATAL_ERROR("Unexpected return value from m_socket->Send ()");
         }
+    }
+    if (m_socket)
+    {
+        Simulator::Schedule(MilliSeconds(10), &CybertwinBulkClient::SendData, this);
     }
 }
 
