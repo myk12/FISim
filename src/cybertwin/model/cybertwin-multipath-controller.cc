@@ -112,7 +112,7 @@ CybertwinDataTransferServer::NewConnectionBuilt(SinglePath* path)
 
     //add to data server
     m_connections.insert(new_conn);
-    m_connectionIDs[new_conn->GetConnectionID()] = new_conn;
+    m_connectionIDs[new_conn->GetConnID()] = new_conn;
 
     //aggravate connection to path
     path->SetConnection(new_conn);
@@ -551,12 +551,6 @@ MultipathConnection::ChoosePathRoundRobin()
     return idx;
 }
 
-MP_CONN_ID_t
-MultipathConnection::GetConnectionID()
-{
-    return m_connID;
-}
-
 void
 MultipathConnection::SetLocalKey(MP_CONN_KEY_t key)
 {
@@ -611,6 +605,12 @@ void
 MultipathConnection::SetConnID(MP_CONN_ID_t id)
 {
     m_connID = id;
+}
+
+MP_CONN_ID_t
+MultipathConnection::GetConnID()
+{
+    return m_connID;
 }
 
 void 

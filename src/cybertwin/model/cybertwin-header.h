@@ -10,7 +10,6 @@ namespace ns3
 
 enum CybertwinCommand_t
 {
-    // Control commands
     HOST_CONNECT = 96,
     HOST_DISCONNECT,
     CYBERTWIN_CONNECT_SUCCESS,

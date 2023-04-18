@@ -48,9 +48,15 @@ CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
     // install Cybertwin Controller application
     cybertwinControllerApp = CreateObject<CybertwinController>();
     this->AddApplication(cybertwinControllerApp);
-    cybertwinControllerApp->SetStartTime(Simulator::Now());
+    //cybertwinControllerApp->SetStartTime(Simulator::Now());
 
     return 0;
+}
+
+Ptr<NameResolutionService>
+CybertwinEdgeServer::GetCNRSApp()
+{
+    return cybertwinCNRSApp;
 }
 
 } // namespace ns3

@@ -35,10 +35,25 @@
 
 // Network Topology, Cybertwin: v1.0
 //          
-//   Core Cloud with 2 hosts
-//   Edge Cloud with 4 hosts
-//   End Devices with 8 hosts
 //
+#define TOPOLOGY_GRAPH (\
+"          - Cybertwin Network Simulation: version 1 -            \n"\
+"\n"\
+"                    [core1]                  [core2]             \n" \
+"                       |                        |                \n" \
+"              _________| _______________________|________        \n" \
+"                |            |            |           |          \n" \
+"                |            |            |           |          \n" \
+"             [edge1]       [edge2]     [edge3]      [edge4]      \n" \
+"                |            |            |           |          \n" \
+"             ___|___      ___|___      ___|___     ___|___       \n" \
+"             |     |      |     |      |     |     |     |       \n" \
+"             |     |      |     |      |     |     |     |       \n" \
+"           [h1]   [h2]  [h3]   [h4]  [h5]   [h6]  [h7]   [h8]    \n" \
+)
+//
+//
+
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE ("Cybertwinv1");
@@ -46,19 +61,19 @@ NS_LOG_COMPONENT_DEFINE ("Cybertwinv1");
 int 
 main (int argc, char *argv[])
 {
-  // parse command line arguements
-  //CommandLine cmd (__FILE__);
-  //cmd.AddValue ("nCsma", "Number of \"extra\" CSMA nodes/devices", nCsma);
-  //cmd.AddValue ("verbose", "Tell echo applications to log if true", verbose);
-
-  //cmd.Parse (argc,argv);
   LogComponentEnable("Cybertwinv1", LOG_LEVEL_INFO);
   LogComponentEnable ("V4Ping", LOG_LEVEL_DEBUG);
+  LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_DEBUG);
+  LogComponentEnable("CybertwinCoreServer", LOG_LEVEL_DEBUG);
+  LogComponentEnable("CybertwinEndHost", LOG_LEVEL_DEBUG);
+  LogComponentEnable("CybertwinClient", LOG_LEVEL_DEBUG);
+  LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
 
-  //-------------------------------------------------------------
-  //                     Create Nodes                           -
-  //-------------------------------------------------------------
-  NS_LOG_INFO("-> Creating Nodes.");
+  //***********************************************************************
+  //*                   Building Topology                                 *
+  //***********************************************************************
+  NS_LOG_UNCOND("[1] ******* Building Topology *******\n\n");
+  NS_LOG_UNCOND(TOPOLOGY_GRAPH);
   NodeContainer allNodesContainer;
   std::vector<std::vector<Ipv4Address>> allNodesIpv4Addresses;
 
@@ -82,18 +97,13 @@ main (int argc, char *argv[])
     }
   }
 
-  //-------------------------------------------------------------
-  //                     Install Network Stack                  -
-  //-------------------------------------------------------------
+  // Install Network Stack 
   NS_LOG_INFO("-> Install Network Stack.");
   InternetStackHelper stack;
   stack.Install(allNodesContainer);
 
-  //-------------------------------------------------------------
-  //              Install Devices & Assign IPaddress            -
-  //-------------------------------------------------------------
+  // Install Devices and Assign Ipaddress
   NS_LOG_INFO("-> Install Devices & Assign IPaddr.");
-  // ======= build access network =======
   // LAN1
   buildCsmaNetwork(allNodesContainer, endLANNodeIDs[END_LAN1], endLANIPBases[END_LAN1], "5Mbps", 6560);
   // LAN2
@@ -117,9 +127,7 @@ main (int argc, char *argv[])
 
   allNodesIpv4Addresses = getNodesIpv4List(allNodesContainer);
 
-  //-------------------------------------------------------------
-  //                          Routing                           -
-  //-------------------------------------------------------------
+  // Routing
   NS_LOG_INFO("-> Routing.");
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
@@ -129,18 +137,9 @@ main (int argc, char *argv[])
   NS_LOG_INFO("-> Testing Connectivity.");
   testNodesConnectivity(allNodesContainer.Get(END_HOST1), allNodesContainer.Get(END_HOST8));
   testNodesConnectivity(allNodesContainer.Get(END_HOST8), allNodesContainer.Get(END_HOST1));
-  //p2pHelper.EnablePcap ("second", accessCloud.Get(0)->GetId(), 0);
-  //p2pHelper.EnablePcapAll("cybertwin");
-  //PointToPointHelper p2pHelper;
-  //CsmaHelper csmaHelper;
-  //AsciiTraceHelper ascii;
-  //p2pHelper.EnableAsciiAll(ascii.CreateFileStream("cybertwin1.tr"));
-  //csmaHelper.EnableAsciiAll(ascii.CreateFileStream("cybertwin2.tr"));
 
-
-  //-------------------------------------------------------------
-  //                      Install Software                      -
-  //-------------------------------------------------------------
+  // Start Up
+  NS_LOG_INFO("-> Install Software.");
   for (int32_t i=0; i<MAX_NODE_NUM; i++)
   {
     Ptr<Node> node = allNodesContainer.Get(i);
@@ -178,6 +177,8 @@ main (int argc, char *argv[])
       break;
     }
   }
+
+  NS_LOG_DEBUG("Start Simulatoin.");
 
   Simulator::Run ();
   Simulator::Destroy ();

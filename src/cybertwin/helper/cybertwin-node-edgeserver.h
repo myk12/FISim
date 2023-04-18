@@ -5,9 +5,12 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "../model/cybertwin-name-resolution-service.h"
+#include "../model/cybertwin-edge.h"
 
 namespace ns3
 {
+class CybertwinController;
 class CybertwinEdgeServer: public Node
 {
     public:
@@ -17,11 +20,13 @@ class CybertwinEdgeServer: public Node
         int32_t Setup(Ipv4Address upNodeAddress);
 
         static TypeId GetTypeId();
-    
+
+        Ptr<NameResolutionService> GetCNRSApp();
+
     private:
         Ipv4Address CNRSUpNodeAddress;
-        Ptr<Application> cybertwinCNRSApp;
-        Ptr<Application> cybertwinControllerApp;
+        Ptr<NameResolutionService> cybertwinCNRSApp;
+        Ptr<CybertwinController> cybertwinControllerApp;
 };
 }
 

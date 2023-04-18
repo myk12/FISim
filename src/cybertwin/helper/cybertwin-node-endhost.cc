@@ -20,8 +20,8 @@ CybertwinEndHost::GetTypeId()
 }
 
 CybertwinEndHost::CybertwinEndHost()
-    : cybertwinControllerClient(nullptr),
-      cybertwinClient(nullptr)
+    :m_connClient(nullptr),
+    m_bulkClinet(nullptr)
 {
     NS_LOG_DEBUG("[CybertwinEndHost] create CybertwinEndHost.");
 }
@@ -38,9 +38,13 @@ CybertwinEndHost::Setup(Ipv4Address edgeServerAddr)
     edgeServerAddress = edgeServerAddr;
 
     // install endhost app
-    // cybertwinControllerClient = CreateObject<CybertwinBulkClient>();
-    this->AddApplication(cybertwinControllerClient);
-    cybertwinControllerClient->SetStartTime(Simulator::Now());
+    m_connClient = CreateObject<CybertwinConnClient>();
+    this->AddApplication(m_connClient);
+    //m_connClient->SetStartTime(Simulator::Now());
+
+    m_bulkClinet = CreateObject<CybertwinBulkClient>();
+    this->AddApplication(m_bulkClinet);
+    //m_bulkClinet->SetStartTime(Simulator::Now());
 
     return 0;
 }

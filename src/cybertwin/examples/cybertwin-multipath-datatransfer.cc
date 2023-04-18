@@ -202,14 +202,14 @@ MultipathDataTransferApp::RecvHandler(MultipathConnection* conn)
 void 
 MultipathDataTransferApp::ConnectSucceedHandler(MultipathConnection* conn)
 {
-    NS_LOG_UNCOND("Build connection succeed! ID: " << conn->GetConnectionID());
+    NS_LOG_UNCOND("Build connection succeed! ID: " << conn->GetConnID());
 }
 
 void
 MultipathDataTransferApp::ClientConnectSucceedHandler(MultipathConnection* conn)
 {
     NS_LOG_UNCOND("------ Client Build connection succeed! ----------");
-    NS_LOG_UNCOND(" ID: " << conn->GetConnectionID());
+    NS_LOG_UNCOND(" ID: " << conn->GetConnID());
     NS_LOG_UNCOND("--------------------------------------------------");
     int sec = 2;
     Simulator::Schedule(Seconds(sec++), &MultipathDataTransferApp::PeriodicSender, this, conn);
@@ -230,7 +230,7 @@ void
 MultipathDataTransferApp::ServerConnectSucceedHandler(MultipathConnection* conn)
 {
     NS_LOG_UNCOND("------ Server Build connection succeed! ----------");
-    NS_LOG_UNCOND(" ID: " << conn->GetConnectionID());
+    NS_LOG_UNCOND(" ID: " << conn->GetConnID());
     NS_LOG_UNCOND("--------------------------------------------------");
     //conn->Send(Create<Packet>(100));
     conn->SetRecvCallback(MakeCallback(&MultipathDataTransferApp::RecvHandler, this));

@@ -128,6 +128,7 @@ public:
     void SetLocalCybertwinID(CYBERTWINID_t id);
     void SetPeerCybertwinID(CYBERTWINID_t id);
     void SetConnID(MP_CONN_ID_t id);
+    MP_CONN_ID_t GetConnID();
     void SetConnState(MP_CONN_STATE state);
 
 
@@ -149,7 +150,6 @@ public:
     //
     //MultipathConnection* GetConnFromLocalKey(MP_CONN_KEY_t key);
 
-    MP_CONN_ID_t GetConnectionID();
 
 
 private:
