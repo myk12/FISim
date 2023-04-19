@@ -12,6 +12,27 @@ NS_LOG_COMPONENT_DEFINE("CybertwinMultipathTransfer");
 //*****************************************************************************
 //*                    Cybertwin Data Transfer Server                         *
 //*****************************************************************************
+NS_OBJECT_ENSURE_REGISTERED(CybertwinDataTransferServer);
+TypeId
+CybertwinDataTransferServer::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinDataTransferServer")
+                            .SetParent<Object>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<CybertwinDataTransferServer>()
+                            .AddAttribute("MpConnCreatedCallback",
+                                          "Callback for new connection created",
+                                          CallbackValue(),
+                                          MakeCallbackAccessor(&CybertwinDataTransferServer::m_notifyNewConnection),
+                                          MakeCallbackChecker());
+    return tid;
+}
+
+TypeId
+CybertwinDataTransferServer::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
 
 CybertwinDataTransferServer::CybertwinDataTransferServer():
     m_node(nullptr),

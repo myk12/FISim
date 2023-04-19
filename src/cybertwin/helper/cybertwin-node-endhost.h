@@ -5,12 +5,13 @@
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 #include "ns3/node.h"
+#include "cybertwin-node.h"
 #include "../model/cybertwin-client.h"
 
 namespace ns3
 {
 
-class CybertwinEndHost : public Node
+class CybertwinEndHost : public CybertwinNode
 {
   public:
     CybertwinEndHost();
@@ -18,10 +19,9 @@ class CybertwinEndHost : public Node
 
     static TypeId GetTypeId();
 
-    int32_t Setup(Ipv4Address edgeServerAddr);
+    void Setup();
 
   private:
-    Ipv4Address edgeServerAddress; // ip address of default cybertwin controller
     Ptr<CybertwinConnClient> m_connClient;
     Ptr<CybertwinBulkClient> m_bulkClinet;
 };

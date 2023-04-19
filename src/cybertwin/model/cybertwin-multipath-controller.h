@@ -32,9 +32,12 @@ class CybertwinDataTransferServer;
 //*****************************************************************************
 // Multipath Control Block
 // This class manage all the multipath connections with remote Cybertwins
-class CybertwinDataTransferServer
+class CybertwinDataTransferServer : public Object
 {
 public:
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
+
     CybertwinDataTransferServer();
     void Setup(Ptr<Node> node, CYBERTWINID_t cyberid, CYBERTWIN_INTERFACE_LIST_t ifs);
     void Listen();

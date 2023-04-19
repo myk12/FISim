@@ -22,19 +22,17 @@ CybertwinCoreServer::GetTypeId()
 CybertwinCoreServer::CybertwinCoreServer()
     : cybertwinCNRSApp(nullptr)
 {
-    NS_LOG_DEBUG("[CybertwinCoreServer] create CybertwinCoreServer.");
+    NS_LOG_DEBUG("Creating a CybertwinCoreServer.");
 }
 
-int32_t
+void
 CybertwinCoreServer::Setup()
 {
     NS_LOG_DEBUG("[CybertwinCoreServer] create CybertwinCoreServer.");
     // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>();
+    cybertwinCNRSApp = CreateObject<NameResolutionService>(upperNodeAddress);
     this->AddApplication(cybertwinCNRSApp);
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
-
-    return 0;
 }
 
 CybertwinCoreServer::~CybertwinCoreServer()

@@ -31,11 +31,10 @@ CybertwinEndHost::~CybertwinEndHost()
     NS_LOG_DEBUG("[CybertwinEndHost] destroy CybertwinEndHost.");
 }
 
-int32_t
-CybertwinEndHost::Setup(Ipv4Address edgeServerAddr)
+void
+CybertwinEndHost::Setup()
 {
-    NS_LOG_DEBUG("[CybertwinEndHost] Setup.");
-    edgeServerAddress = edgeServerAddr;
+    NS_LOG_DEBUG("Setting up a CybertwinEndHost.");
 
     // install endhost app
     //m_connClient = CreateObject<CybertwinConnClient>();
@@ -45,8 +44,6 @@ CybertwinEndHost::Setup(Ipv4Address edgeServerAddr)
     //m_bulkClinet = CreateObject<CybertwinBulkClient>();
     //this->AddApplication(m_bulkClinet);
     //m_bulkClinet->SetStartTime(Simulator::Now());
-
-    return 0;
 }
 
 } // namespace ns3

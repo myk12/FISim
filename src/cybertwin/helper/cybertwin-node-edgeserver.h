@@ -5,19 +5,20 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "cybertwin-node.h"
 #include "../model/cybertwin-name-resolution-service.h"
 #include "../model/cybertwin-edge.h"
 
 namespace ns3
 {
 class CybertwinController;
-class CybertwinEdgeServer: public Node
+class CybertwinEdgeServer: public CybertwinNode
 {
     public:
         CybertwinEdgeServer();
         ~CybertwinEdgeServer();
 
-        int32_t Setup(Ipv4Address upNodeAddress);
+        void Setup();
 
         static TypeId GetTypeId();
 

@@ -33,15 +33,13 @@ CybertwinEdgeServer::~CybertwinEdgeServer()
     NS_LOG_DEBUG("[CybertwinEdgeServer] destroy CybertwinEdgeServer.");
 }
 
-int32_t
-CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
+void
+CybertwinEdgeServer::Setup()
 {
     NS_LOG_DEBUG("[CybertwinEdgeServer] create CybertwinEdgeServer.");
 
-    CNRSUpNodeAddress = upNodeAddress;
-
     // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>(CNRSUpNodeAddress);
+    cybertwinCNRSApp = CreateObject<NameResolutionService>(upperNodeAddress);
     this->AddApplication(cybertwinCNRSApp);
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
 
@@ -49,8 +47,6 @@ CybertwinEdgeServer::Setup(Ipv4Address upNodeAddress)
     //cybertwinControllerApp = CreateObject<CybertwinController>();
     //this->AddApplication(cybertwinControllerApp);
     //cybertwinControllerApp->SetStartTime(Simulator::Now());
-
-    return 0;
 }
 
 Ptr<NameResolutionService>

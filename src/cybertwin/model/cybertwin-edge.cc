@@ -424,6 +424,7 @@ CybertwinFirewall::ForwardToLocal(Ptr<Socket> socket, Ptr<Packet> packet)
     //                          m_usrCredit);
     // packet->AddPacketTag(certTag);
     // return socket->Send(packet);
+    return 0;
 }
 
 } // namespace ns3

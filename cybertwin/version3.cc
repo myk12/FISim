@@ -26,6 +26,7 @@
 #include "ns3/cybertwin-node-endhost.h"
 #include "ns3/cybertwin-node-edgeserver.h"
 #include "ns3/cybertwin-node-coreserver.h"
+#include "ns3/cybertwin-node.h"
 #include "cybertwin-topology.h"
 
 #include <vector>
@@ -70,10 +71,10 @@ main (int argc, char *argv[])
   LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
   LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
 
-  //***********************************************************************
-  //*                   Building Topology                                 *
-  //***********************************************************************
-  NS_LOG_UNCOND("[1] ******* Building Topology *******\n\n");
+  //*************************************************************************************************
+  //*                           Building Topology                                                   *
+  //*************************************************************************************************
+  NS_LOG_UNCOND("\n\n[1] ************************ Building Topology ****************************\n\n");
   NS_LOG_UNCOND(TOPOLOGY_GRAPH);
   NodeContainer allNodesContainer;
   std::vector<std::vector<Ipv4Address>> allNodesIpv4Addresses;
@@ -132,55 +133,61 @@ main (int argc, char *argv[])
   NS_LOG_INFO("-> Routing.");
   Ipv4GlobalRoutingHelper::PopulateRoutingTables ();
 
-  //-------------------------------------------------------------
-  //              Test Connectivity using V4Ping                -
-  //-------------------------------------------------------------
-  NS_LOG_INFO("-> Testing Connectivity.");
+  //*************************************************************************************************
+  //*                           Testing Connectivity                                                *
+  //*************************************************************************************************
+  NS_LOG_UNCOND("\n\n[2] ************************ Testing Connectivity ****************************\n\n");
   testNodesConnectivity(allNodesContainer.Get(END_HOST1), allNodesContainer.Get(END_HOST8));
   testNodesConnectivity(allNodesContainer.Get(END_HOST8), allNodesContainer.Get(END_HOST1));
 
-  // Start Up
-  NS_LOG_INFO("-> Install Software.");
+  //*************************************************************************************************
+  //*                           Installing Software                                                 *
+  //*************************************************************************************************
+  NS_LOG_UNCOND("\n\n[3] ************************ Installing Software ****************************\n\n");
   for (int32_t i=0; i<MAX_NODE_NUM; i++)
   {
-    Ptr<Node> node = allNodesContainer.Get(i);
+    Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(allNodesContainer.Get(i));
     switch (i)
     {
     case END_HOST1:
     case END_HOST2:
-      DynamicCast<CybertwinEndHost>(node)->Setup(allNodesIpv4Addresses[EDGE_SERVER1][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[EDGE_SERVER1][0]));
       break;
     case END_HOST3:
     case END_HOST4:
-      DynamicCast<CybertwinEndHost>(node)->Setup(allNodesIpv4Addresses[EDGE_SERVER2][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[EDGE_SERVER2][0]));
       break;
     case END_HOST5:
     case END_HOST6:
-      DynamicCast<CybertwinEndHost>(node)->Setup(allNodesIpv4Addresses[EDGE_SERVER3][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[EDGE_SERVER3][0]));
       break;
     case END_HOST7:
     case END_HOST8:
-      DynamicCast<CybertwinEndHost>(node)->Setup(allNodesIpv4Addresses[EDGE_SERVER4][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[EDGE_SERVER4][0]));
       break;
     case EDGE_SERVER1:
     case EDGE_SERVER2:
-      DynamicCast<CybertwinEdgeServer>(node)->Setup(allNodesIpv4Addresses[CORE_SERVER1][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[CORE_SERVER1][0]));
       break;
     case EDGE_SERVER3:
     case EDGE_SERVER4:
-      DynamicCast<CybertwinEdgeServer>(node)->Setup(allNodesIpv4Addresses[CORE_SERVER2][0]);
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[CORE_SERVER2][0]));
       break;
     case CORE_SERVER1:
+      break;
     case CORE_SERVER2:
-      DynamicCast<CybertwinCoreServer>(node)->Setup();
+      node->SetAttribute("UpperNodeAddress", Ipv4AddressValue(allNodesIpv4Addresses[CORE_SERVER1][0]));
       break;
     default:
       break;
     }
+    node->Setup();
   }
 
-  NS_LOG_DEBUG("Start Simulatoin.");
-
+  //*************************************************************************************************
+  //*                           Starting Simulation                                                 *
+  //*************************************************************************************************
+  NS_LOG_UNCOND("\n\n[4] ************************ Starting Simulation ****************************\n\n");
   Simulator::Run ();
   Simulator::Destroy ();
   return 0;

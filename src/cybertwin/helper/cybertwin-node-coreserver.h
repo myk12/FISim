@@ -5,10 +5,11 @@
 #include "ns3/network-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/applications-module.h"
+#include "cybertwin-node.h"
 
 namespace ns3
 {
-class CybertwinCoreServer: public Node
+class CybertwinCoreServer: public CybertwinNode
 {
     public:
         CybertwinCoreServer();
@@ -16,9 +17,10 @@ class CybertwinCoreServer: public Node
 
         static TypeId GetTypeId();
         
-        int32_t Setup();
+        void Setup();
     
     private:
+        Ipv4Address CNRSUpNodeAddress;
         Ptr<Application> cybertwinCNRSApp;
 };
     

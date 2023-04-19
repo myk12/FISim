@@ -5,6 +5,7 @@ build_lib(
         helper/cybertwin-node-coreserver.cc
         helper/cybertwin-node-edgeserver.cc
         helper/cybertwin-node-endhost.cc
+        helper/cybertwin-node.cc
         model/cybertwin-header.cc
         model/cybertwin-edge.cc
         model/cybertwin-common.cc
@@ -19,6 +20,7 @@ build_lib(
         helper/cybertwin-node-coreserver.h
         helper/cybertwin-node-edgeserver.h
         helper/cybertwin-node-endhost.h
+        helper/cybertwin-node.h
         model/cybertwin-header.h
         model/cybertwin-edge.h
         model/cybertwin-common.h
