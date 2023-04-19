@@ -30,7 +30,7 @@ CybertwinCoreServer::Setup()
 {
     NS_LOG_DEBUG("[CybertwinCoreServer] create CybertwinCoreServer.");
     // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>(upperNodeAddress);
+    cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
     this->AddApplication(cybertwinCNRSApp);
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
 }

@@ -43,22 +43,21 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
 {
     // init data server
     m_dtServer = new CybertwinDataTransferServer();
-    m_dtServer->Setup(GetNode(), m_cybertwinId, m_interfaces);
+    m_dtServer->Setup(m_node, m_cybertwinId, m_interfaces);
     m_dtServer->Listen();
     m_dtServer->SetNewConnectCreatedCallback(
         MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
 
     // report interfaces to CNRS
-    Ptr<NameResolutionService> cnrs = DynamicCast<CybertwinEdgeServer>(m_node)->GetCNRSApp();
-    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);  
+    Ptr<NameResolutionService> cnrs = m_node->GetCNRSApp();
+    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
 }
 
 void
 Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
 {
     NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
-    //TODO: Handle data recv
-    this->m_dtServer->DtServerBulkSend(conn);
+    // TODO: Handle data recv
 }
 
 Cybertwin::~Cybertwin()

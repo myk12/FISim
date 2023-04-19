@@ -1,24 +1,34 @@
 #include "cybertwin-node.h"
 
-using namespace ns3;
+namespace ns3
+{
 
-NS_LOG_COMPONENT_DEFINE ("CybertwinNode");
-
-NS_OBJECT_ENSURE_REGISTERED (CybertwinNode);
+NS_LOG_COMPONENT_DEFINE("CybertwinNode");
+NS_OBJECT_ENSURE_REGISTERED(CybertwinNode);
 
 TypeId
 CybertwinNode::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CybertwinNode")
-                            .SetParent<Node>()
-                            .SetGroupName("Cybertwin")
-                            .AddConstructor<CybertwinNode>()
-                            .AddAttribute("UpperNodeAddress",
-                                          "The address of the upper node.",
-                                          Ipv4AddressValue(Ipv4Address("0.0.0.0")),
-                                          MakeIpv4AddressAccessor(&CybertwinNode::upperNodeAddress),
-                                          MakeIpv4AddressChecker());
-    
+    static TypeId tid =
+        TypeId("ns3::CybertwinNode")
+            .SetParent<Node>()
+            .SetGroupName("Cybertwin")
+            .AddConstructor<CybertwinNode>()
+            .AddAttribute("UpperNodeAddress",
+                          "The address of the upper node",
+                          Ipv4AddressValue(),
+                          MakeIpv4AddressAccessor(&CybertwinNode::m_upperNodeAddress),
+                          MakeIpv4AddressChecker())
+            .AddAttribute("SelfNodeAddress",
+                          "The address of the current node",
+                          Ipv4AddressValue(),
+                          MakeIpv4AddressAccessor(&CybertwinNode::m_selfNodeAddress),
+                          MakeIpv4AddressChecker())
+            .AddAttribute("SelfCuid",
+                          "The cybertwin id of the current node",
+                          UintegerValue(),
+                          MakeUintegerAccessor(&CybertwinNode::m_cybertwinId),
+                          MakeUintegerChecker<uint64_t>());
     return tid;
 };
 
@@ -43,3 +53,5 @@ CybertwinNode::Setup()
 {
     NS_LOG_DEBUG("Setup a CybertwinNode.");
 }
+
+} // namespace ns3

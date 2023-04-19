@@ -3,6 +3,7 @@
 
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
+#include "cybertwin-tag.h"
 #include "cybertwin.h"
 
 #include "ns3/address.h"

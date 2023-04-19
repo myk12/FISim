@@ -7,7 +7,6 @@
 namespace ns3
 {
 NS_LOG_COMPONENT_DEFINE("CybertwinEdgeServer");
-
 NS_OBJECT_ENSURE_REGISTERED(CybertwinEdgeServer);
 
 TypeId
@@ -25,28 +24,27 @@ CybertwinEdgeServer::CybertwinEdgeServer()
     : cybertwinCNRSApp(nullptr),
       cybertwinControllerApp(nullptr)
 {
-    NS_LOG_DEBUG("[CybertwinEdgeServer] create CybertwinEdgeServer.");
 }
 
 CybertwinEdgeServer::~CybertwinEdgeServer()
 {
-    NS_LOG_DEBUG("[CybertwinEdgeServer] destroy CybertwinEdgeServer.");
 }
 
 void
 CybertwinEdgeServer::Setup()
 {
-    NS_LOG_DEBUG("[CybertwinEdgeServer] create CybertwinEdgeServer.");
-
+    NS_LOG_FUNCTION(GetId());
     // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>(upperNodeAddress);
-    this->AddApplication(cybertwinCNRSApp);
-    cybertwinCNRSApp->SetStartTime(Simulator::Now());
+    cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
+    AddApplication(cybertwinCNRSApp);
+    cybertwinCNRSApp->SetStartTime(Seconds(0));
 
     // install Cybertwin Controller application
-    //cybertwinControllerApp = CreateObject<CybertwinController>();
-    //this->AddApplication(cybertwinControllerApp);
-    //cybertwinControllerApp->SetStartTime(Simulator::Now());
+
+    cybertwinControllerApp = CreateObject<CybertwinController>();
+    cybertwinControllerApp->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
+    AddApplication(cybertwinControllerApp);
+    cybertwinControllerApp->SetStartTime(Seconds(0));
 }
 
 Ptr<NameResolutionService>

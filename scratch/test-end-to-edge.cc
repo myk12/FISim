@@ -17,7 +17,7 @@ NS_LOG_COMPONENT_DEFINE("TestEndToEdge");
 
 using namespace ns3;
 
-#define TEST_LOG_LEVEL LOG_LEVEL_DEBUG
+#define TEST_LOG_LEVEL LOG_LEVEL_ALL
 
 int
 main(int argc, char* argv[])

@@ -113,10 +113,11 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
                                    Ptr<const Packet> packet,
                                    uint16_t protocol)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << device->GetIfIndex() << packet->ToString());
+    NS_LOG_FUNCTION(GetNode()->GetId() << packet->ToString());
     CybertwinCreditTag creditTag;
     if (packet->PeekPacketTag(creditTag))
     {
+        // NS_LOG_DEBUG(creditTag.ToString());
         // packet from another cybertwin
         CYBERTWINID_t cuid = creditTag.GetPeer(), src = creditTag.GetCybertwin();
         return m_firewallTable.find(cuid) != m_firewallTable.end() &&
@@ -125,11 +126,12 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
     CybertwinCertTag certTag;
     if (packet->PeekPacketTag(certTag))
     {
+        // NS_LOG_DEBUG(certTag.ToString());
         // certificate from host
         CYBERTWINID_t cuid = certTag.GetCybertwin();
         if (m_firewallTable.find(cuid) == m_firewallTable.end())
         {
-            Ptr<CybertwinFirewall> cybertwinFirewall = Create<CybertwinFirewall>(cuid);
+            Ptr<CybertwinFirewall> cybertwinFirewall = CreateObject<CybertwinFirewall>(cuid);
             cybertwinFirewall->SetStartTime(Seconds(0.0));
             GetNode()->AddApplication(cybertwinFirewall);
             m_firewallTable[cuid] = cybertwinFirewall;
@@ -144,6 +146,7 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
     CybertwinTag idTag;
     if (packet->PeekPacketTag(idTag))
     {
+        // NS_LOG_DEBUG(idTag.ToString());
         // packet from host
         CYBERTWINID_t cuid = idTag.GetCybertwin();
         return m_firewallTable.find(cuid) != m_firewallTable.end() &&
@@ -260,11 +263,10 @@ CybertwinController::ErrorHostClose(Ptr<Socket> socket)
 void
 CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(GetNode()->GetId() << ifs);
     for (auto addr : m_localIpv4AddrList)
     {
         CYBERTWIN_INTERFACE_t interface;
-
         do
         {
             interface = std::make_pair(addr, m_lastAssignedPort++);
@@ -415,6 +417,7 @@ int
 CybertwinFirewall::ForwardToLocal(Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid);
+    return 0;
     // CybertwinCertTag certTag(m_cuid,
     //                          m_credit,
     //                          m_ingressCredit,

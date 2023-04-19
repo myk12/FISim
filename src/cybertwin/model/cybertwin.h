@@ -1,24 +1,24 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
+#include "../helper/cybertwin-node-edgeserver.h"
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
+#include "cybertwin-multipath-controller.h"
+#include "cybertwin-name-resolution-service.h"
 #include "cybertwin-tag.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
 #include "ns3/callback.h"
-#include "ns3/socket.h"
-#include "ns3/ipv4-address.h"
 #include "ns3/internet-module.h"
+#include "ns3/ipv4-address.h"
 #include "ns3/network-module.h"
-#include "cybertwin-common.h"
-#include "cybertwin-multipath-controller.h"
-#include "cybertwin-name-resolution-service.h"
-#include "../helper/cybertwin-node-edgeserver.h"
+#include "ns3/socket.h"
+
+#include <queue>
 #include <string>
 #include <unordered_map>
-#include <queue>
 
 namespace ns3
 {
@@ -82,8 +82,9 @@ class Cybertwin : public Application
 
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
 
-    // Cybretwin multiple interfaces 
+    // Cybretwin multiple interfaces
     CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+    Ptr<CybertwinEdgeServer> m_node;
 
     // Cybertwin Connections
     CybertwinDataTransferServer* m_dtServer;
