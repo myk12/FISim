@@ -38,20 +38,21 @@
 // Network Topology, Cybertwin: v1.0
 //
 //
-#define TOPOLOGY_GRAPH                                                                             \
-    ("          - Cybertwin Network Simulation: version 1 -            \n"                         \
-     "\n"                                                                                          \
-     "                    [core1]                  [core2]             \n"                         \
-     "                       |                        |                \n"                         \
-     "              _________| _______________________|________        \n"                         \
-     "                |            |            |           |          \n"                         \
-     "                |            |            |           |          \n"                         \
-     "             [edge1]       [edge2]     [edge3]      [edge4]      \n"                         \
-     "                |            |            |           |          \n"                         \
-     "             ___|___      ___|___      ___|___     ___|___       \n"                         \
-     "             |     |      |     |      |     |     |     |       \n"                         \
-     "             |     |      |     |      |     |     |     |       \n"                         \
-     "           [h1]   [h2]  [h3]   [h4]  [h5]   [h6]  [h7]   [h8]    \n")
+#define TOPOLOGY_GRAPH \
+    ("                             - Cybertwin Network Simulation: version 1 -                       \n"  \
+     "                                                                                               \n"  \
+     "                            [core1]                                [core2]                     \n"  \
+     "                               |                                      |                        \n"  \
+     "                          [20.1.0.0]                             [20.2.0.0]                 #point to point#   \n"  \
+     "                    ___________|______________________________________|___________             \n"  \
+     "                     |                   |                   |                  |              \n"  \
+     "                     |                   |                   |                  |              \n"  \
+     "                  [edge1]             [edge2]             [edge3]            [edge4]           \n"  \
+     "                     |                   |                   |                  |              \n"  \
+     "             ___[10.1.0.0]___    ___[10.2.0.0]___    ___[10.3.0.0]___   ___[10.4.0.0]___    #CSMA#   \n"  \
+     "              |            |      |            |      |            |     |            |        \n"  \
+     "              |            |      |            |      |            |     |            |        \n"  \
+     "             [h1]         [h2]   [h3]         [h4]   [h5]         [h6]  [h7]         [h8]      \n")
 //
 //
 
@@ -91,8 +92,7 @@ main(int argc, char* argv[])
             Ptr<CybertwinEndHost> endhost = CreateObject<CybertwinEndHost>();
             allNodesContainer.Add(endhost);
         }
-        else if (((EDGE_SERVER1 <= i) && (i <= EDGE_SERVER2)) ||
-                 ((EDGE_SERVER3 <= i) && (i <= EDGE_SERVER4)))
+        else if (EDGE_SERVER1 <= i && i <= EDGE_SERVER4)
         { // create edge server
             Ptr<CybertwinEdgeServer> edgeServer = CreateObject<CybertwinEdgeServer>();
             allNodesContainer.Add(edgeServer);
@@ -141,37 +141,21 @@ main(int argc, char* argv[])
                      "5Mbps",
                      6560);
 
-    // ======= Connect edge routers with neighbors =======
-    // edge router1
+    // ======= Connect core server with edge server =======
+    // core server1
     p2pConnectToNeighbors(allNodesContainer,
-                          EDGE_ROUTER1,
-                          edgeRouter1Neighbors,
-                          edgeRouter1NeighborIPBase,
+                          CORE_SERVER1,
+                          coreServer1Neighbors,
+                          coreServer1NeighborIPBase,
                           "10Mbps",
                           "2ms");
-    // edge router2
+    // core server2
     p2pConnectToNeighbors(allNodesContainer,
-                          EDGE_ROUTER2,
-                          edgeRouter2Neighbors,
-                          edgeRouter2NeighborIPBase,
+                          CORE_SERVER2,
+                          coreServer2Neighbors,
+                          coreServer2NeighborIPBase,
                           "10Mbps",
                           "2ms");
-
-    // ======= Connect core routers with neighbors =======
-    // core router1
-    p2pConnectToNeighbors(allNodesContainer,
-                          CORE_ROUTER1,
-                          coreRouter1Neighbors,
-                          coreRouter1NeighborIPBase,
-                          "20Mbps",
-                          "1ms");
-    // core router2
-    p2pConnectToNeighbors(allNodesContainer,
-                          CORE_ROUTER2,
-                          coreRouter2Neighbors,
-                          coreRouter2NeighborIPBase,
-                          "20Mbps",
-                          "1ms");
 
     allNodesIpv4Addresses = getNodesIpv4List(allNodesContainer);
 
@@ -197,6 +181,12 @@ main(int argc, char* argv[])
     for (int32_t i = 0; i < MAX_NODE_NUM; i++)
     {
         Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(allNodesContainer.Get(i));
+
+        // Set Node IP Address list
+        node->SetAddressList(allNodesIpv4Addresses[i]);
+        NS_LOG_UNCOND("Node " << i << " IP Address number: " << allNodesIpv4Addresses[i].size());
+
+        // Init Cybertwin ID
         uint64_t simCuid;
         if (i < EDGE_SERVER1)
         {

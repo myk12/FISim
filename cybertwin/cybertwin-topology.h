@@ -30,14 +30,14 @@ enum NodeLabel
     END_HOST8, // LAN4
     EDGE_SERVER1,
     EDGE_SERVER2,
-    EDGE_ROUTER1, // Edge cloud1
+    //EDGE_ROUTER1, // Edge cloud1
     EDGE_SERVER3,
     EDGE_SERVER4,
-    EDGE_ROUTER2, // Edge cloud2
+    //EDGE_ROUTER2, // Edge cloud2
     CORE_SERVER1,
     CORE_SERVER2,
-    CORE_ROUTER1,
-    CORE_ROUTER2, // Core cloud
+    //CORE_ROUTER1,
+    //CORE_ROUTER2, // Core cloud
     MAX_NODE_NUM,
 };
 
@@ -53,10 +53,10 @@ enum
 };
 
 const std::vector<std::vector<uint32_t>> endLANNodeIDs = {
-    {END_HOST1, END_HOST2, EDGE_ROUTER1},
-    {END_HOST3, END_HOST4, EDGE_ROUTER1},
-    {END_HOST5, END_HOST6, EDGE_ROUTER2},
-    {END_HOST7, END_HOST8, EDGE_ROUTER2},
+    {END_HOST1, END_HOST2, EDGE_SERVER1},
+    {END_HOST3, END_HOST4, EDGE_SERVER2},
+    {END_HOST5, END_HOST6, EDGE_SERVER3},
+    {END_HOST7, END_HOST8, EDGE_SERVER4},
 };
 
 static std::vector<IPaddrBase> endLANIPBases = {std::make_pair("10.1.0.0", "255.255.255.0"),
@@ -65,59 +65,37 @@ static std::vector<IPaddrBase> endLANIPBases = {std::make_pair("10.1.0.0", "255.
                                                 std::make_pair("10.4.0.0", "255.255.255.0")};
 
 //-------------------------------------------------------------
-//    define edge router1 neighborhoods information           -
+//    define core server1 neighborhoods information           -
 //-------------------------------------------------------------
-const std::vector<uint32_t> edgeRouter1Neighbors = {
+const std::vector<uint32_t> coreServer1Neighbors = {
     EDGE_SERVER1,
     EDGE_SERVER2,
-};
-
-static std::vector<IPaddrBase> edgeRouter1NeighborIPBase = {
-    std::make_pair("20.1.0.0", "255.255.255.0"),
-    std::make_pair("20.2.0.0", "255.255.255.0"),
-};
-
-//-------------------------------------------------------------
-//    define edge router2 neighborhoods information           -
-//-------------------------------------------------------------
-const std::vector<uint32_t> edgeRouter2Neighbors = {
     EDGE_SERVER3,
     EDGE_SERVER4,
 };
 
-static std::vector<IPaddrBase> edgeRouter2NeighborIPBase = {
-    std::make_pair("20.3.0.0", "255.255.0.0"),
-    std::make_pair("20.4.0.0", "255.255.0.0"),
+static std::vector<IPaddrBase> coreServer1NeighborIPBase = {
+    std::make_pair("20.1.1.0", "255.255.255.0"),
+    std::make_pair("20.1.2.0", "255.255.255.0"),
+    std::make_pair("20.1.3.0", "255.255.255.0"),
+    std::make_pair("20.1.4.0", "255.255.255.0"),
 };
 
 //-------------------------------------------------------------
-//    define core router1 neighborhoods information           -
+//    define core server2 neighborhoods information           -
 //-------------------------------------------------------------
-static std::vector<uint32_t> coreRouter1Neighbors = {
-    EDGE_ROUTER1,
-    EDGE_ROUTER2,
-    CORE_SERVER1,
+const std::vector<uint32_t> coreServer2Neighbors = {
+    EDGE_SERVER1,
+    EDGE_SERVER2,
+    EDGE_SERVER3,
+    EDGE_SERVER4,
 };
 
-static std::vector<IPaddrBase> coreRouter1NeighborIPBase = {
-    std::make_pair("30.1.0.0", "255.255.255.0"),
-    std::make_pair("30.3.0.0", "255.255.255.0"),
-    std::make_pair("40.1.0.0", "255.255.255.0"),
-};
-
-//-------------------------------------------------------------
-//    define core router2 neighborhoods information           -
-//-------------------------------------------------------------
-const std::vector<uint32_t> coreRouter2Neighbors = {
-    EDGE_ROUTER1,
-    EDGE_ROUTER2,
-    CORE_SERVER2,
-};
-
-static std::vector<IPaddrBase> coreRouter2NeighborIPBase = {
-    std::make_pair("30.2.0.0", "255.255.255.0"),
-    std::make_pair("30.4.0.0", "255.255.255.0"),
-    std::make_pair("40.2.0.0", "255.255.255.0"),
+static std::vector<IPaddrBase> coreServer2NeighborIPBase = {
+    std::make_pair("20.2.1.0", "255.255.255.0"),
+    std::make_pair("20.2.2.0", "255.255.255.0"),
+    std::make_pair("20.2.3.0", "255.255.255.0"),
+    std::make_pair("20.2.4.0", "255.255.255.0"),
 };
 
 void buildCsmaNetwork(NodeContainer&,

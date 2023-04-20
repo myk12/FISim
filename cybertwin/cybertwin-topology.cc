@@ -7,7 +7,6 @@
 #include "ns3/ipv4-l3-protocol.h"
 #include "ns3/net-device-container.h"
 #include "ns3/v4ping-helper.h"
-
 namespace ns3
 {
 
@@ -45,7 +44,7 @@ buildCsmaNetwork(NodeContainer& allnodes,
     csmaDevices = csma.Install(nodesCon);
 
     // assign ip
-    address.SetBase(addrBase.first.c_str(), addrBase.second.c_str(), "0.0.0.100");
+    address.SetBase(addrBase.first.c_str(), addrBase.second.c_str());
     address.Assign(csmaDevices);
 }
 
