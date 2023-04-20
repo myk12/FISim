@@ -26,3 +26,14 @@ build_lib_example(
                     ${libnetwork}
                     ${libcsma}
 )
+
+build_lib_example(
+    NAME cybertwin-json
+    SOURCE_FILES cybertwin-json.cc
+    LIBRARIES_TO_LINK ${libcybertwin}
+                    ${libpoint-to-point}
+                    ${libapplications}
+                    ${libinternet}
+                    ${libnetwork}
+                    ${libcsma}
+)
