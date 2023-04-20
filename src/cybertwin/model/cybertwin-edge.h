@@ -8,28 +8,39 @@
 
 #include "ns3/address.h"
 #include "ns3/application.h"
+#include "ns3/callback.h"
 #include "ns3/node.h"
 
-// #include <nlohmann/json.hpp>
+#include <nlohmann/json.hpp>
 #include <unordered_map>
-#include <vector>
-// using json = nlohmann::json;
 #include <unordered_set>
+#include <vector>
+
+using json = nlohmann::json;
 
 namespace ns3
 {
 
-class CybertwinAssetManager : public SimpleRefCount<CybertwinAssetManager>
+class CybertwinAsset : public SimpleRefCount<CybertwinAsset>
 {
   public:
-    CybertwinAssetManager();
-    CybertwinAssetManager(CYBERTWINID_t);
+    CybertwinAsset(CYBERTWINID_t cuid = 0);
+
+    void logLogin(CYBERTWINID_t);
+    void logTraffic(uint64_t);
+    void logContact(CYBERTWINID_t);
 
   private:
     CYBERTWINID_t m_cuid;
     uint16_t m_credit;
+    // last 100 login records
     std::vector<CYBERTWINID_t> m_loginRecords;
-    std::vector<std::string> m_loginCities;
+    // last 100 traffic records
+    std::vector<std::pair<uint64_t, uint64_t>> m_trafficPatterns;
+    // last 100 visit records
+    std::vector<std::pair<uint64_t, uint64_t>> m_visitPatterns;
+    // std::unordered_map<CYBERTWINID_t> m_loginRecords;
+    // std::vector<std::string> m_loginCities;
     uint64_t m_avgBytesTransferredPerFlow;
     uint64_t m_maxBytesTransferredPerFlow;
     uint64_t m_avgPeerContactedPerSession;
@@ -96,8 +107,11 @@ class CybertwinFirewall : public Application
 class CybertwinController : public Application
 {
   public:
+    typedef Callback<bool, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&> UpdateCNRS_cb;
+
     static TypeId GetTypeId();
     CybertwinController();
+    CybertwinController(UpdateCNRS_cb);
     ~CybertwinController();
 
   protected:
@@ -123,6 +137,7 @@ class CybertwinController : public Application
     uint16_t LookupCredit(CYBERTWINID_t);
     void UpdateCredit(CYBERTWINID_t, int);
 
+    UpdateCNRS_cb UpdateCNRS;
     void AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t&);
 
     Address m_localAddr;
@@ -132,7 +147,7 @@ class CybertwinController : public Application
     Ptr<Socket> m_socket;
     std::unordered_map<CYBERTWINID_t, Ptr<Cybertwin>> m_cybertwinTable;
     std::unordered_map<CYBERTWINID_t, Ptr<CybertwinFirewall>> m_firewallTable;
-    // std::unordered_map<CYBERTWINID_t, json> m_cybertwinAssetTable;
+    std::unordered_map<CYBERTWINID_t, Ptr<CybertwinAsset>> m_assetTable;
 
     std::unordered_set<uint16_t> m_assignedPorts;
     uint16_t m_lastAssignedPort;

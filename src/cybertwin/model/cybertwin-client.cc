@@ -284,9 +284,10 @@ CybertwinConnClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
     for (uint32_t i = 0; i < appNums; ++i)
     {
         Ptr<Application> curApp = GetNode()->GetApplication(i);
-        if (curApp != this)
+        if (curApp != this && curApp->GetTypeId().IsChildOf(CybertwinClient::GetTypeId()))
         {
-            NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: setting attributes for " << curApp);
+            NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: setting attributes for "
+                                << curApp->GetTypeId());
             curApp->SetAttribute("Socket", PointerValue(socket));
             curApp->SetAttribute("LocalCuid", UintegerValue(m_localCuid));
         }

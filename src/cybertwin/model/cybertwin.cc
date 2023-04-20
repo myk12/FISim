@@ -33,24 +33,16 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
                      const Address& address,
                      CybertwinInitCallback initCallback,
                      CybertwinSendCallback sendCallback,
-                     CybertwinReceiveCallback receiveCallback)
+                     CybertwinReceiveCallback receiveCallback,
+                     CybertwinUpdateCNRSCallback updateCNRSCallback)
     : InitCybertwin(initCallback),
       SendPacket(sendCallback),
       ReceivePacket(receiveCallback),
+      UpdateCNRS(updateCNRSCallback),
       m_cybertwinId(cuid),
       m_address(address),
       m_interfaces(g_interfaces)
 {
-    // init data server
-    m_dtServer = new CybertwinDataTransferServer();
-    m_dtServer->Setup(m_node, m_cybertwinId, m_interfaces);
-    m_dtServer->Listen();
-    m_dtServer->SetNewConnectCreatedCallback(
-        MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
-
-    // report interfaces to CNRS
-    Ptr<NameResolutionService> cnrs = m_node->GetCNRSApp();
-    cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
 }
 
 void
@@ -68,6 +60,17 @@ void
 Cybertwin::StartApplication()
 {
     NS_LOG_FUNCTION(m_cybertwinId);
+
+    // init data server
+    m_dtServer = new CybertwinDataTransferServer();
+    m_dtServer->Setup(GetNode(), m_cybertwinId, m_interfaces);
+    m_dtServer->Listen();
+    m_dtServer->SetNewConnectCreatedCallback(
+        MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
+
+    // report interfaces to CNRS
+    UpdateCNRS(m_cybertwinId, m_interfaces);
+
     m_localSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
     m_localPort = DoSocketBind(m_localSocket, m_address);
     m_localSocket->SetAcceptCallback(MakeCallback(&Cybertwin::LocalConnRequestCallback, this),

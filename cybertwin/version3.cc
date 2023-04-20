@@ -184,8 +184,8 @@ main(int argc, char* argv[])
     //*************************************************************************************************
     NS_LOG_UNCOND(
         "\n\n[2] ************************ Testing Connectivity ****************************\n\n");
-    testNodesConnectivity(allNodesContainer.Get(END_HOST1), allNodesContainer.Get(END_HOST8));
-    testNodesConnectivity(allNodesContainer.Get(END_HOST8), allNodesContainer.Get(END_HOST1));
+    // testNodesConnectivity(allNodesContainer.Get(END_HOST1), allNodesContainer.Get(END_HOST8));
+    // testNodesConnectivity(allNodesContainer.Get(END_HOST8), allNodesContainer.Get(END_HOST1));
 
     //*************************************************************************************************
     //*                           Installing Software *
@@ -198,12 +198,6 @@ main(int argc, char* argv[])
     for (int32_t i = 0; i < MAX_NODE_NUM; i++)
     {
         Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(allNodesContainer.Get(i));
-        // TODO: why are edge_server3,4 null??
-        if (!node)
-        {
-            continue;
-        }
-
         uint64_t simCuid;
         if (i < EDGE_SERVER1)
         {

@@ -41,16 +41,19 @@ CybertwinEdgeServer::Setup()
 
     // install Cybertwin Controller application
 
-    cybertwinControllerApp = CreateObject<CybertwinController>();
+    cybertwinControllerApp =
+        CreateObject<CybertwinController>(MakeCallback(&CybertwinEdgeServer::UpdateCNRS, this));
     cybertwinControllerApp->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
     AddApplication(cybertwinControllerApp);
     cybertwinControllerApp->SetStartTime(Seconds(0));
 }
 
-Ptr<NameResolutionService>
-CybertwinEdgeServer::GetCNRSApp()
+bool
+CybertwinEdgeServer::UpdateCNRS(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& interface)
 {
-    return cybertwinCNRSApp;
+    cybertwinCNRSApp->InsertCybertwinInterfaceName(cuid, interface);
+    // TODO: whether inserted successfully
+    return true;
 }
 
 } // namespace ns3

@@ -41,6 +41,14 @@ CybertwinController::CybertwinController()
     NS_LOG_FUNCTION(this);
 }
 
+CybertwinController::CybertwinController(UpdateCNRS_cb callback)
+    : UpdateCNRS(callback),
+      m_socket(nullptr),
+      m_lastAssignedPort(2000)
+{
+    NS_LOG_FUNCTION(this);
+}
+
 CybertwinController::~CybertwinController()
 {
 }
@@ -204,13 +212,14 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
                 AssignInterfaces(g_interfaces);
 
                 // create new cybertwin
-                Ptr<Cybertwin> cybertwin = Create<Cybertwin>(
+                Ptr<Cybertwin> cybertwin = CreateObject<Cybertwin>(
                     cuid,
                     g_interfaces,
                     m_localAddr,
                     MakeCallback(&CybertwinController::CybertwinInit, this, socket),
                     MakeCallback(&CybertwinController::CybertwinSend, this, cuid),
-                    MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
+                    MakeCallback(&CybertwinController::CybertwinReceive, this, cuid),
+                    UpdateCNRS);
 
                 cybertwin->SetStartTime(Seconds(0.0));
                 GetNode()->AddApplication(cybertwin);
@@ -448,5 +457,32 @@ CybertwinFirewall::ForwardToLocal(Ptr<Socket> socket, Ptr<Packet> packet)
     // return socket->Send(packet);
     return 0;
 }
+
+// CybertwinAsset::CybertwinAsset(CYBERTWINID_t cuid)
+//     : m_cuid(cuid)
+// {
+//     // TODO: read storage
+// }
+
+// void
+// CybertwinAsset::logLogin(CYBERTWINID_t cuid)
+// {
+//     if (m_loginRecords.find(cuid) == m_loginRecords.end())
+//     {
+//         // unknown login user or device
+//         m_loginRecords[cuid] = 0;
+//         m_credit *= 0.95;
+//     }
+//     else if (m_loginRecords[cuid] < 3)
+//     {
+//         m_credit *= 0.99;
+//     }
+//     m_loginRecords[cuid]++;
+// }
+
+// void
+// CybertwinAsset::logTraffic(uint64_t curSize)
+// {
+// }
 
 } // namespace ns3
