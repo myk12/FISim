@@ -67,6 +67,8 @@ class Cybertwin : public Application
 
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
 
+    void RecvLocalPacketCb(Ptr<Packet>, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t);
+
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
     CybertwinReceiveCallback ReceivePacket;

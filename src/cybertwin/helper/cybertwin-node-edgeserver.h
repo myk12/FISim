@@ -24,6 +24,7 @@ class CybertwinEdgeServer : public CybertwinNode
 
     void Setup() override;
     bool UpdateCNRS(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&);
+    Ptr<NameResolutionService> GetCNRSApp();
 
   private:
     Ipv4Address CNRSUpNodeAddress;

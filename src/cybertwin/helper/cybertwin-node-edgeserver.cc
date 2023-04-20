@@ -56,4 +56,10 @@ CybertwinEdgeServer::UpdateCNRS(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& 
     return true;
 }
 
+Ptr<NameResolutionService>
+CybertwinEdgeServer::GetCNRSApp()
+{
+    return cybertwinCNRSApp;
+}
+
 } // namespace ns3

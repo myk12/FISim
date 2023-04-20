@@ -3,6 +3,7 @@
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
+#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {
@@ -267,17 +268,40 @@ Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
     CYBERTWINID_t peerCuid = header.GetPeer();
     // TODO
-    InetSocketAddress addr = InetSocketAddress::ConvertFrom(GlobalRouteTable[peerCuid]);
-    if (m_txBuffer.find(peerCuid) == m_txBuffer.end())
+    // forward packet to peer
+    NS_LOG_UNCOND("Recving from local, forward to peer");
+    Ptr<NameResolutionService> nrs = DynamicCast<CybertwinEdgeServer>(GetNode())->GetCNRSApp();
+    NS_ASSERT_MSG(nrs != nullptr, "NRS is null");
+    nrs->GetCybertwinInterfaceByName(peerCuid, MakeCallback(&Cybertwin::RecvLocalPacketCb, this, packet));
+}
+
+void
+Cybertwin::RecvLocalPacketCb(Ptr<Packet> packet, CYBERTWINID_t peerid, CYBERTWIN_INTERFACE_LIST_t interfaces)
+{
+    NS_LOG_DEBUG("RecvLocalPacketCb");
+    NS_ASSERT_MSG(packet != nullptr, "Packet is null");
+    //NS_ASSERT_MSG(header.GetPeer() == peerid, "Peer ID mismatch");
+    NS_ASSERT_MSG(interfaces.size() != 0, "No interface found");
+    NS_LOG_DEBUG("interface num: " << interfaces.size());
+ 
+    for (int i=0; i<interfaces.size(); i++)
+    {
+        NS_LOG_DEBUG("Interface " << i << ": " << interfaces[i].first << ":" << interfaces[i].second);
+    }
+
+    CYBERTWIN_INTERFACE_t interface = interfaces[0];
+    InetSocketAddress peerAddr(interface.first, interface.second);
+    if (m_txBuffer.find(peerid) == m_txBuffer.end())
     {
         Ptr<Socket> txSocket =
             Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
         DoSocketBind(txSocket, m_address);
-        txSocket->Connect(addr);
+        txSocket->Connect(peerAddr);
         // TODO: Forward only after connected
-        m_txBuffer[peerCuid] = txSocket;
+        m_txBuffer[peerid] = txSocket;
     }
-    SendPacket(peerCuid, m_txBuffer[peerCuid], packet);
+    NS_LOG_DEBUG("Sending packet.");
+    SendPacket(peerid, m_txBuffer[peerid], packet);
 }
 
 void
