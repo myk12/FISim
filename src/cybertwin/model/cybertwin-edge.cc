@@ -367,6 +367,7 @@ CybertwinFirewall::StopApplication()
 uint16_t
 CybertwinFirewall::GetCredit() const
 {
+    NS_LOG_FUNCTION(m_cuid);
     return LookupCredit(m_cuid) + m_user ? LookupCredit(m_user) : 0;
 }
 
@@ -436,7 +437,8 @@ int
 CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer, Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid << peer);
-    CybertwinCreditTag creditTag(m_cuid, GetCredit(), peer);
+    // CybertwinCreditTag creditTag(m_cuid, GetCredit(), peer);
+    CybertwinCreditTag creditTag(m_cuid, 1000, peer);
     packet->AddPacketTag(creditTag);
     return socket->Send(packet);
 }

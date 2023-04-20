@@ -22,7 +22,7 @@ class CybertwinEndHost : public CybertwinNode
 
     void Setup() override;
     void Connect(const CybertwinCertTag&);
-    void SendTo(CYBERTWINID_t, uint32_t size = 9);
+    void SendTo(CYBERTWINID_t, uint32_t size = 0);
 
   private:
     Ptr<CybertwinConnClient> m_connClient;

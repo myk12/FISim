@@ -224,7 +224,7 @@ CybertwinConnClient::RecvFromControllerCallback(Ptr<Socket> socket)
 void
 CybertwinConnClient::Authenticate()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(m_localCuid);
     Ptr<Packet> authPacket = Create<Packet>(0);
     authPacket->AddPacketTag(m_cert);
 
@@ -241,7 +241,7 @@ CybertwinConnClient::Authenticate()
 void
 CybertwinConnClient::ConnectCybertwin()
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_FUNCTION(m_localCuid);
     if (!m_socket)
     {
         m_socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
@@ -276,7 +276,7 @@ CybertwinConnClient::DisconnectCybertwin()
 void
 CybertwinConnClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
 {
-    NS_LOG_FUNCTION(this << socket);
+    NS_LOG_FUNCTION(m_localCuid << socket);
     socket->SetRecvCallback(MakeCallback(&CybertwinConnClient::RecvPacket, this));
     m_socket = socket;
     // Set attributes of other applications
@@ -284,7 +284,7 @@ CybertwinConnClient::CybertwinConnectSucceededCallback(Ptr<Socket> socket)
     for (uint32_t i = 0; i < appNums; ++i)
     {
         Ptr<Application> curApp = GetNode()->GetApplication(i);
-        if (curApp != this && curApp->GetTypeId().IsChildOf(CybertwinClient::GetTypeId()))
+        if (curApp != this && curApp->GetInstanceTypeId().IsChildOf(CybertwinClient::GetTypeId()))
         {
             NS_LOG_DEBUG("--[#" << m_localCuid << "-Conn]: setting attributes for "
                                 << curApp->GetTypeId());
