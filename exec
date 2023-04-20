@@ -1,7 +1,23 @@
 #!/bin/bash
+
+# I don't know why, there are two cases of the executable file
+# So, try each one of them
 exec_name=ns3.37-cybertwin-debug
 exec_name2=ns3.37-cybertwin-default
 exec_dir="./build/cybertwin/cybertwinexec/"
 exec_dir2="./cmake-cache/cybertwin/cybertwinexec/"
-./${exec_dir}${exec_name}
-./${exec_dir2}${exec_name2}
+
+exec_file1=${exec_dir}${exec_name}
+exec_file2=${exec_dir2}${exec_name2}
+
+if [ -f $exec_file1 ]; then
+    echo "exec file 1 found"
+    exec_file=$exec_file1
+elif [ -f $exec_file2 ]; then
+    echo "exec file 2 found"
+    exec_file=$exec_file2
+else
+    echo "exec file not found"
+    exit 1
+fi
+./${exec_file}

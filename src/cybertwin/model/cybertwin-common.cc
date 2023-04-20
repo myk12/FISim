@@ -21,7 +21,10 @@ DoSocketMethod(int (Socket::*Method)(const Address&),
         const Ipv6Address ipv6 = Ipv6Address::ConvertFrom(address);
         const Inet6SocketAddress inet6Socket = Inet6SocketAddress(ipv6, port);
         ret = ((*socket).*Method)(inet6Socket);
+    }else{
+        NS_FATAL_ERROR("Unsupported address type");
     }
+
     if (ret == -1)
     {
         NS_FATAL_ERROR("Failed to execute socket method");

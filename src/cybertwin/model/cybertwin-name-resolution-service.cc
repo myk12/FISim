@@ -25,6 +25,7 @@ NameResolutionService::NameResolutionService()
       databaseName("testdb")
 {
     NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("CNRS: create CNRS.");
 }
 
 NameResolutionService::NameResolutionService(Ipv4Address super)

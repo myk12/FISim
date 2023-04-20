@@ -104,7 +104,8 @@ main(int argc, char* argv[])
         }
         else
         { // create router
-            allNodesContainer.Create(1);
+            Ptr<CybertwinNode> router = CreateObject<CybertwinNode>();
+            allNodesContainer.Add(router);
         }
     }
 

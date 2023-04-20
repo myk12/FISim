@@ -11,6 +11,8 @@
 namespace ns3
 {
 
+#include <vector>
+
 class CybertwinNode : public Node
 {
   public:
@@ -20,9 +22,11 @@ class CybertwinNode : public Node
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const;
 
+    virtual void SetAddressList(std::vector<Ipv4Address> addressList);
     virtual void Setup();
 
   protected:
+    std::vector<Ipv4Address> ipv4AddressList;
     Ipv4Address m_upperNodeAddress; // ip address of default cybertwin controller
     Ipv4Address m_selfNodeAddress;  // ip address of the current node
     CYBERTWINID_t m_cybertwinId;

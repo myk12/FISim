@@ -54,4 +54,9 @@ CybertwinNode::Setup()
     NS_LOG_DEBUG("Setup a CybertwinNode.");
 }
 
+void
+CybertwinNode::SetAddressList(std::vector<Ipv4Address> addressList)
+{
+    ipv4AddressList = addressList;
+}
 } // namespace ns3

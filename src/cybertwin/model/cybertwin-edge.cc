@@ -38,6 +38,7 @@ CybertwinController::CybertwinController()
     : m_socket(nullptr),
       m_lastAssignedPort(2000)
 {
+    NS_LOG_FUNCTION(this);
 }
 
 CybertwinController::~CybertwinController()
@@ -62,6 +63,24 @@ void
 CybertwinController::StartApplication()
 {
     NS_LOG_FUNCTION(GetNode()->GetId());
+
+    NS_LOG_DEBUG("Start CybertwinController application");
+    Ptr<Node> node = GetNode();
+    Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
+    for (uint32_t i = 0; i < ipv4->GetNInterfaces(); i++)
+    {
+        for (uint32_t j = 0; j < ipv4->GetNAddresses(i); j++)
+        {
+            Ipv4InterfaceAddress iaddr = ipv4->GetAddress(i, j);
+            Ipv4Address ipAddr = iaddr.GetLocal();
+            if (ipAddr != Ipv4Address::GetAny() && ipAddr != Ipv4Address::GetLoopback())
+            {
+                m_localIpv4AddrList.push_back(ipAddr);
+                NS_LOG_DEBUG("Add local ip: " << ipAddr);
+            }
+        }
+    }
+
     GetNode()->SetCybertwinFirewall(MakeCallback(&CybertwinController::InspectPacket, this));
     if (!m_socket)
     {
