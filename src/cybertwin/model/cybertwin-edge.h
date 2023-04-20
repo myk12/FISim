@@ -26,9 +26,7 @@ class CybertwinAsset : public SimpleRefCount<CybertwinAsset>
   public:
     CybertwinAsset(CYBERTWINID_t cuid = 0);
 
-    void logLogin(CYBERTWINID_t);
-    void logTraffic(uint64_t);
-    void logContact(CYBERTWINID_t);
+    uint16_t GetCredit();
 
   private:
     CYBERTWINID_t m_cuid;
@@ -54,18 +52,13 @@ class Cybertwin;
 class CybertwinFirewall : public Application
 {
   public:
-    typedef Callback<uint16_t, CYBERTWINID_t> LookupCredit_cb;
-    typedef Callback<void, CYBERTWINID_t, int> UpdateCredit_cb;
-
     static TypeId GetTypeId();
-    CybertwinFirewall(CYBERTWINID_t cuid = 0,
-                      LookupCredit_cb lookup = MakeNullCallback<uint16_t, CYBERTWINID_t>(),
-                      UpdateCredit_cb update = MakeNullCallback<void, CYBERTWINID_t, int>());
+    CybertwinFirewall(CYBERTWINID_t cuid = 0);
     ~CybertwinFirewall();
 
     bool ReceiveFromGlobal(CYBERTWINID_t, const CybertwinCreditTag&);
     bool ReceiveFromLocal(Ptr<const Packet>);
-    bool ReceiveCertificate(const CybertwinCertTag&);
+    bool Initialize(const CybertwinCertTag&);
 
     int ForwardToGlobal(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
     int ForwardToLocal(Ptr<Socket>, Ptr<Packet>);
@@ -85,8 +78,8 @@ class CybertwinFirewall : public Application
     void StartApplication() override;
     void StopApplication() override;
 
-    LookupCredit_cb LookupCredit;
-    UpdateCredit_cb UpdateCredit;
+    Ptr<CybertwinAsset> m_asset;
+    Ptr<CybertwinAsset> m_userAsset;
     uint16_t GetCredit() const;
 
     FirewallState_t m_state;
@@ -107,12 +100,11 @@ class CybertwinFirewall : public Application
 class CybertwinController : public Application
 {
   public:
-    typedef Callback<bool, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&> UpdateCNRS_cb;
-
     static TypeId GetTypeId();
     CybertwinController();
-    CybertwinController(UpdateCNRS_cb);
     ~CybertwinController();
+
+    const Ptr<CybertwinAsset> GetAsset(CYBERTWINID_t);
 
   protected:
     void DoDispose() override;
@@ -137,7 +129,6 @@ class CybertwinController : public Application
     uint16_t LookupCredit(CYBERTWINID_t);
     void UpdateCredit(CYBERTWINID_t, int);
 
-    UpdateCNRS_cb UpdateCNRS;
     void AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t&);
 
     Address m_localAddr;

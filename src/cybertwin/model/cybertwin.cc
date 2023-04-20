@@ -1,9 +1,10 @@
 #include "cybertwin.h"
 
+#include "cybertwin-name-resolution-service.h"
+
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
-#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {
@@ -34,16 +35,15 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
                      const Address& address,
                      CybertwinInitCallback initCallback,
                      CybertwinSendCallback sendCallback,
-                     CybertwinReceiveCallback receiveCallback,
-                     CybertwinUpdateCNRSCallback updateCNRSCallback)
+                     CybertwinReceiveCallback receiveCallback)
     : InitCybertwin(initCallback),
       SendPacket(sendCallback),
       ReceivePacket(receiveCallback),
-      UpdateCNRS(updateCNRSCallback),
       m_cybertwinId(cuid),
       m_address(address),
       m_interfaces(g_interfaces)
 {
+    NS_LOG_FUNCTION(cuid);
 }
 
 void
@@ -61,6 +61,7 @@ void
 Cybertwin::StartApplication()
 {
     NS_LOG_FUNCTION(m_cybertwinId);
+    m_cnrs = GetNode()->GetObject<CybertwinEdgeServer>()->GetCNRSApp();
 
     // init data server
     m_dtServer = new CybertwinDataTransferServer();
@@ -70,7 +71,7 @@ Cybertwin::StartApplication()
         MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
 
     // report interfaces to CNRS
-    UpdateCNRS(m_cybertwinId, m_interfaces);
+    m_cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
 
     m_localSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
     m_localPort = DoSocketBind(m_localSocket, m_address);
@@ -92,7 +93,8 @@ Cybertwin::StartApplication()
                            << "]: starts listening locally at port " << m_localPort
                            << " and globally at port " << m_globalPort);
     // Temporary, simulate the initialization process
-    Simulator::Schedule(Seconds(3.), &Cybertwin::Initialize, this);
+    Simulator::ScheduleNow(&Cybertwin::Initialize, this);
+    // Simulator::Schedule(Seconds(3.), &Cybertwin::Initialize, this);
 }
 
 void
@@ -147,7 +149,7 @@ Cybertwin::Initialize()
             Inet6SocketAddress(Ipv6Address::ConvertFrom(m_address), m_globalPort);
     }
 
-    InitCybertwin(rspHeader);
+    Simulator::ScheduleNow(&Cybertwin::InitCybertwin, this, rspHeader);
 }
 
 bool
@@ -272,21 +274,25 @@ Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
     NS_LOG_UNCOND("Recving from local, forward to peer");
     Ptr<NameResolutionService> nrs = DynamicCast<CybertwinEdgeServer>(GetNode())->GetCNRSApp();
     NS_ASSERT_MSG(nrs != nullptr, "NRS is null");
-    nrs->GetCybertwinInterfaceByName(peerCuid, MakeCallback(&Cybertwin::RecvLocalPacketCb, this, packet));
+    nrs->GetCybertwinInterfaceByName(peerCuid,
+                                     MakeCallback(&Cybertwin::RecvLocalPacketCb, this, packet));
 }
 
 void
-Cybertwin::RecvLocalPacketCb(Ptr<Packet> packet, CYBERTWINID_t peerid, CYBERTWIN_INTERFACE_LIST_t interfaces)
+Cybertwin::RecvLocalPacketCb(Ptr<Packet> packet,
+                             CYBERTWINID_t peerid,
+                             CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("RecvLocalPacketCb");
     NS_ASSERT_MSG(packet != nullptr, "Packet is null");
-    //NS_ASSERT_MSG(header.GetPeer() == peerid, "Peer ID mismatch");
+    // NS_ASSERT_MSG(header.GetPeer() == peerid, "Peer ID mismatch");
     NS_ASSERT_MSG(interfaces.size() != 0, "No interface found");
     NS_LOG_DEBUG("interface num: " << interfaces.size());
- 
-    for (int i=0; i<interfaces.size(); i++)
+
+    for (int i = 0; i < interfaces.size(); i++)
     {
-        NS_LOG_DEBUG("Interface " << i << ": " << interfaces[i].first << ":" << interfaces[i].second);
+        NS_LOG_DEBUG("Interface " << i << ": " << interfaces[i].first << ":"
+                                  << interfaces[i].second);
     }
 
     CYBERTWIN_INTERFACE_t interface = interfaces[0];
@@ -309,6 +315,16 @@ Cybertwin::RecvGlobalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cybertwinId << packet->ToString());
     // TODO
+}
+
+void
+Cybertwin::ForwardLocalPacket(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& ifs)
+{
+    NS_LOG_FUNCTION(cuid);
+    for (auto interface : ifs)
+    {
+        NS_LOG_DEBUG(interface.first << interface.second);
+    }
 }
 
 } // namespace ns3

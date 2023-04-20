@@ -8,10 +8,10 @@
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 
+#include <vector>
+
 namespace ns3
 {
-
-#include <vector>
 
 class CybertwinNode : public Node
 {
@@ -20,7 +20,7 @@ class CybertwinNode : public Node
     ~CybertwinNode();
 
     static TypeId GetTypeId();
-    TypeId GetInstanceTypeId() const;
+    virtual TypeId GetInstanceTypeId() const;
 
     virtual void SetAddressList(std::vector<Ipv4Address> addressList);
     virtual void Setup();

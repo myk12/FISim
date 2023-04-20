@@ -13,16 +13,22 @@ TypeId
 CybertwinEdgeServer::GetTypeId()
 {
     static TypeId tid = TypeId("ns3::CybertwinEdgeServer")
-                            .SetParent<Node>()
+                            .SetParent<CybertwinNode>()
                             .SetGroupName("Cybertwin")
                             .AddConstructor<CybertwinEdgeServer>();
 
     return tid;
 }
 
+TypeId
+CybertwinEdgeServer::GetInstanceTypeId() const
+{
+    return GetTypeId();
+}
+
 CybertwinEdgeServer::CybertwinEdgeServer()
-    : cybertwinCNRSApp(nullptr),
-      cybertwinControllerApp(nullptr)
+    : m_cybertwinCNRSApp(nullptr),
+      m_cybertwinControllerApp(nullptr)
 {
 }
 
@@ -35,31 +41,27 @@ CybertwinEdgeServer::Setup()
 {
     NS_LOG_FUNCTION(GetId());
     // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
-    AddApplication(cybertwinCNRSApp);
-    cybertwinCNRSApp->SetStartTime(Seconds(0));
+    m_cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
+    AddApplication(m_cybertwinCNRSApp);
+    m_cybertwinCNRSApp->SetStartTime(Seconds(0.0));
 
     // install Cybertwin Controller application
-
-    cybertwinControllerApp =
-        CreateObject<CybertwinController>(MakeCallback(&CybertwinEdgeServer::UpdateCNRS, this));
-    cybertwinControllerApp->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
-    AddApplication(cybertwinControllerApp);
-    cybertwinControllerApp->SetStartTime(Seconds(0));
-}
-
-bool
-CybertwinEdgeServer::UpdateCNRS(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& interface)
-{
-    cybertwinCNRSApp->InsertCybertwinInterfaceName(cuid, interface);
-    // TODO: whether inserted successfully
-    return true;
+    m_cybertwinControllerApp = CreateObject<CybertwinController>();
+    m_cybertwinControllerApp->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
+    AddApplication(m_cybertwinControllerApp);
+    m_cybertwinControllerApp->SetStartTime(Seconds(0.0));
 }
 
 Ptr<NameResolutionService>
 CybertwinEdgeServer::GetCNRSApp()
 {
-    return cybertwinCNRSApp;
+    return m_cybertwinCNRSApp;
+}
+
+Ptr<CybertwinController>
+CybertwinEdgeServer::GetCtrlApp()
+{
+    return m_cybertwinControllerApp;
 }
 
 } // namespace ns3

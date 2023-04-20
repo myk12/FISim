@@ -41,14 +41,6 @@ CybertwinController::CybertwinController()
     NS_LOG_FUNCTION(this);
 }
 
-CybertwinController::CybertwinController(UpdateCNRS_cb callback)
-    : UpdateCNRS(callback),
-      m_socket(nullptr),
-      m_lastAssignedPort(2000)
-{
-    NS_LOG_FUNCTION(this);
-}
-
 CybertwinController::~CybertwinController()
 {
 }
@@ -73,8 +65,7 @@ CybertwinController::StartApplication()
     NS_LOG_FUNCTION(GetNode()->GetId());
 
     NS_LOG_DEBUG("Start CybertwinController application");
-    Ptr<Node> node = GetNode();
-    Ptr<Ipv4> ipv4 = node->GetObject<Ipv4>();
+    Ptr<Ipv4> ipv4 = GetNode()->GetObject<Ipv4>();
     for (uint32_t i = 0; i < ipv4->GetNInterfaces(); i++)
     {
         for (uint32_t j = 0; j < ipv4->GetNAddresses(i); j++)
@@ -153,17 +144,18 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
     CybertwinCertTag certTag;
     if (packet->PeekPacketTag(certTag))
     {
-        // NS_LOG_DEBUG(certTag.ToString());
+        NS_LOG_DEBUG(certTag.ToString());
         // certificate from host
         CYBERTWINID_t cuid = certTag.GetCybertwin();
         if (m_firewallTable.find(cuid) == m_firewallTable.end())
         {
             Ptr<CybertwinFirewall> cybertwinFirewall = CreateObject<CybertwinFirewall>(cuid);
-            cybertwinFirewall->SetStartTime(Seconds(0.0));
             GetNode()->AddApplication(cybertwinFirewall);
             m_firewallTable[cuid] = cybertwinFirewall;
+            // Not started right away
+            cybertwinFirewall->SetStartTime(Seconds(0.0));
         }
-        if (m_firewallTable[cuid]->ReceiveCertificate(certTag))
+        if (m_firewallTable[cuid]->Initialize(certTag))
         {
             return true;
         }
@@ -218,8 +210,7 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
                     m_localAddr,
                     MakeCallback(&CybertwinController::CybertwinInit, this, socket),
                     MakeCallback(&CybertwinController::CybertwinSend, this, cuid),
-                    MakeCallback(&CybertwinController::CybertwinReceive, this, cuid),
-                    UpdateCNRS);
+                    MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
 
                 cybertwin->SetStartTime(Seconds(0.0));
                 GetNode()->AddApplication(cybertwin);
@@ -271,6 +262,16 @@ CybertwinController::CybertwinReceive(CYBERTWINID_t cuid, Ptr<Socket> socket, Pt
     return -1;
 }
 
+const Ptr<CybertwinAsset>
+CybertwinController::GetAsset(CYBERTWINID_t cuid)
+{
+    if (!cuid || m_assetTable.find(cuid) == m_assetTable.end())
+    {
+        return nullptr;
+    }
+    return m_assetTable[cuid];
+}
+
 void
 CybertwinController::NormalHostClose(Ptr<Socket> socket)
 {
@@ -313,12 +314,8 @@ CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
     }
 }
 
-CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid,
-                                     LookupCredit_cb lookupCb,
-                                     UpdateCredit_cb updateCb)
-    : LookupCredit(lookupCb),
-      UpdateCredit(updateCb),
-      m_state(NOT_STARTED),
+CybertwinFirewall::CybertwinFirewall(CYBERTWINID_t cuid)
+    : m_state(NOT_STARTED),
       m_ingressCredit(0),
       m_cuid(cuid),
       m_burstBytes(0),
@@ -357,6 +354,7 @@ CybertwinFirewall::DoDispose()
 void
 CybertwinFirewall::StartApplication()
 {
+    NS_LOG_FUNCTION(this);
 }
 
 void
@@ -364,12 +362,12 @@ CybertwinFirewall::StopApplication()
 {
 }
 
-uint16_t
-CybertwinFirewall::GetCredit() const
-{
-    NS_LOG_FUNCTION(m_cuid);
-    return LookupCredit(m_cuid) + m_user ? LookupCredit(m_user) : 0;
-}
+// uint16_t
+// CybertwinFirewall::GetCredit() const
+// {
+//     NS_LOG_FUNCTION(m_cuid);
+//     return m_asset->GetCredit() + m_user ? m_userAsset->GetCredit() : 0;
+// }
 
 bool
 CybertwinFirewall::ReceiveFromGlobal(CYBERTWINID_t src, const CybertwinCreditTag& creditTag)
@@ -417,19 +415,19 @@ CybertwinFirewall::ReceiveFromLocal(Ptr<const Packet> packet)
 }
 
 bool
-CybertwinFirewall::ReceiveCertificate(const CybertwinCertTag& cert)
+CybertwinFirewall::Initialize(const CybertwinCertTag& cert)
 {
+    NS_LOG_FUNCTION(GetNode()->GetId());
+    m_asset = GetNode()->GetObject<CybertwinEdgeServer>()->GetCtrlApp()->GetAsset(m_cuid);
     if (cert.GetIsValid() && cert.GetCybertwin() == m_cuid)
     {
         // would return 0 if there's no user anyway
         m_user = cert.GetUser();
+        m_userAsset = GetNode()->GetObject<CybertwinEdgeServer>()->GetCtrlApp()->GetAsset(m_user);
         m_ingressCredit = std::max(m_ingressCredit, cert.GetIngressCredit());
         m_state = PERMITTED;
         return true;
     }
-    // failed to authenticate, deduct 10% of device's and user's credit score
-    UpdateCredit(m_cuid, -10);
-    UpdateCredit(m_user, -10);
     return false;
 }
 

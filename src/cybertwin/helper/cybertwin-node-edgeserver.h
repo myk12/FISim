@@ -12,6 +12,7 @@
 
 namespace ns3
 {
+
 class CybertwinController;
 
 class CybertwinEdgeServer : public CybertwinNode
@@ -21,16 +22,17 @@ class CybertwinEdgeServer : public CybertwinNode
     ~CybertwinEdgeServer();
 
     static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
     void Setup() override;
-    bool UpdateCNRS(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&);
     Ptr<NameResolutionService> GetCNRSApp();
+    Ptr<CybertwinController> GetCtrlApp();
 
   private:
-    Ipv4Address CNRSUpNodeAddress;
-    Ptr<NameResolutionService> cybertwinCNRSApp;
-    Ptr<CybertwinController> cybertwinControllerApp;
+    Ptr<NameResolutionService> m_cybertwinCNRSApp;
+    Ptr<CybertwinController> m_cybertwinControllerApp;
 };
+
 } // namespace ns3
 
 #endif
