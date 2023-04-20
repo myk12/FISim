@@ -193,7 +193,7 @@ void
 MultipathDataTransferApp::RecvHandler(MultipathConnection* conn)
 {
     Ptr<Packet> pack = nullptr;
-    while (pack = conn->Recv())
+    while ((pack = conn->Recv()))
     {
         NS_LOG_UNCOND("Recv packet.");
     }

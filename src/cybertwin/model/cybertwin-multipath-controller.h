@@ -79,7 +79,7 @@ private:
     std::unordered_map<MP_CONN_ID_t, MultipathConnection*> m_connectionIDs;
     
     // test number
-    uint64_t m_testNum;
+    //uint64_t m_testNum;
     uint64_t m_rxBytes; // number of Sent KB
 };
 
