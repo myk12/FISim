@@ -152,16 +152,6 @@ private:
 //************************************************************************
 //*                             CNRS Header                              *
 //************************************************************************
-
-enum CNRSMethod {
-  CNRS_INSERT = 1,
-  CNRS_INSERT_OK,
-  CNRS_INSERT_FAIL,
-  CNRS_QUERY,
-  CNRS_QUERY_OK,
-  CNRS_QUERY_FAIL
-};
-
 class CNRSHeader : public Header 
 {
 public:
@@ -176,7 +166,7 @@ public:
   virtual void Print(std::ostream& os) const;
 
   uint8_t GetMethod() const;
-  void SetMethod(CNRSMethod method);
+  void SetMethod(CNRS_METHOD method);
 
   QUERY_ID_t GetQueryId() const;
   void SetQueryId(QUERY_ID_t queryId);

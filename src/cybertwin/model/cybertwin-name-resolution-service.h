@@ -10,9 +10,9 @@
 #include <unordered_map>
 #include <unordered_set>
 
-typedef std::pair<Ptr<Socket>, Address> PeerInfo_t;
 namespace ns3
 {
+typedef std::pair<Ptr<Socket>, Address> PeerInfo_t;
 class NameResolutionService : public Application
 {
   public:

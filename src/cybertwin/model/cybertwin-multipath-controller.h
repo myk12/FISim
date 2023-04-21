@@ -13,6 +13,10 @@
 #include <vector>
 #include <queue>
 
+#define CYBERTWIN_MDTP_LOG_ENABLE (1)
+
+#define MULTIPATH_MAXSENT_PACKET_ONCE (100)
+
 namespace ns3
 {
 
@@ -78,10 +82,13 @@ private:
 //*****************************************************************************
 //*                     Multipath Connection                                  *
 //*****************************************************************************
-class MultipathConnection
+class MultipathConnection: public Object
 {
     friend class Cybertwin;
 public:
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
+
     MultipathConnection();
     MultipathConnection(SinglePath* path);
 
@@ -139,6 +146,7 @@ public:
 
 private:
     void OnCybertwinInterfaceResolved(CYBERTWINID_t , CYBERTWIN_INTERFACE_LIST_t ifs);
+    void ConnectionReport(bool send);
 
     MP_CONN_ID_t m_connID;
     MP_CONN_STATE m_connState;
@@ -175,15 +183,27 @@ private:
     Callback<void, MultipathConnection*> m_connectFailedCallback;
     Callback<void, MultipathConnection*> m_recvCallback;
     Callback<void, MultipathConnection*> m_closeCallback;
+
+    //log information
+    std::vector<Time> m_pathConnectTime;
+    uint64_t m_txTotalBytes; // number of Sent Bytes
+    uint64_t m_rxTotalBytes; // number of Received Bytes
+    Time m_sendReportInterval;
+    Callback<void, MpSendReport_s> m_sendReportCallback;
+    Time m_recvReportInterval;
+    Callback<void, MpRecvReport_s> m_recvReportCallback;
 };
 
 //*****************************************************************************
 //*                              Single Path                                  *
 //*****************************************************************************
-class SinglePath
+class SinglePath: public Object
 {
 public:
     friend class MultipathConnection;
+
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
 
     enum PathStatus
     {
@@ -191,9 +211,7 @@ public:
         SINGLE_PATH_READY,
         SINGLE_PATH_LISTEN,
         SINGLE_PATH_BUILD_SENT,
-        SINGLE_PATH_BUILD_RCVD,
         SINGLE_PATH_JOIN_SENT,
-        SINGLE_PATH_JOIN_RCVD,
         SINGLE_PATH_CONNECTED,
         SINGLE_PATH_CLOSED,
         SINGLE_PATH_ERROR
@@ -228,7 +246,6 @@ public:
     void ProcessBuildSent();
     void ProcessListen();
     void ProcessJoinSent();
-    void ProcessJoinRcvd();
     void ProcessConnected();
     void ProcessClosed();
     void ProcessError();
@@ -279,6 +296,12 @@ private:
     // test data transfer
     std::queue<Ptr<Packet>> m_rxBuffer;
     Callback<void, SinglePath*> m_recvCallback;
+
+    // log information
+    Time m_pathCreatTime;
+    Time m_joinConnTime;
+    uint64_t m_txTotalBytes; //Bytes 
+    uint64_t m_rxTotalBytes; //Bytes
 };
 
 } // namespace ns3

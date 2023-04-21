@@ -11,7 +11,8 @@
 #include <unordered_map>
 #include <utility>
 
-using namespace ns3;
+namespace ns3
+{
 
 #define TX_MAX_NUM (128)
 #define DEFAULT_PAYLOAD_LEN (128)
@@ -42,6 +43,27 @@ typedef std::vector<CYBERTWIN_INTERFACE_t> CYBERTWIN_INTERFACE_LIST_t;
 
 //static std::unordered_map<CYBERTWINID_t, ns3::Address> GlobalRouteTable;
 
+typedef struct
+{
+    CYBERTWINID_t local;
+    CYBERTWINID_t peer;
+    MP_CONN_ID_t connid;
+}MpConnId_s;
+
+typedef struct
+{
+    MpConnId_s conn;
+    std::vector<std::pair<MP_PATH_ID_t, uint64_t>> pathTxBytes;
+    uint64_t connTxBytes;
+}MpSendReport_s;
+
+typedef struct
+{
+    MpConnId_s conn;
+    std::vector<std::pair<MP_PATH_ID_t, uint64_t>> pathRxBytes;
+    uint64_t connRxBytes;
+}MpRecvReport_s;
+
 enum CNRS_METHOD
 {
     CNRS_QUERY,
@@ -51,9 +73,6 @@ enum CNRS_METHOD
     CNRS_INSERT_OK,
     CNRS_INSERT_FAIL
 };
-
-namespace ns3
-{
 
 struct AddressHash
 {

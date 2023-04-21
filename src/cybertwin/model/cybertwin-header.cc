@@ -491,7 +491,7 @@ CNRSHeader::Print(std::ostream& os) const
 }
 
 void
-CNRSHeader::SetMethod(CNRSMethod method)
+CNRSHeader::SetMethod(CNRS_METHOD method)
 {
     m_method = method;
 }

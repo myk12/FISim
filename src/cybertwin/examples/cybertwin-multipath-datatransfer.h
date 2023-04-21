@@ -8,6 +8,8 @@
 
 #include "../model/cybertwin-multipath-controller.h"
 
+namespace ns3
+{
 
 class MultipathDataTransferApp: public Application
 {
@@ -44,3 +46,5 @@ private:
     Ptr<UniformRandomVariable> rand;
     CybertwinDataTransferServer* m_dataServer;
 };
+
+} // namespace ns3

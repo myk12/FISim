@@ -15,7 +15,6 @@ using namespace ns3;
 NS_LOG_COMPONENT_DEFINE("CybertwinMultipathDataTransferExample");
 
 #define CYBERTWIN_MULTIPATH_PORT (45670)
-class MultipathDataTransferApp;
 
 int
 main(int argc, char* argv[])
@@ -150,6 +149,9 @@ main(int argc, char* argv[])
     return 0;
 }
 
+
+namespace ns3
+{
 TypeId
 MultipathDataTransferApp::GetTypeId()
 {
@@ -286,3 +288,4 @@ MultipathDataTransferApp::SetLocalInterface(CYBERTWINID_t id, CYBERTWIN_INTERFAC
     m_localIfs = ifs;
 }
 
+} // namespace ns3
