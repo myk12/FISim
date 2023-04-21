@@ -254,7 +254,6 @@ MultipathDataTransferApp::test_client()
 {
     MultipathConnection* conn_client;
     conn_client = new MultipathConnection();
-    conn_client->InsertCNRSItem(m_remoteCyberID, m_remoteIfs);
     conn_client->Setup(GetNode(), m_localCyberID);
     conn_client->Connect(m_remoteCyberID);
 

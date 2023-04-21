@@ -13,19 +13,11 @@
 #include <vector>
 #include <queue>
 
-using namespace ns3;
-
-struct DataItem
+namespace ns3
 {
-    MpDataSeqNum seqStart;
-    Ptr<Packet> packet;
-    uint32_t length;
-};
 
 class SinglePath;
 class MultipathConnection;
-class CybertwinDataTransferServer;
-
 
 //*****************************************************************************
 //*                    Cybertwin Data Transfer Server                         *
@@ -86,18 +78,9 @@ private:
 //*****************************************************************************
 //*                     Multipath Connection                                  *
 //*****************************************************************************
-class MpRxBuffer
-{
-public:
-    MpRxBuffer();
-    int32_t AddItem(DataItem *item);
-    MpDataSeqNum exceptSeqNum;
-    std::queue<Ptr<Packet>> rxQueue;
-    uint64_t size;
-};
-
 class MultipathConnection
 {
+    friend class Cybertwin;
 public:
     MultipathConnection();
     MultipathConnection(SinglePath* path);
@@ -154,13 +137,9 @@ public:
     void ConnectOtherPath();
     void PathJoinResult(SinglePath* path, bool success);
 
-    void InsertCNRSItem(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs);
-    //
-    //MultipathConnection* GetConnFromLocalKey(MP_CONN_KEY_t key);
-
-
-
 private:
+    void OnCybertwinInterfaceResolved(CYBERTWINID_t , CYBERTWIN_INTERFACE_LIST_t ifs);
+
     MP_CONN_ID_t m_connID;
     MP_CONN_STATE m_connState;
     Ptr<Node> m_node;
@@ -190,7 +169,6 @@ private:
     std::queue<SinglePath*> m_rawFailPath;
 
     Ptr<UniformRandomVariable> rand;
-    std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> CNRSCache;
 
     //callback
     Callback<void, MultipathConnection*> m_connectSucceedCallback;
@@ -302,5 +280,7 @@ private:
     std::queue<Ptr<Packet>> m_rxBuffer;
     Callback<void, SinglePath*> m_recvCallback;
 };
+
+} // namespace ns3
 
 #endif

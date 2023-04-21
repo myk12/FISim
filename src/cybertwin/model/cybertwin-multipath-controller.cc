@@ -6,6 +6,8 @@
 #include "ns3/core-module.h"
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
+#include "cybertwin-name-resolution-service.h"
+#include "ns3/cybertwin-node-edgeserver.h"
 
 using namespace ns3;
 
@@ -98,7 +100,7 @@ CybertwinDataTransferServer::PathCreatedCallback(Ptr<Socket> sock, const Address
     NS_LOG_FUNCTION(this << sock << addr);
 
     // create new SinglePath
-    NS_LOG_INFO("Server born new path.");
+    NS_LOG_DEBUG("Server born new path.");
     SinglePath* path = new SinglePath();
     path->SetSocket(sock);
     path->SetServer(this);
@@ -131,7 +133,7 @@ CybertwinDataTransferServer::GenerateKey()
 void
 CybertwinDataTransferServer::NewConnectionBuilt(SinglePath* path)
 {
-    NS_LOG_INFO("new connection built.");
+    NS_LOG_DEBUG("new connection built.");
     NS_ASSERT_MSG(path, "path is null.");
 
     // create new connection with path
@@ -146,7 +148,7 @@ CybertwinDataTransferServer::NewConnectionBuilt(SinglePath* path)
     path->SetConnection(new_conn);
 
     // inform application
-    NS_LOG_INFO("inform application new connection created.");
+    NS_LOG_DEBUG("inform application new connection created.");
     if (!m_notifyNewConnection.IsNull())
     {
         m_notifyNewConnection(new_conn);
@@ -156,7 +158,7 @@ CybertwinDataTransferServer::NewConnectionBuilt(SinglePath* path)
 bool
 CybertwinDataTransferServer::ValidConnectionID(MP_CONN_ID_t connid)
 {
-    NS_LOG_INFO("Vaildating the connectionID");
+    NS_LOG_DEBUG("Vaildating the connectionID");
     return m_connectionIDs.find(connid) != m_connectionIDs.end();
 }
 
@@ -167,7 +169,7 @@ CybertwinDataTransferServer::ValidConnectionID(MP_CONN_ID_t connid)
 void
 CybertwinDataTransferServer::NewPathJoinConnection(SinglePath* path)
 {
-    NS_LOG_INFO("new path join connection.");
+    NS_LOG_DEBUG("new path join connection.");
     NS_ASSERT_MSG(path, "path is null.");
 
     MP_CONN_ID_t connid = path->GetConnectionID();
@@ -193,7 +195,7 @@ CybertwinDataTransferServer::SetNewConnectCreatedCallback(
 void
 CybertwinDataTransferServer::DtServerBulkSend(MultipathConnection* conn)
 {
-    NS_LOG_INFO("Server bulk send.");
+    NS_LOG_DEBUG("Server bulk send.");
     NS_ASSERT_MSG(conn, "conn is null.");
 
     if (m_rxBytes < 100 * 1024 * 1024) // 100GB
@@ -208,29 +210,6 @@ CybertwinDataTransferServer::DtServerBulkSend(MultipathConnection* conn)
                             this,
                             conn);
     }
-}
-
-//*****************************************************************************
-//*                     Multipath Reciving Buffer                             *
-//*****************************************************************************
-MpRxBuffer::MpRxBuffer()
-    : exceptSeqNum(0),
-      size(0)
-{
-}
-
-int32_t
-MpRxBuffer::AddItem(DataItem* item)
-{
-    NS_ASSERT(item);
-    NS_ASSERT(item->seqStart == exceptSeqNum);
-
-    // enqueue data
-    rxQueue.push(item->packet);
-    // renew seqnum
-    exceptSeqNum += item->length;
-    size += item->length;
-    return 0;
 }
 
 //*****************************************************************************
@@ -276,7 +255,7 @@ MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid)
     }
     do
     {
-        NS_LOG_INFO("gen rand val.");
+        NS_LOG_DEBUG("gen rand val.");
         m_localKey = (MP_CONN_KEY_t)(rand->GetValue() * 10000);
     } while (m_localKey == 0);
 
@@ -286,33 +265,36 @@ MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid)
 void
 MultipathConnection::Connect(CYBERTWINID_t targetID)
 {
-    NS_LOG_INFO("Connceting to remote Cybertwin : " << targetID);
+    NS_LOG_DEBUG("Connceting to remote Cybertwin : " << targetID);
     m_peerCyberID = targetID;
     // resolve the cyberID
-    if (CNRSCache.find(targetID) != CNRSCache.end())
-    {
-        CYBERTWIN_INTERFACE_LIST_t interfaces = CNRSCache[targetID];
-        m_pathNum = interfaces.size();
-        NS_LOG_INFO("Cybertwin " << targetID << " contain " << m_pathNum << " interfaces.");
-        for (int32_t i = 0; i < m_pathNum; i++)
-        {
-            NS_LOG_INFO("Connecting No." << i << " interface.");
-            SinglePath* path = new SinglePath();
-            Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-            path->SetSocket(sock);
-            path->SetRemoteInteface(interfaces[i]);
-            path->SetLocalKey(m_localKey);
-            path->SetLocalCybertwinID(m_localCyberID);
-            path->SetConnection(this);
+    NS_ASSERT_MSG(m_node, "Connection related with node is not initialized.");
+    Ptr<NameResolutionService> cnrs = DynamicCast<CybertwinEdgeServer>(m_node)->GetCNRSApp();
+    NS_ASSERT_MSG(cnrs, "CNRS is null.");
+    cnrs->GetCybertwinInterfaceByName(
+        targetID,
+        MakeCallback(&MultipathConnection::OnCybertwinInterfaceResolved, this));
+}
 
-            path->PathConnect();
-        }
-    }
-    else
+void
+MultipathConnection::OnCybertwinInterfaceResolved(CYBERTWINID_t peerId,
+                                                  CYBERTWIN_INTERFACE_LIST_t interfaces)
+{
+    NS_LOG_DEBUG("Cybertwin interface resolved, connect.");
+    m_pathNum = interfaces.size();
+    NS_LOG_DEBUG("Cybertwin " << peerId << " contain " << m_pathNum << " interfaces.");
+    for (int32_t i = 0; i < m_pathNum; i++)
     {
-        NS_LOG_INFO("Resolving Cybertwin ID to interfaces.");
-        // CNRS
-        // Simulator::Schedule();
+        NS_LOG_DEBUG("Connecting No." << i << " interface.");
+        SinglePath* path = new SinglePath();
+        Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
+        path->SetSocket(sock);
+        path->SetRemoteInteface(interfaces[i]);
+        path->SetLocalKey(m_localKey);
+        path->SetLocalCybertwinID(m_localCyberID);
+        path->SetConnection(this);
+
+        path->PathConnect();
     }
 }
 
@@ -328,10 +310,11 @@ MultipathConnection::Send(Ptr<Packet> packet)
     int32_t size = packet->GetSize();
     if (size == 0)
     {
-        NS_LOG_INFO("Packet size is 0.");
+        NS_LOG_DEBUG("Packet size is 0.");
         return 0;
     }
 
+    NS_LOG_DEBUG("Send data to remote Cybertwin : " << m_peerCyberID);
     // construct header
     MultipathHeaderDSN header;
     header.SetCuid(m_localCyberID);
@@ -339,7 +322,11 @@ MultipathConnection::Send(Ptr<Packet> packet)
     m_sendSeqNum += packet->GetSize(); // update seqnum
     header.SetDataLen(packet->GetSize());
 
+    NS_LOG_DEBUG("Send data seqnum : " << header.GetDataSeqNum() << ", len : " << header.GetDataLen());
+
     packet->AddHeader(header);
+    NS_LOG_DEBUG("packet size = " << packet->GetSize()
+                                      << " Header data len = " << header.GetDataLen());
     m_txBuffer.push(packet);
     Simulator::ScheduleNow(&MultipathConnection::SendData, this);
 
@@ -355,9 +342,6 @@ MultipathConnection::SendData()
         return;
     }
 
-    Ptr<Packet> sendPkt = m_txBuffer.front();
-    m_txBuffer.pop();
-
     // choose one path to send
     int32_t pathIndex = ChoosePathRoundRobin();
     if (pathIndex == -1)
@@ -367,14 +351,26 @@ MultipathConnection::SendData()
     }
 
     NS_LOG_DEBUG("Choose No." << pathIndex << " path to send.");
-    SinglePath* path = m_paths[pathIndex];
-    path->Send(sendPkt);
+    while (!m_txBuffer.empty())
+    {
+        NS_LOG_DEBUG("Path: " << pathIndex << " Send data.");
+        Ptr<Packet> pkt = m_txBuffer.front();
+        m_txBuffer.pop();
+        m_paths[pathIndex]->Send(pkt);
+    }
+
 }
 
 Ptr<Packet>
 MultipathConnection::Recv()
 {
-    NS_LOG_INFO("Recv");
+    NS_LOG_DEBUG("Recv");
+    if (m_rxBuffer.empty())
+    {
+        NS_LOG_DEBUG("RxBuffer is empty.");
+        return nullptr;
+    }
+
     Ptr<Packet> pack = m_rxBuffer.front();
     m_rxBuffer.pop();
     return pack;
@@ -384,14 +380,20 @@ void
 MultipathConnection::PathRecvedData(SinglePath* path)
 {
     NS_LOG_FUNCTION(this);
-    // NS_LOG_DEBUG("Connection Recved Data, drain from path.");
-    // get data from path
+    NS_LOG_DEBUG("Connection Recved Data, Cuid : " << path->GetRemoteCybertwinID());
 
     Ptr<Packet> pack = nullptr;
     // extract data from path
+    NS_LOG_DEBUG("m_recvSeqNum = " << m_recvSeqNum << ", path->m_rxHeadSeqNum = " << path->m_rxHeadSeqNum);
     while (m_recvSeqNum == path->m_rxHeadSeqNum)
     {
+        NS_LOG_DEBUG("m_recvSeqNum == path->m_rxHeadSeqNum");
         pack = path->Recv();
+
+        //remove header
+        MultipathHeaderDSN header;
+        pack->RemoveHeader(header);
+
         if (pack == nullptr)
         {
             NS_LOG_DEBUG("Connection Recved Data, no data from path.");
@@ -399,15 +401,15 @@ MultipathConnection::PathRecvedData(SinglePath* path)
         }
 
         // add to rx buffer
-        NS_LOG_INFO("Connection Recved Data, add to rx buffer.");
+        NS_LOG_DEBUG("Connection Recved Data, add to rx buffer.");
         m_rxBuffer.push(pack);
         m_recvSeqNum += pack->GetSize(); // renew seqnum
     }
 
     // notify upper layer
-    if (!m_recvCallback.IsNull())
+    if (!m_rxBuffer.empty() && !m_recvCallback.IsNull())
     {
-        // NS_LOG_DEBUG("Connection Recved Data, notify upper layer.");
+        NS_LOG_DEBUG("Connection Recved Data, notify upper layer.");
         m_recvCallback(this);
     }
 }
@@ -447,17 +449,17 @@ MultipathConnection::Close()
 
     if (closedNum == (int32_t)m_paths.size())
     {
-        NS_LOG_INFO("Connection Closed.");
+        NS_LOG_DEBUG("Connection Closed.");
         m_connState = MP_CONN_CLOSED;
         if (!m_closeCallback.IsNull())
         {
-            NS_LOG_INFO("Connection Closed, notify upper layer.");
+            NS_LOG_DEBUG("Connection Closed, notify upper layer.");
             m_closeCallback(this); // notify upper layer
         }
     }
     else
     {
-        NS_LOG_INFO("Connection Closing.");
+        NS_LOG_DEBUG("Connection Closing.");
         Simulator::Schedule(MilliSeconds(10), &MultipathConnection::Close, this);
     }
 
@@ -467,7 +469,7 @@ MultipathConnection::Close()
 void
 MultipathConnection::AddRawPath(SinglePath* path, bool ready)
 {
-    NS_LOG_INFO("Connection try to add new path");
+    NS_LOG_DEBUG("Connection try to add new path");
     NS_ASSERT(path);
     if (ready)
     {
@@ -490,7 +492,7 @@ MultipathConnection::AddRawPath(SinglePath* path, bool ready)
 void
 MultipathConnection::BuildConnection()
 {
-    NS_LOG_INFO("Building connection.");
+    NS_LOG_DEBUG("Building connection.");
     if (m_rawReadyPath.size() <= 0)
     {
         NS_LOG_ERROR("Error, no ready path exists.");
@@ -506,7 +508,7 @@ void
 MultipathConnection::AddInitConnectPath(SinglePath* path)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("Add init connect path.");
+    NS_LOG_DEBUG("Add init connect path.");
     m_connID = path->GetConnectionID();
     NS_ASSERT(m_connID != 0);
     m_sendSeqNum = m_connID; // init send seq num
@@ -529,7 +531,7 @@ MultipathConnection::AddInitConnectPath(SinglePath* path)
 void
 MultipathConnection::ConnectOtherPath()
 {
-    NS_LOG_INFO("Connect other path.");
+    NS_LOG_DEBUG("Connect other path.");
     while (m_rawReadyPath.size() > 0)
     {
         // aggreate each path in the raw path set to connection
@@ -596,7 +598,7 @@ MultipathConnection::ChoosePathRoundRobin()
         idx = (m_lastPathIndex++) % m_paths.size();
         if (m_paths[idx]->GetPathState() == SinglePath::SINGLE_PATH_CONNECTED)
         {
-            NS_LOG_INFO("Choose path " << idx);
+            NS_LOG_DEBUG("Choose path " << idx);
             return idx;
         }
     } while (true);
@@ -619,7 +621,7 @@ MultipathConnection::SetRemoteKey(MP_CONN_KEY_t key)
 void
 MultipathConnection::SetConnState(MP_CONN_STATE st)
 {
-    NS_LOG_INFO("Connection state change to " << st);
+    NS_LOG_DEBUG("Connection state change to " << st);
     m_connID = st;
 }
 
@@ -667,12 +669,6 @@ MultipathConnection::GetConnID()
 }
 
 void
-MultipathConnection::InsertCNRSItem(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs)
-{
-    CNRSCache[id] = ifs;
-}
-
-void
 MultipathConnection::SetConnectCallback(Callback<void, MultipathConnection*> succeedCb,
                                         Callback<void, MultipathConnection*> failCb)
 {
@@ -695,12 +691,12 @@ MultipathConnection::SetCloseCallback(Callback<void, MultipathConnection*> close
 void
 MultipathConnection::PathJoinResult(SinglePath* path, bool success)
 {
-    NS_LOG_INFO("Path join result call.");
+    NS_LOG_DEBUG("Path join result call.");
     // TODO: a lot more things to do
     if (success)
     {
         // add path to ready set
-        NS_LOG_INFO("Path successfully joined the connection");
+        NS_LOG_DEBUG("Path successfully joined the connection");
         NS_ASSERT_MSG(path->GetConnectionID() == m_connID, "Error connection id.");
         m_readyPath.push(path);
         m_paths.push_back(path);
@@ -730,7 +726,7 @@ MultipathConnection::PathJoinResult(SinglePath* path, bool success)
     }
     else
     {
-        NS_LOG_INFO("Still waiting for " << m_pathNum - m_readyPath.size() - m_errorPath.size()
+        NS_LOG_DEBUG("Still waiting for " << m_pathNum - m_readyPath.size() - m_errorPath.size()
                                          << " paths to join the connection.");
     }
 }
@@ -768,6 +764,8 @@ SinglePath::Send(Ptr<Packet> pkt)
         return -1;
     }
 
+    NS_LOG_DEBUG("Path send.");
+    NS_LOG_DEBUG("packet size = " << pkt->GetSize());
     return m_socket->Send(pkt);
 }
 
@@ -775,15 +773,27 @@ Ptr<Packet>
 SinglePath::Recv()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("Path recv.");
+    NS_LOG_DEBUG("Path recv.");
     if (m_rxBuffer.empty())
     {
         NS_LOG_DEBUG("No packet in rx buffer.");
         return nullptr;
     }
-    NS_LOG_INFO("Packet in rx buffer.");
+    NS_LOG_DEBUG("Packet in rx buffer.");
     Ptr<Packet> pack = m_rxBuffer.front();
     m_rxBuffer.pop();
+    
+    //renew HeadSeqNum
+    if (!m_rxBuffer.empty())
+    {
+        pack = m_rxBuffer.front();
+        MultipathHeaderDSN header;
+        pack->PeekHeader(header);
+        m_rxHeadSeqNum = header.GetDataSeqNum();
+    }else
+    {
+        m_rxHeadSeqNum = 0;
+    }
 
     return pack;
 }
@@ -847,7 +857,7 @@ SinglePath::PathClean()
 void
 SinglePath::PathConnectSucceeded(Ptr<Socket> sock)
 {
-    NS_LOG_INFO("Path connect success.");
+    NS_LOG_DEBUG("Path connect success.");
     // set receive handler
     sock->SetRecvCallback(MakeCallback(&SinglePath::PathRecvHandler, this));
     // m_socket = sock;
@@ -862,7 +872,7 @@ SinglePath::PathConnectSucceeded(Ptr<Socket> sock)
 void
 SinglePath::PathConnectFailed(Ptr<Socket> sock)
 {
-    NS_LOG_INFO("Path connect failed.");
+    NS_LOG_DEBUG("Path connect failed.");
     m_pathState = SINGLE_PATH_ERROR;
 
     m_connection->AddRawPath(this, false);
@@ -878,7 +888,7 @@ SinglePath::PathRecvHandler(Ptr<Socket> socket)
 void
 SinglePath::PathCloseSucceeded(Ptr<Socket> socket)
 {
-    NS_LOG_INFO("Path close normally.");
+    NS_LOG_DEBUG("Path close normally.");
     m_pathState = SINGLE_PATH_CLOSED;
     StateProcesser();
 }
@@ -886,7 +896,7 @@ SinglePath::PathCloseSucceeded(Ptr<Socket> socket)
 void
 SinglePath::PathCloseFailed(Ptr<Socket> socket)
 {
-    NS_LOG_INFO("Path close with error.");
+    NS_LOG_DEBUG("Path close with error.");
     m_pathState = SINGLE_PATH_ERROR;
     StateProcesser();
 }
@@ -911,6 +921,8 @@ SinglePath::InitConnection()
 void
 SinglePath::JoinConnection()
 {
+    NS_LOG_DEBUG("Join connection. " << m_localCybertwinID << " " << m_remoteCybertwinID << " "
+                                     << m_localKey << " " << m_remoteKey << " " << m_connID);
     MultipathHeader connHeader;
     connHeader.SetPathId(m_pathId);
     connHeader.SetCuid(m_localCybertwinID);
@@ -971,7 +983,7 @@ void
 SinglePath::ProcessBuildSent()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("ProcessBuildSent");
+    NS_LOG_DEBUG("ProcessBuildSent");
     Ptr<Packet> packet;
     Address from;
     while ((packet = m_socket->RecvFrom(from)))
@@ -1005,19 +1017,19 @@ SinglePath::ProcessBuildSent()
 void
 SinglePath::ProcessInit()
 {
-    NS_LOG_INFO("Process Init.");
+    NS_LOG_DEBUG("Process Init.");
 }
 
 void
 SinglePath::ProcessError()
 {
-    NS_LOG_INFO("Process Error.");
+    NS_LOG_DEBUG("Process Error.");
 }
 
 void
 SinglePath::ProcessClosed()
 {
-    NS_LOG_INFO("Process Closed.");
+    NS_LOG_DEBUG("Process Closed.");
 }
 
 void
@@ -1030,7 +1042,7 @@ SinglePath::ProcessConnected()
     {
         MultipathHeaderDSN dsnHeader;
         packet->PeekHeader(dsnHeader);
-        dsnHeader.Print(std::cout);
+        //dsnHeader.Print(std::cout);
 
         NS_LOG_DEBUG("packet size = " << packet->GetSize()
                                       << " Header data len = " << dsnHeader.GetDataLen());
@@ -1040,22 +1052,24 @@ SinglePath::ProcessConnected()
                       "Path Header and Payload don't match.");
 
         // first packet in the buffer, renew head sequence number
-        if (m_rxBuffer.empty())
+        if (m_rxHeadSeqNum.GetValue() == 0 || m_rxBuffer.empty())
         {
+            NS_LOG_DEBUG("First packet in the buffer.");
             m_rxHeadSeqNum = dsnHeader.GetDataSeqNum();
         }
 
-        m_rxBuffer.push(packet);
+        Ptr<Packet> rcvPacket = packet->Copy();
+        m_rxBuffer.push(rcvPacket);
     }
 
-    // Notify connection
+      // Notify connection
     Simulator::Schedule(TimeStep(1), &MultipathConnection::PathRecvedData, m_connection, this);
 }
 
 void
 SinglePath::ProcessJoinRcvd()
 {
-    NS_LOG_INFO("Process JoinRcvd.");
+    NS_LOG_DEBUG("Process JoinRcvd.");
 #if 0
     NS_LOG_FUNCTION(this);
     Ptr<Packet> packet;
@@ -1090,7 +1104,7 @@ void
 SinglePath::ProcessJoinSent()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("Process Join Sent.");
+    NS_LOG_DEBUG("Process Join Sent.");
     Ptr<Packet> packet;
     Address from;
     while ((packet = m_socket->RecvFrom(from)))
