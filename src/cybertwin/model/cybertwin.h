@@ -59,15 +59,13 @@ class Cybertwin : public Application
     void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
-
-    bool GlobalConnRequestCallback(Ptr<Socket>, const Address&);
-    void GlobalConnCreatedCallback(Ptr<Socket>, const Address&);
-    void GlobalNormalCloseCallback(Ptr<Socket>);
-    void GlobalErrorCloseCallback(Ptr<Socket>);
-
+  
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
+    void NewMpConnectionErrorCallback(MultipathConnection* conn);
+    void MpConnectionRecvCallback(MultipathConnection* conn);
+    void MpConnectionClosedCallback(MultipathConnection* conn);
 
-    void RecvLocalPacketCb(Ptr<Packet>, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t);
+    void SendPendingPackets(CYBERTWINID_t);
 
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
@@ -77,12 +75,15 @@ class Cybertwin : public Application
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txBuffer;
 
+    std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_txConnections;
+    std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_pendingConnections;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_txPendingBuffer;
+    std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_rxConnections;
+
     CYBERTWINID_t m_cybertwinId;
     Address m_address;
     Ptr<Socket> m_localSocket;
     uint16_t m_localPort;
-    Ptr<Socket> m_globalSocket;
-    uint16_t m_globalPort;
 
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;

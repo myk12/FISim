@@ -329,7 +329,7 @@ CybertwinBulkClient::GetTypeId()
                                           MakeUintegerChecker<uint64_t>())
                             .AddAttribute("PacketSize",
                                           "The size of a single packet",
-                                          UintegerValue(512),
+                                          UintegerValue(516),
                                           MakeUintegerAccessor(&CybertwinBulkClient::m_packetSize),
                                           MakeUintegerChecker<uint32_t>(21));
     return tid;

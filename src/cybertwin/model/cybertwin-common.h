@@ -40,7 +40,7 @@ typedef std::pair<ns3::Address, uint16_t> CybertwinInterface;
 typedef std::pair<ns3::Ipv4Address, uint16_t> CYBERTWIN_INTERFACE_t;
 typedef std::vector<CYBERTWIN_INTERFACE_t> CYBERTWIN_INTERFACE_LIST_t;
 
-static std::unordered_map<CYBERTWINID_t, ns3::Address> GlobalRouteTable;
+//static std::unordered_map<CYBERTWINID_t, ns3::Address> GlobalRouteTable;
 
 enum CNRS_METHOD
 {

@@ -77,8 +77,8 @@ NS_LOG_COMPONENT_DEFINE("CybertwinV1");
 int
 main(int argc, char* argv[])
 {
-    Packet::EnablePrinting();
-    Time::SetResolution(Time::NS);
+    //Packet::EnablePrinting();
+    //Time::SetResolution(Time::NS);
 
     LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
     // LogComponentEnable("V4Ping", LOG_LEVEL_ALL);
