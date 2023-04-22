@@ -132,6 +132,7 @@ CybertwinController::InspectPacket(Ptr<NetDevice> device,
                                    uint16_t protocol)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << packet->ToString());
+    // NS_LOG_DEBUG("Inspect: " << packet->ToString() << ", " << packet->GetSize());
     CybertwinCreditTag creditTag;
     if (packet->PeekPacketTag(creditTag))
     {
@@ -240,7 +241,7 @@ CybertwinController::CybertwinInit(Ptr<Socket> socket, const CybertwinHeader& he
 int
 CybertwinController::CybertwinSend(CYBERTWINID_t cuid,
                                    CYBERTWINID_t peer,
-                                   Ptr<Socket> socket,
+                                   MultipathConnection* socket,
                                    Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << cuid << peer);
@@ -432,7 +433,9 @@ CybertwinFirewall::Initialize(const CybertwinCertTag& cert)
 }
 
 int
-CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer, Ptr<Socket> socket, Ptr<Packet> packet)
+CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer,
+                                   MultipathConnection* socket,
+                                   Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid << peer);
     // CybertwinCreditTag creditTag(m_cuid, GetCredit(), peer);

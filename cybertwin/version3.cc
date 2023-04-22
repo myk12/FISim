@@ -77,18 +77,18 @@ NS_LOG_COMPONENT_DEFINE("CybertwinV1");
 int
 main(int argc, char* argv[])
 {
-    //Packet::EnablePrinting();
-    //Time::SetResolution(Time::NS);
+    Packet::EnablePrinting();
+    // Time::SetResolution(Time::NS);
 
     LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
-    // LogComponentEnable("V4Ping", LOG_LEVEL_ALL);
-    LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_ALL);
-    LogComponentEnable("CybertwinCoreServer", LOG_LEVEL_ALL);
-    LogComponentEnable("CybertwinEndHost", LOG_LEVEL_ALL);
-    LogComponentEnable("CybertwinClient", LOG_LEVEL_ALL);
-    LogComponentEnable("CybertwinEdge", LOG_LEVEL_ALL);
-    LogComponentEnable("Cybertwin", LOG_LEVEL_ALL);
-    // LogComponentEnable("NameResolutionService", LOG_LEVEL_ALL);
+    // LogComponentEnable("V4Ping", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinCoreServer", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinEndHost", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinClient", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
+    LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
+    // LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
 
     //*************************************************************************************************
     //*                           Building Topology *

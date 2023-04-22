@@ -28,7 +28,8 @@ class Cybertwin : public Application
 {
   public:
     typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
-    typedef Callback<int, CYBERTWINID_t, Ptr<Socket>, Ptr<const Packet>> CybertwinSendCallback;
+    typedef Callback<int, CYBERTWINID_t, MultipathConnection*, Ptr<const Packet>>
+        CybertwinSendCallback;
     typedef Callback<int, Ptr<Socket>, Ptr<const Packet>> CybertwinReceiveCallback;
 
     Cybertwin();
@@ -59,7 +60,7 @@ class Cybertwin : public Application
     void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
-  
+
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
     void MpConnectionRecvCallback(MultipathConnection* conn);
