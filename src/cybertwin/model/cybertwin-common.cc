@@ -58,4 +58,15 @@ GetBindPort(Ptr<Socket> socket)
     return ret;
 }
 
+void NotifyCybertwinConfiguration()
+{
+    NS_LOG_UNCOND("\n\n======= CYBERTWIN CONFIGURATION =======\n");
+#if MDTP_ENABLED
+    NS_LOG_UNCOND(" - MDTP:\t\t ON");
+#else
+    NS_LOG_UNCOND(" - MDTP:\t\t OFF");
+#endif
+    NS_LOG_UNCOND("\n\n======= CYBERTWIN CONFIGURATION =======\n");
+}
+
 } // namespace ns3

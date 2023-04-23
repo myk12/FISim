@@ -13,6 +13,12 @@
 
 namespace ns3
 {
+//*****************************************************************
+//*                 COMPILE OPTIONS                               *
+//*****************************************************************
+#define MDTP_ENABLED 1  //1: enable MDTP, 0: disable MDTP
+
+
 
 #define TX_MAX_NUM (128)
 #define DEFAULT_PAYLOAD_LEN (128)
@@ -97,6 +103,7 @@ struct AddressHash
 void DoSocketMethod(int (Socket::*)(const Address&), Ptr<Socket>, const Address&, uint16_t);
 uint16_t DoSocketBind(Ptr<Socket>, const Address&);
 uint16_t GetBindPort(Ptr<Socket>);
+void NotifyCybertwinConfiguration();
 
 } // namespace ns3
 

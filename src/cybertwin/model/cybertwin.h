@@ -28,8 +28,13 @@ class Cybertwin : public Application
 {
   public:
     typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
+#if MDTP_ENABLED
     typedef Callback<int, CYBERTWINID_t, MultipathConnection*, Ptr<const Packet>>
         CybertwinSendCallback;
+#else
+    typedef Callback<int, CYBERTWINID_t, Ptr<Socket>, Ptr<const Packet>>
+        CybertwinSendCallback;
+#endif
     typedef Callback<int, Ptr<Socket>, Ptr<const Packet>> CybertwinReceiveCallback;
 
     Cybertwin();
@@ -61,12 +66,24 @@ class Cybertwin : public Application
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
 
+#if MDTP_ENABLED
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
     void MpConnectionRecvCallback(MultipathConnection* conn);
     void MpConnectionClosedCallback(MultipathConnection* conn);
+#else
+    bool NewSpConnectionRequestCallback(Ptr<Socket> sock);
+    void NewSpConnectionCreatedCallback(Ptr<Socket> sock);
+    void NewSpConnectionErrorCallback(Ptr<Socket> sock);
+    void SpConnectionRecvCallback(Ptr<Socket> sock);
+    void SpNormalCloseCallback(Ptr<Socket> sock);
+    void SpErrorCloseCallback(Ptr<Socket> sock);
+#endif
 
     void SendPendingPackets(CYBERTWINID_t);
+    void SocketConnectWithResolvedCybertwinName(Ptr<Socket> sock,
+                                                CYBERTWINID_t cyberid,
+                                                CYBERTWIN_INTERFACE_LIST_t ifs);
 
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
@@ -76,10 +93,19 @@ class Cybertwin : public Application
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txBuffer;
 
+#if MDTP_ENABLED // Multipath Connection
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_txConnections;
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_pendingConnections;
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_txPendingBuffer;
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_rxConnections;
+#else  // Naive Socket
+    std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txConnections;
+    std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_txConnectionsReverse;
+    std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_pendingConnections;
+    std::unordered_set<Ptr<Socket>> m_rxConnections;
+    std::unordered_map<Ptr<Socket>, Address> m_rxConnectionsReverse;
+#endif
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_txPendingBuffer;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
 
     CYBERTWINID_t m_cybertwinId;
     Address m_address;
@@ -91,8 +117,14 @@ class Cybertwin : public Application
 
     // Cybertwin multiple interfaces
     CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+
+#if MDTP_ENABLED
     // Cybertwin Connections
     CybertwinDataTransferServer* m_dtServer;
+#else
+    Ptr<Socket> m_dtServer;
+
+#endif
 };
 
 }; // namespace ns3

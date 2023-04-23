@@ -173,6 +173,8 @@ main(int argc, char* argv[])
 
     allNodesIpv4Addresses = getNodesIpv4List(allNodesContainer);
 
+    NotifyCybertwinConfiguration();
+
     // Routing
     NS_LOG_INFO("-> Routing.");
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();

@@ -44,79 +44,7 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
     NS_LOG_FUNCTION(cuid);
 }
 
-void
-Cybertwin::NewMpConnectionErrorCallback(MultipathConnection* conn)
-{
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection error with "
-                              << conn->m_peerCyberID);
-    // TODO: failed to create a connection, how to handle the pending data?
-}
 
-void
-Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
-{
-    NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
-    NS_ASSERT_MSG(conn != nullptr, "Connection is null");
-    if (m_txPendingBuffer.find(conn->m_peerCyberID) != m_txPendingBuffer.end())
-    {
-        // case1: txPendingBuffer not empty means this cybertwin have initiated a connection request
-        NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection with " << conn->m_peerCyberID
-                                  << " is successfully established");
-
-        // erase the connection from pendingConnections, and insert it to txConnections
-        m_pendingConnections.erase(conn->m_peerCyberID);
-        m_txConnections[conn->m_peerCyberID] = conn;
-
-        // after connection created, we schedule a send event to send pending packets
-        Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, conn->m_peerCyberID);
-    }
-    else
-    {
-        // case2: conn not found in txConnections means DataServer received a connection request and
-        //  successfully created a connection
-        NS_LOG_DEBUG(
-            "Cybertwin[" << m_cybertwinId << "]: DataServer received a connection request from "
-                         << conn->m_peerCyberID << " and successfully created a connection");
-        m_rxConnections[conn->m_peerCyberID] = conn;
-    }
-
-    conn->SetRecvCallback(MakeCallback(&Cybertwin::MpConnectionRecvCallback, this));
-    conn->SetCloseCallback(MakeCallback(&Cybertwin::MpConnectionClosedCallback, this));
-}
-
-void
-Cybertwin::MpConnectionRecvCallback(MultipathConnection* conn)
-{
-    NS_ASSERT_MSG(conn != nullptr, "Connection is null");
-    Ptr<Packet> packet;
-    while ((packet = conn->Recv()))
-    {
-        NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
-                               << "]: received packet from " << conn->m_peerCyberID << " with size "
-                               << packet->GetSize() << " bytes");
-        // TODO: what to do next? Send to client or save to buffer.
-    }
-}
-
-void
-Cybertwin::MpConnectionClosedCallback(MultipathConnection* conn)
-{
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection closed with "
-                              << conn->m_peerCyberID);
-    if (m_txConnections.find(conn->m_peerCyberID) != m_txConnections.end())
-    {
-        m_txConnections.erase(conn->m_peerCyberID);
-    }
-    else if (m_rxConnections.find(conn->m_peerCyberID) != m_rxConnections.end())
-    {
-        m_rxConnections.erase(conn->m_peerCyberID);
-    }
-    else
-    {
-        NS_LOG_ERROR("Cybertwin[" << m_cybertwinId << "]: connection closed with "
-                                  << conn->m_peerCyberID << " but no such connection found");
-    }
-}
 
 Cybertwin::~Cybertwin()
 {
@@ -128,12 +56,22 @@ Cybertwin::StartApplication()
     NS_LOG_FUNCTION(m_cybertwinId);
     m_cnrs = GetNode()->GetObject<CybertwinEdgeServer>()->GetCNRSApp();
 
+#if MDTP_ENABLED
     // init data server and listen for incoming connections
     m_dtServer = new CybertwinDataTransferServer();
     m_dtServer->Setup(GetNode(), m_cybertwinId, m_interfaces);
     m_dtServer->Listen();
     m_dtServer->SetNewConnectCreatedCallback(
         MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
+#else
+    // init data server and listen for incoming connections
+    m_dtServer = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+    //FIXME: attention, the port number is hard-coded here
+    m_dtServer->Bind(InetSocketAddress(Ipv4Address::GetAny(), m_interfaces[0].second));
+    m_dtServer->SetAcceptCallback(MakeCallback(&Cybertwin::NewSpConnectionRequestCallback, this),
+                                  MakeCallback(&Cybertwin::NewSpConnectionCreatedCallback, this));
+    m_dtServer->Listen();
+#endif
 
     // report interfaces to CNRS
     m_cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
@@ -306,10 +244,13 @@ Cybertwin::RecvLocalPacket(const CybertwinHeader& header, Ptr<Packet> packet)
 void
 Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
 {
-    // NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: send pending packets at " <<
-    // Simulator::Now());
     // get connection by peer cuid
+#if MDTP_ENABLED
     MultipathConnection* conn = nullptr;
+#else
+    Ptr<Socket> conn = nullptr;
+#endif
+
     if (m_txConnections.find(peerCuid) != m_txConnections.end())
     {
         // case1: connection established
@@ -320,7 +261,6 @@ Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
             Ptr<Packet> packet = m_txPendingBuffer[peerCuid].front();
             m_txPendingBuffer[peerCuid].pop();
             SendPacket(peerCuid, conn, packet);
-            // conn->Send(packet);
         }
     }
     else if (m_pendingConnections.find(peerCuid) != m_pendingConnections.end())
@@ -338,18 +278,40 @@ Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
                                  << "]: connection not created yet, initiate a new connection at "
                                  << Simulator::Now());
         // connection not created yet, initiate a new connection
+#if MDTP_ENABLED
         conn = new MultipathConnection();
         conn->Setup(GetNode(), m_cybertwinId);
         conn->Connect(peerCuid);
-
-        // insert to pending set
-        m_pendingConnections[peerCuid] = conn;
-
-        // set the callback
         // send pending packets by callback after connection is created
         conn->SetConnectCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this),
                                  MakeCallback(&Cybertwin::NewMpConnectionErrorCallback, this));
+#else
+        conn = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
+        conn->Bind();
+        m_cnrs->GetCybertwinInterfaceByName(peerCuid,
+                                            MakeCallback(&Cybertwin::SocketConnectWithResolvedCybertwinName, this, conn));
+        conn->SetConnectCallback(MakeCallback(&Cybertwin::NewSpConnectionCreatedCallback, this),
+                                 MakeCallback(&Cybertwin::NewSpConnectionErrorCallback, this));
+#endif
+
+        // insert to pending set
+        m_pendingConnections[peerCuid] = conn;
     }
+}
+
+void
+Cybertwin::SocketConnectWithResolvedCybertwinName(Ptr<Socket> socket, CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t ifs)
+{
+    NS_LOG_FUNCTION(this << socket << cuid);
+    NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: connect to " << cuid << "using socket at " << Simulator::Now());
+    if (ifs.size() == 0)
+    {
+        NS_LOG_ERROR("No interface found for " << cuid);
+        return;
+    }
+    //TODO: a reasonable way to select an interface
+    InetSocketAddress peeraddr = InetSocketAddress(ifs.at(0).first, ifs.at(0).second);
+    socket->Connect(peeraddr);
 }
 
 void
@@ -368,5 +330,187 @@ Cybertwin::ForwardLocalPacket(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& if
         NS_LOG_DEBUG(interface.first << interface.second);
     }
 }
+
+#if MDTP_ENABLED
+// Multipath connection Callbacks
+void
+Cybertwin::NewMpConnectionErrorCallback(MultipathConnection* conn)
+{
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection error with "
+                              << conn->m_peerCyberID);
+    // TODO: failed to create a connection, how to handle the pending data?
+}
+
+void
+Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
+{
+    NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
+    NS_ASSERT_MSG(conn != nullptr, "Connection is null");
+    if (m_txPendingBuffer.find(conn->m_peerCyberID) != m_txPendingBuffer.end())
+    {
+        // case1: txPendingBuffer not empty means this cybertwin have initiated a connection request
+        NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection with " << conn->m_peerCyberID
+                                  << " is successfully established");
+
+        // erase the connection from pendingConnections, and insert it to txConnections
+        m_pendingConnections.erase(conn->m_peerCyberID);
+        m_txConnections[conn->m_peerCyberID] = conn;
+
+        // after connection created, we schedule a send event to send pending packets
+        Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, conn->m_peerCyberID);
+    }
+    else
+    {
+        // case2: conn not found in txConnections means DataServer received a connection request and
+        //  successfully created a connection
+        NS_LOG_DEBUG(
+            "Cybertwin[" << m_cybertwinId << "]: DataServer received a connection request from "
+                         << conn->m_peerCyberID << " and successfully created a connection");
+        m_rxConnections[conn->m_peerCyberID] = conn;
+    }
+
+    conn->SetRecvCallback(MakeCallback(&Cybertwin::MpConnectionRecvCallback, this));
+    conn->SetCloseCallback(MakeCallback(&Cybertwin::MpConnectionClosedCallback, this));
+}
+
+void
+Cybertwin::MpConnectionRecvCallback(MultipathConnection* conn)
+{
+    NS_ASSERT_MSG(conn != nullptr, "Connection is null");
+    Ptr<Packet> packet;
+    while ((packet = conn->Recv()))
+    {
+        NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
+                               << "]: received packet from " << conn->m_peerCyberID << " with size "
+                               << packet->GetSize() << " bytes");
+        // TODO: what to do next? Send to client or save to buffer.
+    }
+}
+
+void
+Cybertwin::MpConnectionClosedCallback(MultipathConnection* conn)
+{
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection closed with "
+                              << conn->m_peerCyberID);
+    if (m_txConnections.find(conn->m_peerCyberID) != m_txConnections.end())
+    {
+        m_txConnections.erase(conn->m_peerCyberID);
+    }
+    else if (m_rxConnections.find(conn->m_peerCyberID) != m_rxConnections.end())
+    {
+        m_rxConnections.erase(conn->m_peerCyberID);
+    }
+    else
+    {
+        NS_LOG_ERROR("Cybertwin[" << m_cybertwinId << "]: connection closed with "
+                                  << conn->m_peerCyberID << " but no such connection found");
+    }
+}
+
+#else
+// Naive Socket Callbacks
+void
+Cybertwin::NewSpConnectionErrorCallback(Ptr<Socket> sock)
+{
+    Address peerAddr;
+    sock->GetPeerName(peerAddr);
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection error with "
+                              << peerAddr);
+    // TODO: failed to create a connection, how to handle the pending data?
+    // one way is to set a timer to retry or discard the pending data
+}
+
+bool
+Cybertwin::NewSpConnectionRequestCallback(Ptr<Socket> sock)
+{
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: received a connection request");
+    return true;
+}
+
+void
+Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
+{
+    NS_ASSERT_MSG(sock != nullptr, "Connection is null");
+    if (m_txConnectionsReverse.find(sock) != m_txConnectionsReverse.end())
+    {
+        // case1: socket find in tx connections means this cybertwin have initiated a connection
+        CYBERTWINID_t peerid = m_txConnectionsReverse[sock];
+        NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection with " << peerid
+                                  << " is successfully established");
+
+        // erase the connection from pendingConnections, and insert it to txConnections
+        m_pendingConnections.erase(peerid);
+        m_txConnections[peerid] = sock;
+
+        // after connection created, we schedule a send event to send pending packets
+        Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, peerid);
+    }
+    else
+    {
+        // case2: conn not found in txConnections means DataServer received a connection request and
+        //  successfully created a connection
+        Address peeraddr;
+        sock->GetPeerName(peeraddr);
+
+        NS_LOG_DEBUG(
+            "Cybertwin[" << m_cybertwinId << "]: DataServer received a connection request from "
+                         <<peeraddr  << " and successfully created a connection");
+        m_rxConnections.insert(sock);
+        m_rxConnectionsReverse[sock] = peeraddr;
+    }
+
+    sock->SetRecvCallback(MakeCallback(&Cybertwin::SpConnectionRecvCallback, this));
+    sock->SetCloseCallbacks(MakeCallback(&Cybertwin::SpNormalCloseCallback, this),
+                            MakeCallback(&Cybertwin::SpErrorCloseCallback, this));
+}
+
+void
+Cybertwin::SpConnectionRecvCallback(Ptr<Socket> sock)
+{
+    Ptr<Packet> packet;
+    while ((packet = sock->Recv()))
+    {
+        NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
+                               << "]: received packet from " << m_rxConnectionsReverse[sock] << " with size "
+                               << packet->GetSize() << " bytes");
+        // TODO: what to do next? Send to client or save to buffer.
+        
+    }
+}
+
+void
+Cybertwin::SpNormalCloseCallback(Ptr<Socket> sock)
+{
+    Address peeraddr;
+    sock->GetPeerName(peeraddr);
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection closed with "
+                              << peeraddr);
+    if (m_txConnectionsReverse.find(sock) != m_txConnectionsReverse.end())
+    {
+        m_txConnectionsReverse.erase(sock);
+    }
+    else if (m_rxConnectionsReverse.find(sock) != m_rxConnectionsReverse.end())
+    {
+        m_rxConnectionsReverse.erase(sock);
+        m_rxConnections.erase(sock);
+    }
+    else
+    {
+        NS_LOG_ERROR("Cybertwin[" << m_cybertwinId << "]: connection closed with "
+                                  << peeraddr << " but no such connection found");
+    }
+}
+
+void
+Cybertwin::SpErrorCloseCallback(Ptr<Socket> sock)
+{
+    Address peeraddr;
+    sock->GetPeerName(peeraddr); 
+    NS_LOG_WARN("Cybertwin[" << m_cybertwinId << "]: connection error with "
+                             << peeraddr);
+
+}
+
+#endif
 
 } // namespace ns3
