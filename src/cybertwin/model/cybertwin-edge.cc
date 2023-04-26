@@ -241,7 +241,11 @@ CybertwinController::CybertwinInit(Ptr<Socket> socket, const CybertwinHeader& he
 int
 CybertwinController::CybertwinSend(CYBERTWINID_t cuid,
                                    CYBERTWINID_t peer,
+                                #if MDTP_ENABLED
                                    MultipathConnection* socket,
+                                #else
+                                   Ptr<Socket> socket,
+                                #endif
                                    Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << cuid << peer);
@@ -434,7 +438,11 @@ CybertwinFirewall::Initialize(const CybertwinCertTag& cert)
 
 int
 CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer,
+                                #if MDTP_ENABLED
                                    MultipathConnection* socket,
+                                #else
+                                   Ptr<Socket> socket,
+                                #endif
                                    Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid << peer);

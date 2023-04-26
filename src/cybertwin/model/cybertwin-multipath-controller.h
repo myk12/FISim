@@ -221,8 +221,10 @@ public:
     //data transfer
     int32_t Send(Ptr<Packet> packet);
     Ptr<Packet> Recv();
+    MpDataSeqNum HeadPacketSeqNum();
 
     //path management
+    int32_t PathBind(Address remote);
     int32_t PathConnect();
     int32_t PathListen();
     int32_t PathClose();
@@ -290,8 +292,6 @@ private:
     CybertwinDataTransferServer *m_server;
     PathStatus m_pathState;
     MP_CONN_ID_t m_connID;
-
-    MpDataSeqNum m_rxHeadSeqNum;
 
     // test data transfer
     std::queue<Ptr<Packet>> m_rxBuffer;

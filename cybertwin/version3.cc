@@ -89,6 +89,7 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
     LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
     // LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
+    //LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
 
     //*************************************************************************************************
     //*                           Building Topology *
@@ -161,14 +162,14 @@ main(int argc, char* argv[])
                           CORE_SERVER1,
                           coreServer1Neighbors,
                           coreServer1NeighborIPBase,
-                          "10Mbps",
+                          "100Mbps",
                           "2ms");
     // core server2
     p2pConnectToNeighbors(allNodesContainer,
                           CORE_SERVER2,
                           coreServer2Neighbors,
                           coreServer2NeighborIPBase,
-                          "10Mbps",
+                          "100Mbps",
                           "2ms");
 
     allNodesIpv4Addresses = getNodesIpv4List(allNodesContainer);
@@ -271,11 +272,11 @@ main(int argc, char* argv[])
     endHost1->Connect(
         CybertwinCertTag(allCybertwinId.at(END_HOST1), 1000, 500, true, true, 6000, 1000));
 
-    Ptr<CybertwinEndHost> endHost3 =
-        DynamicCast<CybertwinEndHost>(allNodesContainer.Get(END_HOST3));
-    endHost3->Connect(CybertwinCertTag(allCybertwinId.at(END_HOST3), 500, 1000, false, true));
+    Ptr<CybertwinEndHost> endHost8 =
+        DynamicCast<CybertwinEndHost>(allNodesContainer.Get(END_HOST8));
+    endHost8->Connect(CybertwinCertTag(allCybertwinId.at(END_HOST8), 500, 1000, false, true));
 
-    endHost1->SendTo(allCybertwinId.at(END_HOST3));
+    endHost1->SendTo(allCybertwinId.at(END_HOST8));
 
     //*************************************************************************************************
     //*                           Starting Simulation *

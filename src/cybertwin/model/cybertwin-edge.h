@@ -61,7 +61,13 @@ class CybertwinFirewall : public Application
     bool ReceiveFromLocal(Ptr<const Packet>);
     bool Initialize(const CybertwinCertTag&);
 
-    int ForwardToGlobal(CYBERTWINID_t, MultipathConnection*, Ptr<Packet>);
+    int ForwardToGlobal(CYBERTWINID_t,
+                    #if MDTP_ENABLED
+                        MultipathConnection*,
+                    #else
+                        Ptr<Socket>, 
+                    #endif
+                        Ptr<Packet>);
     int ForwardToLocal(Ptr<Socket>, Ptr<Packet>);
 
   protected:
@@ -124,7 +130,14 @@ class CybertwinController : public Application
     void ReceiveFromHost(Ptr<Socket>);
 
     void CybertwinInit(Ptr<Socket>, const CybertwinHeader&);
-    int CybertwinSend(CYBERTWINID_t, CYBERTWINID_t, MultipathConnection*, Ptr<Packet>);
+    int CybertwinSend(CYBERTWINID_t,
+                      CYBERTWINID_t,
+                  #if MDTP_ENABLED
+                      MultipathConnection*,
+                  #else
+                      Ptr<Socket>,
+                  #endif
+                      Ptr<Packet>);
     int CybertwinReceive(CYBERTWINID_t, Ptr<Socket>, Ptr<Packet>);
 
     uint16_t LookupCredit(CYBERTWINID_t);

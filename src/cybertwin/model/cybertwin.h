@@ -66,11 +66,20 @@ class Cybertwin : public Application
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
 
+    void UpdateRxSizePerSecond(
+#if MDTP_ENABLED
+        CYBERTWINID_t conn
+#else
+        Ptr<Socket> sock
+#endif
+    );
 #if MDTP_ENABLED
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
     void MpConnectionRecvCallback(MultipathConnection* conn);
     void MpConnectionClosedCallback(MultipathConnection* conn);
+
+    void DownloadFileServer(MultipathConnection* conn);
 #else
     bool NewSpConnectionRequestCallback(Ptr<Socket> sock);
     void NewSpConnectionCreatedCallback(Ptr<Socket> sock);
@@ -93,19 +102,24 @@ class Cybertwin : public Application
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txBuffer;
 
+    // data transmission between cybertwins
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_txPendingBuffer;
 #if MDTP_ENABLED // Multipath Connection
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_txConnections;
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_pendingConnections;
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_rxConnections;
+    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
+    std::unordered_map<CYBERTWINID_t, uint64_t> m_rxSizePerSecond;
 #else  // Naive Socket
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txConnections;
     std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_txConnectionsReverse;
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_pendingConnections;
+    std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_pendingConnectionsReverse;
     std::unordered_set<Ptr<Socket>> m_rxConnections;
     std::unordered_map<Ptr<Socket>, Address> m_rxConnectionsReverse;
+    std::unordered_map<Ptr<Socket>, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
+    std::unordered_map<Ptr<Socket>, uint64_t> m_rxSizePerSecond;
 #endif
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_txPendingBuffer;
-    std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
 
     CYBERTWINID_t m_cybertwinId;
     Address m_address;

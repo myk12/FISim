@@ -202,12 +202,12 @@ CybertwinDataTransferServer::DtServerBulkSend(MultipathConnection* conn)
 
     if (m_rxBytes < 100 * 1024 * 1024) // 100GB
     {
-        Ptr<Packet> packet = Create<Packet>(1024);
+        Ptr<Packet> packet = Create<Packet>(516);
         conn->Send(packet);
         m_rxBytes++;
 
         // 1024B/ns = 102.4MBps
-        Simulator::Schedule(NanoSeconds(10),
+        Simulator::Schedule(MicroSeconds(1),
                             &CybertwinDataTransferServer::DtServerBulkSend,
                             this,
                             conn);
@@ -264,6 +264,7 @@ MultipathConnection::MultipathConnection()
     m_localKey = 0;
     m_connID = 0;
     m_connState = MP_CONN_INIT;
+    m_pathNum = 0;
 
     if (!m_sendReportCallback.IsNull())
     {
@@ -295,6 +296,7 @@ MultipathConnection::MultipathConnection(SinglePath* path)
     m_sendSeqNum = m_connID;
     m_recvSeqNum = m_connID;
     m_connState = MP_CONN_CONNECT;
+    m_pathNum = 0;
 
     m_paths.push_back(path);
 
@@ -351,20 +353,46 @@ MultipathConnection::OnCybertwinInterfaceResolved(CYBERTWINID_t peerId,
                                                   CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("Cybertwin interface resolved, connect.");
-    m_pathNum = interfaces.size();
     NS_LOG_DEBUG("Cybertwin " << peerId << " contain " << m_pathNum << " interfaces.");
-    for (int32_t i = 0; i < m_pathNum; i++)
-    {
-        NS_LOG_DEBUG("Connecting No." << i << " interface.");
-        SinglePath* path = new SinglePath();
-        Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-        path->SetSocket(sock);
-        path->SetRemoteInteface(interfaces[i]);
-        path->SetLocalKey(m_localKey);
-        path->SetLocalCybertwinID(m_localCyberID);
-        path->SetConnection(this);
+    Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
+    NS_ASSERT_MSG(ipv4, "Ipv4 is null.");
+    std::vector<Ipv4Address> addrVector;
 
-        path->PathConnect();
+    int32_t it = 1;
+
+    for (uint32_t i=0; i<ipv4->GetNInterfaces(); i++)
+    {
+        for (uint32_t j=0; j<ipv4->GetNAddresses(i); j++)
+        {
+            NS_LOG_DEBUG("Interface " << i << " address " << ipv4->GetAddress(i, j));
+            Ipv4InterfaceAddress iaddr = ipv4->GetAddress(i, j);
+            Ipv4Address ipaddr = iaddr.GetLocal();
+            if (ipaddr != Ipv4Address::GetAny() && ipaddr != Ipv4Address::GetLoopback()
+                && ipaddr.CombineMask("255.0.0.0") != "10.0.0.0")
+            {
+                addrVector.push_back(ipaddr);
+                SinglePath* path = new SinglePath();
+                int32_t ret = -1;
+                Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
+                NS_LOG_DEBUG("Socket Bind to " << ipaddr);
+                InetSocketAddress bindaddr = InetSocketAddress(ipaddr, 0);
+                ret = sock->Bind(bindaddr);
+                if (ret < 0)
+                {
+                    NS_FATAL_ERROR("Socket bind failed.");
+                }
+                path->SetSocket(sock);
+                path->SetRemoteInteface(interfaces[it++]);
+                path->SetLocalKey(m_localKey);
+                path->SetLocalCybertwinID(m_localCyberID);
+                path->SetConnection(this);
+                path->SetPathId(m_pathNum);
+
+                path->PathConnect();
+
+                m_pathNum++;
+            }
+        }
     }
 }
 
@@ -384,15 +412,15 @@ MultipathConnection::Send(Ptr<Packet> packet)
         return 0;
     }
 
-    // update send sequence number
-    m_sendSeqNum += pktSize;
-
     // construct header
     MultipathHeaderDSN header;
     header.SetCuid(m_localCyberID);
     header.SetDataSeqNum(m_sendSeqNum);
     header.SetDataLen(pktSize);
     packet->AddHeader(header);
+
+    // update send sequence number
+    m_sendSeqNum += pktSize;
 
     NS_LOG_DEBUG("MpConn[" << m_connID << "] send data to remote Cybertwin : " << m_peerCyberID);
     m_txBuffer.push(packet);
@@ -456,23 +484,17 @@ MultipathConnection::PathRecvedData(SinglePath* path)
 
     // extract data from path
     NS_LOG_DEBUG("MpConnection[" << m_connID <<" ] PathRecvedData, m_recvSeqNum =" <<
-                m_recvSeqNum << "path->m_rxHeadSeqNum = "<< path->m_rxHeadSeqNum);
-    while (m_recvSeqNum == path->m_rxHeadSeqNum)
+                m_recvSeqNum << "path->m_rxHeadSeqNum = "<< path->HeadPacketSeqNum());
+    while (m_recvSeqNum == path->HeadPacketSeqNum() || path->HeadPacketSeqNum() != MpDataSeqNum(0))
     {
         Ptr<Packet> pack = nullptr;
         pack = path->Recv();
         NS_ASSERT_MSG(pack != nullptr, "pack is null.");
 
-        // remove header
-        MultipathHeaderDSN header;
-        pack->RemoveHeader(header);
-
-        // add to rx buffer
-        NS_LOG_DEBUG("MpConnection[" << m_connID << "] Recv data, seqnum = "
-                    << header.GetDataSeqNum() << ", len = " << header.GetDataLen());
         m_rxBuffer.push(pack);
 
         m_recvSeqNum += pack->GetSize(); // renew seqnum
+        NS_LOG_DEBUG("MpConnection[" << m_connID << "] received data, renewed m_recvSeqNum = " << m_recvSeqNum);
         m_rxTotalBytes += pack->GetSize();
     }
 
@@ -543,12 +565,16 @@ MultipathConnection::AddRawPath(SinglePath* path, bool ready)
     NS_ASSERT(path);
     if (ready)
     {
+        NS_LOG_DEBUG("Add new ready path");
         m_rawReadyPath.push(path);
     }
     else
     {
+        NS_LOG_DEBUG("Add new fail path");
         m_rawFailPath.push(path);
     }
+
+    NS_LOG_DEBUG("m_rawReadyPath.size() = " << m_rawReadyPath.size() << ", m_rawFailPath.size() = " << m_rawFailPath.size() << ", m_pathNum = " << m_pathNum);
     if ((int32_t)(m_rawReadyPath.size() + m_rawFailPath.size()) == m_pathNum)
     {
         // start build connection
@@ -868,13 +894,16 @@ SinglePath::Send(Ptr<Packet> pkt)
 
     int32_t ret = 0;
     NS_LOG_DEBUG("SinglePath[" << m_pathId << "] send packet. Size: " << pkt->GetSize());
+    //NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet. Size: " << pkt->GetSize());
     ret = m_socket->Send(pkt);
     if (ret <= 0)
     {
         NS_LOG_ERROR("SinglePath[" << m_pathId << "] send packet failed.");
+        NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet fail. Size: " << m_txTotalBytes);
     }else
     {
         m_txTotalBytes += ret;
+        NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet success. Size: " << m_txTotalBytes);
     }
 
     return ret;
@@ -890,22 +919,45 @@ SinglePath::Recv()
         return nullptr;
     }
 
-    Ptr<Packet> pack = nullptr;
-    if (!m_rxBuffer.empty())
-    {
-        pack = m_rxBuffer.front();
-        m_rxBuffer.pop();
+    Ptr<Packet> packet = m_rxBuffer.front();
+    m_rxBuffer.pop();
+    MultipathHeaderDSN pktHeader;
+    packet->RemoveHeader(pktHeader);
 
-        //renew head seq num of m_rxBuffer
-        MultipathHeaderDSN header;
-        pack->PeekHeader(header);
-        m_rxHeadSeqNum = header.GetDataSeqNum();
-    }else
+    return packet;
+}
+
+MpDataSeqNum
+SinglePath::HeadPacketSeqNum()
+{
+    NS_LOG_DEBUG("SinglePath[" << m_pathId << "] Getting HeadPacketSeqNum.");
+    MpDataSeqNum headSeq(0);
+    if (m_rxBuffer.empty())
     {
-        m_rxHeadSeqNum = 0;
+        NS_LOG_DEBUG("SinglePath[" << m_pathId << "] rx buffer is empty.");
+        return headSeq;
     }
 
-    return pack;
+    Ptr<Packet> pack = m_rxBuffer.front();
+    MultipathHeaderDSN header;
+    NS_LOG_DEBUG("SinglePath[" << m_pathId << "] rx buffer size: " << m_rxBuffer.size());
+    pack->PeekHeader(header);
+    headSeq = header.GetDataSeqNum();
+
+    return headSeq;
+}
+
+int32_t
+SinglePath::PathBind(Address remote)
+{
+    if (m_socket == nullptr)
+    {
+        NS_LOG_ERROR("Socket not initialized.");
+        return -1;
+    }
+
+    m_socket->Bind(remote);
+    return 0;
 }
 
 /**
@@ -920,7 +972,8 @@ SinglePath::PathConnect()
         return -1;
     }
 
-    m_socket->Bind();
+    //m_socket->Bind();
+    NS_LOG_DEBUG("SinglePath[" << m_pathId << "] connecting to " << m_remoteIf.first << ":" << m_remoteIf.second);
     m_socket->Connect(InetSocketAddress(m_remoteIf.first, m_remoteIf.second));
 
     m_socket->SetConnectCallback(MakeCallback(&SinglePath::PathConnectSucceeded, this),
@@ -1151,15 +1204,10 @@ SinglePath::ProcessConnected()
         packet->PeekHeader(dsnHeader);
 
         // check whether the packet Header and payload match
-        NS_ASSERT_MSG(dsnHeader.GetDataLen() + dsnHeader.GetSerializedSize() == packet->GetSize(),
-                      "Path Header and Payload don't match.");
-
-        // first packet in the buffer, renew head sequence number
-        if (m_rxHeadSeqNum.GetValue() == 0 || m_rxBuffer.empty())
-        {
-            NS_LOG_DEBUG("SinglePath[" << m_pathId << "] first packet in the buffer, renew head sequence number.");
-            m_rxHeadSeqNum = dsnHeader.GetDataSeqNum();
-        }
+        //NS_ASSERT_MSG(dsnHeader.GetDataLen() + dsnHeader.GetSerializedSize() == packet->GetSize(),
+        //              "Path Header and Payload don't match.");
+        
+        //dsnHeader.Print(std::cout);
 
         Ptr<Packet> rcvPacket = packet->Copy();
         m_rxBuffer.push(rcvPacket);
