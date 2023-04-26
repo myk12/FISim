@@ -28,6 +28,8 @@ namespace ns3
 #define NAME_RESOLUTION_SERVICE_PORT (5353)
 #define CYBERTWIN_EDGESERVER_CONTROLLER_PORT (2323)         //Tranportation Layer cybertwin controller server port.
 
+#define CYBERTWIN_RXBUFFER_MAXSIZE  (10000)
+
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\
     connid = key1;  \

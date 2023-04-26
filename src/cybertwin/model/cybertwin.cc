@@ -151,6 +151,7 @@ void
 Cybertwin::LocalConnCreatedCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this);
+    m_hostSocket = socket;
     socket->SetRecvCallback(MakeCallback(&Cybertwin::RecvFromSocket, this));
 }
 
@@ -200,11 +201,13 @@ Cybertwin::RecvFromSocket(Ptr<Socket> socket)
                 // packet from host
                 RecvLocalPacket(header, buffer->CreateFragment(0, header.GetSize()));
             }
+#if 0
             else if (header.GetPeer() == m_cybertwinId)
             {
                 // packet from cybertwin
                 RecvGlobalPacket(header, buffer->CreateFragment(0, header.GetSize()));
             }
+#endif
             else
             {
                 NS_LOG_ERROR("UNKNOWN PACKET");
@@ -346,18 +349,19 @@ Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
 {
     NS_LOG_DEBUG("New connection created: " << conn->GetConnID());
     NS_ASSERT_MSG(conn != nullptr, "Connection is null");
-    if (m_txPendingBuffer.find(conn->m_peerCyberID) != m_txPendingBuffer.end())
+    CYBERTWINID_t peerCuid = conn->m_peerCyberID;
+    if (m_txPendingBuffer.find(peerCuid) != m_txPendingBuffer.end())
     {
         // case1: txPendingBuffer not empty means this cybertwin have initiated a connection request
-        NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection with " << conn->m_peerCyberID
+        NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: connection with " << peerCuid
                                   << " is successfully established");
 
         // erase the connection from pendingConnections, and insert it to txConnections
-        m_pendingConnections.erase(conn->m_peerCyberID);
-        m_txConnections[conn->m_peerCyberID] = conn;
+        m_pendingConnections.erase(peerCuid);
+        m_txConnections[peerCuid] = conn;
 
         // after connection created, we schedule a send event to send pending packets
-        Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, conn->m_peerCyberID);
+        Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, peerCuid);
     }
     else
     {
@@ -365,8 +369,8 @@ Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
         //  successfully created a connection
         NS_LOG_DEBUG(
             "Cybertwin[" << m_cybertwinId << "]: DataServer received a connection request from "
-                         << conn->m_peerCyberID << " and successfully created a connection");
-        m_rxConnections[conn->m_peerCyberID] = conn;
+                         << peerCuid << " and successfully created a connection");
+        m_rxConnections[peerCuid] = conn;
     }
 
     conn->SetRecvCallback(MakeCallback(&Cybertwin::MpConnectionRecvCallback, this));
@@ -378,12 +382,48 @@ Cybertwin::MpConnectionRecvCallback(MultipathConnection* conn)
 {
     NS_ASSERT_MSG(conn != nullptr, "Connection is null");
     Ptr<Packet> packet;
+    CYBERTWINID_t peerCuid = conn->m_peerCyberID;
     while ((packet = conn->Recv()))
     {
         NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
                                << "]: received packet from " << conn->m_peerCyberID << " with size "
                                << packet->GetSize() << " bytes");
         // TODO: what to do next? Send to client or save to buffer.
+        m_rxPendingBuffer[peerCuid].push(packet);
+    }
+
+    // send to endhost
+    Simulator::ScheduleNow(&Cybertwin::ForwardData2Endhost, this, peerCuid);
+}
+
+void
+Cybertwin::ForwardData2Endhost(CYBERTWINID_t peerCuid)
+{
+    NS_ASSERT_MSG(m_rxPendingBuffer.find(peerCuid) != m_rxPendingBuffer.end(), 
+                "Error, No pending data from Cybertwin: " << peerCuid);
+
+    // forward data to endhost
+    std::queue<Ptr<Packet>> pktBuffer = m_rxPendingBuffer[peerCuid];
+    while (!pktBuffer.empty())
+    {
+
+        int32_t ret = -1;
+        Ptr<Packet> pkt = pktBuffer.front();
+    
+        if (m_hostSocket != nullptr)
+        {
+            ret = m_hostSocket->Send(pkt);
+        }
+
+        if ((ret >= 0) || (pktBuffer.size() > CYBERTWIN_RXBUFFER_MAXSIZE))
+        {
+            // send success or buffer overflow
+            pktBuffer.pop();
+        }else if ((ret < 0) && (pktBuffer.size() <= CYBERTWIN_RXBUFFER_MAXSIZE))
+        {
+            // send error with enough buffer size
+            break;
+        }
     }
 }
 

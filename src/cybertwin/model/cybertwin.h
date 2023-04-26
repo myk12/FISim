@@ -26,6 +26,7 @@ class CybertwinEdgeServer;
 
 class Cybertwin : public Application
 {
+    friend class CybertwinController;
   public:
     typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
 #if MDTP_ENABLED
@@ -66,6 +67,9 @@ class Cybertwin : public Application
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
 
+    //***************************************************************
+    //*             Multipath Related Functions                     *
+    //***************************************************************
 #if MDTP_ENABLED
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
@@ -84,6 +88,8 @@ class Cybertwin : public Application
     void SocketConnectWithResolvedCybertwinName(Ptr<Socket> sock,
                                                 CYBERTWINID_t cyberid,
                                                 CYBERTWIN_INTERFACE_LIST_t ifs);
+
+    void ForwardData2Endhost(CYBERTWINID_t peerCuid);
 
     CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
@@ -112,6 +118,8 @@ class Cybertwin : public Application
     Ptr<Socket> m_localSocket;
     uint16_t m_localPort;
 
+    Ptr<Socket> m_hostSocket;
+
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
 
@@ -123,8 +131,8 @@ class Cybertwin : public Application
     CybertwinDataTransferServer* m_dtServer;
 #else
     Ptr<Socket> m_dtServer;
-
 #endif
+
 };
 
 }; // namespace ns3
