@@ -34,6 +34,7 @@
 #include "ns3/trace-source-accessor.h"
 #include "ns3/udp-socket-factory.h"
 #include "ns3/udp-socket.h"
+#include "ns3/uinteger.h"
 
 namespace ns3
 {
@@ -55,6 +56,11 @@ PacketSink::GetTypeId()
                           AddressValue(),
                           MakeAddressAccessor(&PacketSink::m_local),
                           MakeAddressChecker())
+            .AddAttribute("DevIdx",
+                          "The device id to be bind.",
+                          UintegerValue(),
+                          MakeUintegerAccessor(&PacketSink::m_lastDevIdx),
+                          MakeUintegerChecker<uint32_t>())
             .AddAttribute("Protocol",
                           "The type id of the protocol to use for the rx socket.",
                           TypeIdValue(UdpSocketFactory::GetTypeId()),
@@ -85,6 +91,7 @@ PacketSink::PacketSink()
     NS_LOG_FUNCTION(this);
     m_socket = nullptr;
     m_totalRx = 0;
+    m_lastDevIdx = 1;
 }
 
 PacketSink::~PacketSink()
@@ -139,6 +146,9 @@ PacketSink::StartApplication() // Called at time specified by Start
         }
         m_socket->Listen();
         m_socket->ShutdownSend();
+        Ptr<NetDevice> ndev = GetNode()->GetDevice(m_lastDevIdx);
+        m_socket->BindToNetDevice(ndev);
+        NS_LOG_UNCOND("# Server try to bind socket "<< m_socket <<" to "<<ndev);
         if (addressUtils::IsMulticast(m_local))
         {
             Ptr<UdpSocket> udpSocket = DynamicCast<UdpSocket>(m_socket);
@@ -172,6 +182,7 @@ PacketSink::StartApplication() // Called at time specified by Start
                                 MakeCallback(&PacketSink::HandleAccept, this));
     m_socket->SetCloseCallbacks(MakeCallback(&PacketSink::HandlePeerClose, this),
                                 MakeCallback(&PacketSink::HandlePeerError, this));
+    Simulator::Schedule(Seconds(1.0), &PacketSink::CountReceivedBytes, this);
 }
 
 void
@@ -308,6 +319,14 @@ PacketSink::HandleAccept(Ptr<Socket> s, const Address& from)
     NS_LOG_FUNCTION(this << s << from);
     s->SetRecvCallback(MakeCallback(&PacketSink::HandleRead, this));
     m_socketList.push_back(s);
+}
+
+void
+PacketSink::CountReceivedBytes()
+{
+    NS_LOG_DEBUG("# server: Received "<<m_totalRx<<" Bytes from Dev" << m_lastDevIdx <<  " in last second.");
+    m_totalRx = 0;
+    Simulator::Schedule(Seconds(1.0), &PacketSink::CountReceivedBytes, this);
 }
 
 } // Namespace ns3

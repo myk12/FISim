@@ -285,7 +285,7 @@ Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
         // connection not created yet, initiate a new connection
 #if MDTP_ENABLED
         conn = new MultipathConnection();
-        conn->Setup(GetNode(), m_cybertwinId);
+        conn->Setup(GetNode(), m_cybertwinId, m_interfaces);
         conn->Connect(peerCuid);
         // send pending packets by callback after connection is created
         conn->SetConnectCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this),
@@ -334,6 +334,31 @@ Cybertwin::ForwardLocalPacket(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t& if
     for (auto interface : ifs)
     {
         NS_LOG_DEBUG(interface.first << interface.second);
+    }
+}
+
+void
+Cybertwin::CybertwinServerBulkSend(
+#if MDTP_ENABLED
+    MultipathConnection* conn
+#else
+    Ptr<Socket> conn
+#endif
+)
+{
+    NS_ASSERT_MSG(conn, "Connection is null");
+
+    if (m_serverTxBytes < 100 * 1024 * 1024) //100GB
+    {
+        Ptr<Packet> packet = Create<Packet>(516);
+        conn->Send(packet);
+        m_serverTxBytes++;
+
+        // 516 bytes / 1000 ns = 516MBps
+        Simulator::Schedule(NanoSeconds(100),
+                            &Cybertwin::CybertwinServerBulkSend,
+                            this,
+                            conn);
     }
 }
 
@@ -399,7 +424,7 @@ Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
         m_rxConnections[conn->m_peerCyberID] = conn;
         m_rxSizePerSecond[conn->m_peerCyberID] = 0;
         Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, conn->m_peerCyberID);
-        Simulator::ScheduleNow(&CybertwinDataTransferServer::DtServerBulkSend, this->m_dtServer, conn);
+        Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, conn);
     }
 
     conn->SetRecvCallback(MakeCallback(&Cybertwin::MpConnectionRecvCallback, this));
@@ -489,6 +514,7 @@ Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
 
         // after connection created, we schedule a send event to send pending packets
         Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, peerid);
+        Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, sock);
     }
     else
     {
@@ -505,6 +531,7 @@ Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
         m_rxSizePerSecond[sock] = 0;
 
         Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, sock);
+        Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, sock);
     }
 
     sock->SetRecvCallback(MakeCallback(&Cybertwin::SpConnectionRecvCallback, this));

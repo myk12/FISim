@@ -73,6 +73,15 @@ class Cybertwin : public Application
         Ptr<Socket> sock
 #endif
     );
+
+    void CybertwinServerBulkSend(
+#if MDTP_ENABLED
+        MultipathConnection* conn
+#else
+        Ptr<Socket> sock
+#endif
+    );
+
 #if MDTP_ENABLED
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
@@ -137,8 +146,9 @@ class Cybertwin : public Application
     CybertwinDataTransferServer* m_dtServer;
 #else
     Ptr<Socket> m_dtServer;
-
 #endif
+
+    uint64_t m_serverTxBytes; //number of sent KB
 };
 
 }; // namespace ns3

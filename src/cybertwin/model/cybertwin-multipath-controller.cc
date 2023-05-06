@@ -63,23 +63,32 @@ void
 CybertwinDataTransferServer::Listen()
 {
     // get cybertwin interface
+    Ptr<NetDevice> netDevice = nullptr;
+    Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
+    NS_ASSERT_MSG(ipv4, "Ipv4 is null.");
+
     for (auto interface : m_cybertwinIfs)
     {
-        NS_LOG_DEBUG("Start listen in " << interface.first << ":" << interface.second);
+        // create listen socket
         Ptr<Socket> cyberEar = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-        int ret = -1;
+
+        // bind socket to netdevice
+        netDevice = ipv4->GetNetDevice(ipv4->GetInterfaceForAddress(interface.first));
+        NS_ASSERT_MSG(netDevice, "NetDevice is null.");
+        cyberEar->BindToNetDevice(netDevice);
+        NS_LOG_DEBUG("DTServer socket bind to netdevice: " << netDevice);
+
+        // bind socket
         InetSocketAddress inetAddress = InetSocketAddress(interface.first, interface.second);
-        ret = cyberEar->Bind(inetAddress);
-        if (ret < 0)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
+        NS_ASSERT(cyberEar->Bind(inetAddress) >= 0);
 
         cyberEar->SetAcceptCallback(
             MakeCallback(&CybertwinDataTransferServer::PathRequestCallback, this),
             MakeCallback(&CybertwinDataTransferServer::PathCreatedCallback, this));
 
         cyberEar->Listen();
+        
+        NS_LOG_DEBUG("Start listen in " << interface.first << ":" << interface.second);
     }
 }
 
@@ -317,10 +326,12 @@ MultipathConnection::MultipathConnection(SinglePath* path)
 }
 
 void
-MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid)
+MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid, CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     m_node = node;
     m_localCyberID = cyberid;
+    m_interfaces = interfaces;
+
     if (rand == nullptr)
     {
         rand = CreateObject<UniformRandomVariable>();
@@ -353,46 +364,32 @@ MultipathConnection::OnCybertwinInterfaceResolved(CYBERTWINID_t peerId,
                                                   CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("Cybertwin interface resolved, connect.");
+    m_pathNum = m_interfaces.size();
     NS_LOG_DEBUG("Cybertwin " << peerId << " contain " << m_pathNum << " interfaces.");
     Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
     NS_ASSERT_MSG(ipv4, "Ipv4 is null.");
-    std::vector<Ipv4Address> addrVector;
+    Ptr<NetDevice> netDevice = nullptr;
 
-    int32_t it = 1;
-
-    for (uint32_t i=0; i<ipv4->GetNInterfaces(); i++)
+    uint32_t pathNum = 0;
+    for (auto itf:m_interfaces)
     {
-        for (uint32_t j=0; j<ipv4->GetNAddresses(i); j++)
-        {
-            NS_LOG_DEBUG("Interface " << i << " address " << ipv4->GetAddress(i, j));
-            Ipv4InterfaceAddress iaddr = ipv4->GetAddress(i, j);
-            Ipv4Address ipaddr = iaddr.GetLocal();
-            if (ipaddr != Ipv4Address::GetAny() && ipaddr != Ipv4Address::GetLoopback()
-                && ipaddr.CombineMask("255.0.0.0") != "10.0.0.0")
-            {
-                addrVector.push_back(ipaddr);
-                SinglePath* path = new SinglePath();
-                int32_t ret = -1;
-                Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-                NS_LOG_DEBUG("Socket Bind to " << ipaddr);
-                InetSocketAddress bindaddr = InetSocketAddress(ipaddr, 0);
-                ret = sock->Bind(bindaddr);
-                if (ret < 0)
-                {
-                    NS_FATAL_ERROR("Socket bind failed.");
-                }
-                path->SetSocket(sock);
-                path->SetRemoteInteface(interfaces[it++]);
-                path->SetLocalKey(m_localKey);
-                path->SetLocalCybertwinID(m_localCyberID);
-                path->SetConnection(this);
-                path->SetPathId(m_pathNum);
+        NS_LOG_DEBUG("Using interface : "<<itf);
+        SinglePath* path = new SinglePath();
+        Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
 
-                path->PathConnect();
+        // find netdevice by ipaddr and bind socket to it
+        netDevice = ipv4->GetNetDevice(ipv4->GetInterfaceForAddress(itf.first));
+        NS_ASSERT_MSG(netDevice, "NetDevice is null.");
+        sock->BindToNetDevice(netDevice);
+        
+        path->SetSocket(sock);
+        path->SetRemoteInteface(interfaces[pathNum++]);
+        path->SetLocalKey(m_localKey);
+        path->SetLocalCybertwinID(m_localCyberID);
+        path->SetConnection(this);
 
-                m_pathNum++;
-            }
-        }
+        path->PathConnect();
+        NS_LOG_UNCOND("Conn[" << m_localKey <<"]: born a path with :("<< sock << ", " <<netDevice <<")");
     }
 }
 
@@ -453,8 +450,8 @@ MultipathConnection::SendData()
     while (counter < MULTIPATH_MAXSENT_PACKET_ONCE && !m_txBuffer.empty())
     {
         Ptr<Packet> pkt = m_txBuffer.front();
-        m_txBuffer.pop();
         m_paths[pathIndex]->Send(pkt);
+        m_txBuffer.pop();
 
         counter++;
         MultipathHeaderDSN header;
@@ -893,17 +890,17 @@ SinglePath::Send(Ptr<Packet> pkt)
     }
 
     int32_t ret = 0;
-    NS_LOG_DEBUG("SinglePath[" << m_pathId << "] send packet. Size: " << pkt->GetSize());
+    //NS_LOG_DEBUG("SinglePath[" << m_pathId << "] send packet. Size: " << pkt->GetSize());
     //NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet. Size: " << pkt->GetSize());
     ret = m_socket->Send(pkt);
     if (ret <= 0)
     {
-        NS_LOG_ERROR("SinglePath[" << m_pathId << "] send packet failed.");
-        NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet fail. Size: " << m_txTotalBytes);
+        //NS_LOG_ERROR("SinglePath[" << m_pathId << "] send packet failed.");
+        //NS_LOG_DEBUG("SinglePath[" << m_pathId << "] send packet fail. Size: " << m_txTotalBytes);
     }else
     {
         m_txTotalBytes += ret;
-        NS_LOG_UNCOND("SinglePath[" << m_pathId << "] send packet success. Size: " << m_txTotalBytes);
+        NS_LOG_DEBUG("SinglePath[" << m_pathId << "] send packet success. Size: " << m_txTotalBytes);
     }
 
     return ret;

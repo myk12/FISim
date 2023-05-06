@@ -105,7 +105,7 @@ public:
     Ptr<Packet> Recv();
     int32_t Send(Ptr<Packet> packet);
     //int32_t Listen();
-    void Setup(Ptr<Node> node, CYBERTWINID_t localCybertwinID);
+    void Setup(Ptr<Node> node, CYBERTWINID_t localCybertwinID, CYBERTWIN_INTERFACE_LIST_t interfaces);
     void Connect(CYBERTWINID_t cyberid);
     int32_t Close();    //close the connection
 
@@ -128,7 +128,6 @@ public:
     void SetConnID(MP_CONN_ID_t id);
     MP_CONN_ID_t GetConnID();
     void SetConnState(MP_CONN_STATE state);
-
 
     //callback
     void SetConnectCallback(Callback<void, MultipathConnection*> succeedCb,
@@ -155,6 +154,10 @@ private:
     MP_CONN_KEY_t m_remoteKey;
     CYBERTWINID_t m_localCyberID;
     CYBERTWINID_t m_peerCyberID;
+    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+
+    // interfaces
+    std::vector<Ipv4Interface> m_Ipv4Ifs;
 
     //data transfer
     std::vector<SinglePath*> m_paths;

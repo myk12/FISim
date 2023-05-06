@@ -63,6 +63,11 @@ BulkSendApplication::GetTypeId()
                           AddressValue(),
                           MakeAddressAccessor(&BulkSendApplication::m_local),
                           MakeAddressChecker())
+            .AddAttribute("DevIndex",
+                          "The index of the device to bind.",
+                          UintegerValue(),
+                          MakeUintegerAccessor(&BulkSendApplication::m_devIdx),
+                          MakeUintegerChecker<uint32_t>())
             .AddAttribute("MaxBytes",
                           "The total number of bytes to send. "
                           "Once these bytes are sent, "
@@ -138,6 +143,11 @@ BulkSendApplication::StartApplication() // Called at time specified by Start
     NS_LOG_FUNCTION(this);
     Address from;
 
+    Ptr<Node> node = GetNode();
+    uint32_t dev_num = node->GetNDevices();
+    NS_LOG_UNCOND("Node with " << dev_num <<" device.");
+    
+
     // Create the socket if not already
     if (!m_socket)
     {
@@ -160,7 +170,19 @@ BulkSendApplication::StartApplication() // Called at time specified by Start
                                 (InetSocketAddress::IsMatchingType(m_peer) &&
                                  Inet6SocketAddress::IsMatchingType(m_local)),
                             "Incompatible peer and local address IP version");
+            Ipv4Address bindaddr = InetSocketAddress::ConvertFrom(m_local).GetIpv4();
+            uint16_t port = InetSocketAddress::ConvertFrom(m_local).GetPort();
+
+            NS_LOG_UNCOND(bindaddr<<":"<<port);
+            Ptr<NetDevice> ndev = GetNode()->GetDevice(m_devIdx);
+            NS_LOG_UNCOND("- Clinent: Try to bind to dev: " << ndev);
+            m_socket->BindToNetDevice(ndev);
             ret = m_socket->Bind(m_local);
+            if (ret < 0)
+            {
+                NS_FATAL_ERROR("Failed to bind.");
+            }
+
         }
         else
         {
@@ -299,7 +321,7 @@ void
 BulkSendApplication::ConnectionSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_LOGIC("BulkSendApplication Connection succeeded");
+    NS_LOG_UNCOND("BulkSendApplication Connection succeeded");
     m_connected = true;
     Address from;
     Address to;
@@ -312,7 +334,7 @@ void
 BulkSendApplication::ConnectionFailed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_LOGIC("BulkSendApplication, Connection Failed");
+    NS_LOG_UNCOND("BulkSendApplication, Connection Failed");
 }
 
 void

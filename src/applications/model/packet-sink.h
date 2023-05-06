@@ -185,6 +185,8 @@ class PacketSink : public Application
         }
     };
 
+    void CountReceivedBytes();
+
     std::unordered_map<Address, Ptr<Packet>, AddressHash> m_buffer; //!< Buffer for received packets
 
     // In the case of TCP, each socket accept returns a new socket, so the
@@ -207,6 +209,8 @@ class PacketSink : public Application
     /// headers
     TracedCallback<Ptr<const Packet>, const Address&, const Address&, const SeqTsSizeHeader&>
         m_rxTraceWithSeqTsSize;
+
+    uint32_t m_lastDevIdx;
 };
 
 } // namespace ns3

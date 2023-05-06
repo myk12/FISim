@@ -148,6 +148,8 @@ class CybertwinController : public Application
     Address m_localAddr;
     uint64_t m_localPort;
     std::vector<Ipv4Address> m_localIpv4AddrList;
+    std::vector<Ipv4Address> m_globalIpv4AddrList;
+    std::vector<Ptr<Ipv4Interface>> m_globalIpv4IfList;
 
     Ptr<Socket> m_socket;
     std::unordered_map<CYBERTWINID_t, Ptr<Cybertwin>> m_cybertwinTable;

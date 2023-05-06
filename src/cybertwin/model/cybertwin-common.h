@@ -16,9 +16,9 @@ namespace ns3
 //*****************************************************************
 //*                 COMPILE OPTIONS                               *
 //*****************************************************************
-#define MDTP_ENABLED 1  //1: enable MDTP, 0: disable MDTP
+#define MDTP_ENABLED 0  //1: enable MDTP, 0: disable MDTP
 
-#define CORE_CLOUD_REPLICATION_RATIO (0)
+#define CORE_CLOUD_REPLICATION_RATIO (1)
 
 #define TX_MAX_NUM (128)
 #define DEFAULT_PAYLOAD_LEN (128)
