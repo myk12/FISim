@@ -133,6 +133,8 @@ class BulkSendApplication : public Application
     Ptr<Packet> m_unsentPacket;          //!< Variable to cache unsent packet
     bool m_enableSeqTsSizeHeader{false}; //!< Enable or disable the SeqTsSizeHeader
 
+    uint32_t m_devIdx;
+
     /// Traced Callback: sent packets
     TracedCallback<Ptr<const Packet>> m_txTrace;
 
