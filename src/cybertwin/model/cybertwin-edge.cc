@@ -65,7 +65,6 @@ CybertwinController::StartApplication()
     NS_LOG_FUNCTION(GetNode()->GetId());
 
     NS_LOG_DEBUG("Start CybertwinController application");
-    std::vector<Ptr<Ipv4Interface>> globalInterfaces;
     Ptr<Ipv4L3Protocol> ipv4 = GetNode()->GetObject<Ipv4L3Protocol>();
     for (uint32_t i = 0; i < ipv4->GetNInterfaces(); i++)
     {
@@ -76,12 +75,22 @@ CybertwinController::StartApplication()
         if (ifaddr == Ipv4Address::GetAny() ||
             ifaddr == Ipv4Address::GetLoopback() ||
             ifaddr == m_localAddr)
+        Ptr<Ipv4Interface> ipv4If = ipv4->GetInterface(i);
+        Ipv4Address ifaddr = ipv4If->GetAddress(0).GetAddress();
+
+        NS_LOG_UNCOND("Checkt address : "<<ifaddr);
+        if (ifaddr == Ipv4Address::GetAny() ||
+            ifaddr == Ipv4Address::GetLoopback() ||
+            ifaddr == m_localAddr)
         {
+            NS_LOG_UNCOND("Skip this address.");
+            continue;
             NS_LOG_UNCOND("Skip this address.");
             continue;
         }
         NS_LOG_UNCOND("record this address.");
-        globalInterfaces.push_back(ipv4If);
+        m_globalIpv4AddrList.push_back(ifaddr);
+        m_globalIpv4IfList.push_back(ipv4If);
     }
 
     GetNode()->SetCybertwinFirewall(MakeCallback(&CybertwinController::InspectPacket, this));
@@ -298,7 +307,7 @@ void
 CybertwinController::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << ifs);
-    for (auto addr : m_localIpv4AddrList)
+    for (auto addr : m_globalIpv4AddrList)
     {
         CYBERTWIN_INTERFACE_t interface;
         do

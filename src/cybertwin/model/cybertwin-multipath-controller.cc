@@ -63,23 +63,32 @@ void
 CybertwinDataTransferServer::Listen()
 {
     // get cybertwin interface
+    Ptr<NetDevice> netDevice = nullptr;
+    Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
+    NS_ASSERT_MSG(ipv4, "Ipv4 is null.");
+
     for (auto interface : m_cybertwinIfs)
     {
-        NS_LOG_DEBUG("Start listen in " << interface.first << ":" << interface.second);
+        // create listen socket
         Ptr<Socket> cyberEar = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
-        int ret = -1;
+
+        // bind socket to netdevice
+        netDevice = ipv4->GetNetDevice(ipv4->GetInterfaceForAddress(interface.first));
+        NS_ASSERT_MSG(netDevice, "NetDevice is null.");
+        cyberEar->BindToNetDevice(netDevice);
+        NS_LOG_DEBUG("DTServer socket bind to netdevice: " << netDevice);
+
+        // bind socket
         InetSocketAddress inetAddress = InetSocketAddress(interface.first, interface.second);
-        ret = cyberEar->Bind(inetAddress);
-        if (ret < 0)
-        {
-            NS_FATAL_ERROR("Failed to bind socket");
-        }
+        NS_ASSERT(cyberEar->Bind(inetAddress) >= 0);
 
         cyberEar->SetAcceptCallback(
             MakeCallback(&CybertwinDataTransferServer::PathRequestCallback, this),
             MakeCallback(&CybertwinDataTransferServer::PathCreatedCallback, this));
 
         cyberEar->Listen();
+        
+        NS_LOG_DEBUG("Start listen in " << interface.first << ":" << interface.second);
     }
 }
 
@@ -315,10 +324,12 @@ MultipathConnection::MultipathConnection(SinglePath* path)
 }
 
 void
-MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid)
+MultipathConnection::Setup(Ptr<Node> node, CYBERTWINID_t cyberid, CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     m_node = node;
     m_localCyberID = cyberid;
+    m_interfaces = interfaces;
+
     if (rand == nullptr)
     {
         rand = CreateObject<UniformRandomVariable>();
@@ -351,20 +362,32 @@ MultipathConnection::OnCybertwinInterfaceResolved(CYBERTWINID_t peerId,
                                                   CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("Cybertwin interface resolved, connect.");
-    m_pathNum = interfaces.size();
+    m_pathNum = m_interfaces.size();
     NS_LOG_DEBUG("Cybertwin " << peerId << " contain " << m_pathNum << " interfaces.");
-    for (int32_t i = 0; i < m_pathNum; i++)
+    Ptr<Ipv4> ipv4 = m_node->GetObject<Ipv4>();
+    NS_ASSERT_MSG(ipv4, "Ipv4 is null.");
+    Ptr<NetDevice> netDevice = nullptr;
+
+    uint32_t pathNum = 0;
+    for (auto itf:m_interfaces)
     {
-        NS_LOG_DEBUG("Connecting No." << i << " interface.");
+        NS_LOG_DEBUG("Using interface : "<<itf);
         SinglePath* path = new SinglePath();
         Ptr<Socket> sock = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
+
+        // find netdevice by ipaddr and bind socket to it
+        netDevice = ipv4->GetNetDevice(ipv4->GetInterfaceForAddress(itf.first));
+        NS_ASSERT_MSG(netDevice, "NetDevice is null.");
+        sock->BindToNetDevice(netDevice);
+        
         path->SetSocket(sock);
-        path->SetRemoteInteface(interfaces[i]);
+        path->SetRemoteInteface(interfaces[pathNum++]);
         path->SetLocalKey(m_localKey);
         path->SetLocalCybertwinID(m_localCyberID);
         path->SetConnection(this);
 
         path->PathConnect();
+        NS_LOG_UNCOND("Conn[" << m_localKey <<"]: born a path with :("<< sock << ", " <<netDevice <<")");
     }
 }
 

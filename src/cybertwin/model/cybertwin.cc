@@ -283,7 +283,7 @@ Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
         // connection not created yet, initiate a new connection
 #if MDTP_ENABLED
         conn = new MultipathConnection();
-        conn->Setup(GetNode(), m_cybertwinId);
+        conn->Setup(GetNode(), m_cybertwinId, m_interfaces);
         conn->Connect(peerCuid);
         // send pending packets by callback after connection is created
         conn->SetConnectCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this),

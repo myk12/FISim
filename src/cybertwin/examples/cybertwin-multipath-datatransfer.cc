@@ -256,7 +256,7 @@ MultipathDataTransferApp::test_client()
 {
     MultipathConnection* conn_client;
     conn_client = new MultipathConnection();
-    conn_client->Setup(GetNode(), m_localCyberID);
+    conn_client->Setup(GetNode(), m_localCyberID, m_localIfs);
     conn_client->Connect(m_remoteCyberID);
 
     conn_client->SetConnectCallback(MakeCallback(&MultipathDataTransferApp::ClientConnectSucceedHandler, this),
