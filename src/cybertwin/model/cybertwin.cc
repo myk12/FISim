@@ -383,6 +383,7 @@ Cybertwin::UpdateRxSizePerSecond(
     }
 
     uint64_t recved = m_rxSizePerSecond[id];
+    float speed = recved / (STATISTIC_TIME_INTERVAL / 1000.0) / 1000000 * 8;
     m_rxSizePerSecond[id] = 0;
 
     NS_LOG_UNCOND("Cybertwin[" << m_cybertwinId << "]: received " << recved << " bytes in last 10ms");
@@ -391,7 +392,7 @@ Cybertwin::UpdateRxSizePerSecond(
         m_MpLogFile.open(m_MpLogFileName, std::ios::out | std::ios::app);
         NS_ASSERT_MSG(m_MpLogFile.is_open(), "Open log file failed.");
     }
-    m_MpLogFile<<Simulator::Now().GetSeconds()<<" "<<recved<<std::endl;
+    m_MpLogFile<<Simulator::Now().GetSeconds()<<" "<<speed<<std::endl;
     m_MpLogFile.close();
 
     Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, id);
