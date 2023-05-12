@@ -19,6 +19,8 @@
 #include <queue>
 #include <string>
 #include <unordered_map>
+#include <fstream>
+#include <iostream>
 
 namespace ns3
 {
@@ -118,7 +120,7 @@ class Cybertwin : public Application
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_pendingConnections;
     std::unordered_map<CYBERTWINID_t, MultipathConnection*> m_rxConnections;
     std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
-    std::unordered_map<CYBERTWINID_t, uint64_t> m_rxSizePerSecond;
+    std::unordered_map<CYBERTWINID_t, TracedValue<uint64_t>> m_rxSizePerSecond;
 #else  // Naive Socket
     std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txConnections;
     std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_txConnectionsReverse;
@@ -127,7 +129,7 @@ class Cybertwin : public Application
     std::unordered_set<Ptr<Socket>> m_rxConnections;
     std::unordered_map<Ptr<Socket>, Address> m_rxConnectionsReverse;
     std::unordered_map<Ptr<Socket>, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
-    std::unordered_map<Ptr<Socket>, uint64_t> m_rxSizePerSecond;
+    std::unordered_map<Ptr<Socket>, TracedValue<uint64_t>> m_rxSizePerSecond;
 #endif
 
     CYBERTWINID_t m_cybertwinId;
@@ -148,7 +150,10 @@ class Cybertwin : public Application
     Ptr<Socket> m_dtServer;
 #endif
 
-    uint64_t m_serverTxBytes; //number of sent KB
+    uint64_t m_serverTxBytes; //number of sent times
+
+    std::ofstream m_MpLogFile;
+    std::string m_MpLogFileName;
 };
 
 }; // namespace ns3

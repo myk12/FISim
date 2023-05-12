@@ -365,6 +365,7 @@ CybertwinBulkClient::DoDispose()
     NS_LOG_FUNCTION(this->GetTypeId() << Simulator::Now());
     if (m_socket)
     {
+        m_socket->Close();
         m_socket = nullptr;
     }
     CybertwinClient::DoDispose();

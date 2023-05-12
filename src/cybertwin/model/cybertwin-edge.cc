@@ -218,6 +218,7 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
                     MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
 
                 cybertwin->SetStartTime(Seconds(0.0));
+                cybertwin->SetStopTime(Seconds(NORMAL_SIM_SECONDS));
                 GetNode()->AddApplication(cybertwin);
                 m_cybertwinTable[cuid] = cybertwin;
             }

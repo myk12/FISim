@@ -42,6 +42,11 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
       m_interfaces(g_interfaces)
 {
     NS_LOG_FUNCTION(cuid);
+
+    // init multipath log file
+    m_MpLogFileName = "mp-test-" + std::to_string(cuid) + ".log";
+    m_MpLogFile.open(m_MpLogFileName, std::ios::out);
+    m_MpLogFile.close();
 }
 
 
@@ -355,7 +360,7 @@ Cybertwin::CybertwinServerBulkSend(
         m_serverTxBytes++;
 
         // 516 bytes / 1000 ns = 516MBps
-        Simulator::Schedule(NanoSeconds(100),
+        Simulator::Schedule(MicroSeconds(1),
                             &Cybertwin::CybertwinServerBulkSend,
                             this,
                             conn);
@@ -380,9 +385,16 @@ Cybertwin::UpdateRxSizePerSecond(
     uint64_t recved = m_rxSizePerSecond[id];
     m_rxSizePerSecond[id] = 0;
 
-    NS_LOG_UNCOND("Cybertwin[" << m_cybertwinId << "]: received " << recved << " bytes in last second");
+    NS_LOG_UNCOND("Cybertwin[" << m_cybertwinId << "]: received " << recved << " bytes in last 10ms");
+    if (!m_MpLogFile.is_open())
+    {
+        m_MpLogFile.open(m_MpLogFileName, std::ios::out | std::ios::app);
+        NS_ASSERT_MSG(m_MpLogFile.is_open(), "Open log file failed.");
+    }
+    m_MpLogFile<<Simulator::Now().GetSeconds()<<" "<<recved<<std::endl;
+    m_MpLogFile.close();
 
-    Simulator::Schedule(Seconds(1), &Cybertwin::UpdateRxSizePerSecond, this, id);
+    Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, id);
 }
 
 #if MDTP_ENABLED
@@ -412,7 +424,7 @@ Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
 
         // after connection created, we schedule a send event to send pending packets
         Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, conn->m_peerCyberID);
-        Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, conn->m_peerCyberID);
+        Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, conn->m_peerCyberID);
     }
     else
     {
@@ -423,7 +435,7 @@ Cybertwin::NewMpConnectionCreatedCallback(MultipathConnection* conn)
                          << conn->m_peerCyberID << " and successfully created a connection");
         m_rxConnections[conn->m_peerCyberID] = conn;
         m_rxSizePerSecond[conn->m_peerCyberID] = 0;
-        Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, conn->m_peerCyberID);
+        Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, conn->m_peerCyberID);
         Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, conn);
     }
 
@@ -514,7 +526,7 @@ Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
 
         // after connection created, we schedule a send event to send pending packets
         Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, peerid);
-        Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, sock);
+        Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, sock);
     }
     else
     {
@@ -530,7 +542,7 @@ Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
         m_rxConnectionsReverse[sock] = peeraddr;
         m_rxSizePerSecond[sock] = 0;
 
-        Simulator::Schedule(Seconds(1.0), &Cybertwin::UpdateRxSizePerSecond, this, sock);
+        Simulator::Schedule(MilliSeconds(STATISTIC_TIME_INTERVAL), &Cybertwin::UpdateRxSizePerSecond, this, sock);
         Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, sock);
     }
 

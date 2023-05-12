@@ -58,6 +58,7 @@ CybertwinEndHost::SendTo(CYBERTWINID_t peer, uint32_t size)
     m_bulkClient->SetAttribute("MaxBytes", UintegerValue(size));
     AddApplication(m_bulkClient);
     m_bulkClient->SetStartTime(Seconds(0));
+    m_bulkClient->SetStopTime(Seconds(NORMAL_SIM_SECONDS));
 }
 
 } // namespace ns3
