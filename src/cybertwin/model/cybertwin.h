@@ -1,7 +1,7 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
-#include "../helper/cybertwin-node-edgeserver.h"
+#include "cybertwin-edge-server.h"
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
 #include "cybertwin-multipath-controller.h"

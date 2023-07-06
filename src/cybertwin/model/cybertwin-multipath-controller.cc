@@ -7,7 +7,7 @@
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 #include "cybertwin-name-resolution-service.h"
-#include "ns3/cybertwin-node-edgeserver.h"
+#include "ns3/cybertwin-edge-server.h"
 
 using namespace ns3;
 

@@ -1,6 +1,6 @@
-#include "cybertwin-node-endhost.h"
+#include "cybertwin-end-host.h"
 
-#include "../model/cybertwin-common.h"
+#include "cybertwin-common.h"
 
 namespace ns3
 {

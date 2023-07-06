@@ -1,7 +1,7 @@
-#include "cybertwin-node-coreserver.h"
+#include "cybertwin-core-server.h"
 
-#include "../model/cybertwin-common.h"
-#include "../model/cybertwin-name-resolution-service.h"
+#include "cybertwin-common.h"
+#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {

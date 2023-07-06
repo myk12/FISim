@@ -59,4 +59,11 @@ CybertwinNode::SetAddressList(std::vector<Ipv4Address> addressList)
 {
     ipv4AddressList = addressList;
 }
+
+void
+CybertwinNode::SetName(std::string name)
+{
+    m_name = name;
+}
+
 } // namespace ns3

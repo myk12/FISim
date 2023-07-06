@@ -1,7 +1,7 @@
 #ifndef CYBERTWIN_NODE_ENDHOST_H
 #define CYBERTWIN_NODE_ENDHOST_H
 
-#include "../model/cybertwin-client.h"
+#include "cybertwin-client.h"
 #include "cybertwin-node.h"
 
 #include "ns3/applications-module.h"

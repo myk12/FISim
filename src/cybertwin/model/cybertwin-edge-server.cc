@@ -1,8 +1,8 @@
-#include "cybertwin-node-edgeserver.h"
+#include "cybertwin-edge-server.h"
 
-#include "../model/cybertwin-common.h"
-#include "../model/cybertwin-edge.h"
-#include "../model/cybertwin-name-resolution-service.h"
+#include "cybertwin-common.h"
+#include "cybertwin-edge.h"
+#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {

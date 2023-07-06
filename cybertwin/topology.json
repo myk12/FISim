@@ -1,0 +1,60 @@
+{
+    "network_topology" :{
+        "core_cloud" : {
+            "servers" : [
+                {
+                    "name" : "server1"
+                },
+                {
+                    "name" : "server2"
+                }
+            ]
+        },
+        "edge_cloud" : {
+            "servers" : [
+                {
+                    "name" : "server1"
+                },
+                {
+                    "name" : "server2"
+                },
+                {
+                    "name" : "server3"
+                },
+                {
+                    "name" : "server4"
+                }
+            ]
+        },
+        "access_net" : {
+            "host_nets" : [
+                {
+                    "name" : "host_net1",
+                    "parents" : [
+                        "server1"
+                    ]
+                },
+                {
+                    "name" : "host_net2",
+                    "parents" : [
+                        "server2"
+                    ]
+                },
+                {
+                    "name" : "host_net3",
+                    "parents" : [
+                        "server1",
+                        "server2"
+                    ]
+                },
+                {
+                    "name" : "host_net4",
+                    "parents" : [
+                        "server1",
+                        "server2"
+                    ]
+                }
+            ]
+        }
+    }
+}
