@@ -1,4 +1,5 @@
 #include "cybertwin-node.h"
+#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {
@@ -49,7 +50,7 @@ CybertwinNode::~CybertwinNode()
 }
 
 void
-CybertwinNode::Setup()
+CybertwinNode::PowerOn()
 {
     NS_LOG_DEBUG("Setup a CybertwinNode.");
 }
@@ -66,4 +67,47 @@ CybertwinNode::SetName(std::string name)
     m_name = name;
 }
 
-} // namespace ns3
+void
+CybertwinNode::AddParent(Ptr<Node> parent)
+{
+    for (auto it = m_parents.begin(); it != m_parents.end(); ++it)
+    {
+        if (*it == parent)
+        {
+            return;
+        }
+    }
+    m_parents.push_back(parent);
+}
+
+void
+CybertwinNode::InstallCNRSApp()
+{
+    NS_LOG_DEBUG("Installing CNRS app.");
+    if (!m_upperNodeAddress.IsInitialized())
+    {
+        if (m_parents.size() == 0)
+        {
+            NS_LOG_WARN("No parent node found.");
+            return ;
+        }else
+        {
+            Ptr<Node> upperNode = m_parents[0];
+            m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
+        }
+        
+    }
+
+    // install CNRS application
+    Ptr<NameResolutionService> cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
+    this->AddApplication(cybertwinCNRSApp);
+    cybertwinCNRSApp->SetStartTime(Simulator::Now());
+}
+
+void
+CybertwinNode::AddConfigFile(std::string filename, nlohmann::json config)
+{
+    m_configFiles[filename] = config;
+}
+
+}// namespace ns3

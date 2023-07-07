@@ -25,6 +25,34 @@ int32_t CybertwinSim::Compiler()
     return 0;
 }
 
+int32_t CybertwinSim::Run()
+{
+    // power on all core nodes
+    for (uint32_t i=0; i<m_coreCloudNodes.GetN(); i++)
+    {
+        Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(m_coreCloudNodes.Get(i));
+        node->PowerOn();
+    }
+
+    // power on all edge nodes
+    for (uint32_t i=0; i<m_edgeCloudNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(m_edgeCloudNodes.Get(i));
+        node->PowerOn();
+    }
+
+    // power on all end hosts
+    for (uint32_t i=0; i<m_endHostNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(m_endHostNodes.Get(i));
+        node->PowerOn();
+    }
+
+    Simulator::Run();
+    Simulator::Destroy();
+    return 0;
+}
+
 int32_t CybertwinSim::InitTopology()
 {   
     InternetStackHelper stack;
@@ -129,6 +157,8 @@ int32_t CybertwinSim::InitTopology()
                 NS_LOG_ERROR("Unknown link type");
                 return -1;
             }
+
+            DynamicCast<CybertwinEdgeServer>(edgeNode)->AddParent(parentNode);
         }
 
     }
@@ -191,8 +221,9 @@ int32_t CybertwinSim::InitTopology()
                 NS_LOG_ERROR("Unknown link type");
                 return -1;
             }
+            
+            DynamicCast<CybertwinEndHost>(endHost)->AddParent(parentNode);
         }
-
     }
 
     return 0;
@@ -217,13 +248,25 @@ int32_t CybertwinSim::ParseNodes()
         {
             std::string nodeName = CORE_CLOUD_NODE_PREFIX + entry.path().filename().string();
             NS_LOG_INFO("Core cloud node: " << nodeName);
+
+            // create core server node
             Ptr<CybertwinCoreServer> coreServer = CreateObject<CybertwinCoreServer>();
-            
             m_nodes.AddNode(nodeName, coreServer);
             m_coreCloudNodes.Add(coreServer);
 
             coreServer->SetName(nodeName);
-            coreServer->Setup();
+            // parse node configuration
+            for (const auto& entry : fs::directory_iterator(entry.path()))
+            {
+                std::string fileName = entry.path().filename().string();
+                NS_LOG_INFO("Config file: " << fileName);
+                nlohmann::json conf;
+                std::ifstream confFile(entry.path());
+                confFile >> conf;
+                confFile.close();
+
+                coreServer->AddConfigFile(fileName, conf);
+            }
         }
    }
 
@@ -246,7 +289,19 @@ int32_t CybertwinSim::ParseNodes()
              m_edgeCloudNodes.Add(edgeServer);
              
              edgeServer->SetName(nodeName);
-             edgeServer->Setup();
+
+             // parse node configuration
+                for (const auto& entry : fs::directory_iterator(entry.path()))
+                {
+                    std::string fileName = entry.path().filename().string();
+                    NS_LOG_INFO("Config file: " << fileName);
+                    nlohmann::json conf;
+                    std::ifstream confFile(entry.path());
+                    confFile >> conf;
+                    confFile.close();
+    
+                    edgeServer->AddConfigFile(fileName, conf);
+                }
          }
     }
 
@@ -269,7 +324,19 @@ int32_t CybertwinSim::ParseNodes()
              m_endHostNodes.Add(endHost);
 
              endHost->SetName(nodeName);
-             endHost->Setup();
+
+             // parse node configuration
+                for (const auto& entry : fs::directory_iterator(entry.path()))
+                {
+                    std::string fileName = entry.path().filename().string();
+                    NS_LOG_INFO("Config file: " << fileName);
+                    nlohmann::json conf;
+                    std::ifstream confFile(entry.path());
+                    confFile >> conf;
+                    confFile.close();
+    
+                    endHost->AddConfigFile(fileName, conf);
+                }
          }
     }
 

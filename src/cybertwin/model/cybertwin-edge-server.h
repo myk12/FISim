@@ -24,7 +24,7 @@ class CybertwinEdgeServer : public CybertwinNode
     static TypeId GetTypeId();
     TypeId GetInstanceTypeId() const override;
 
-    void Setup() override;
+    void PowerOn() override;
     Ptr<NameResolutionService> GetCNRSApp();
     Ptr<CybertwinController> GetCtrlApp();
 

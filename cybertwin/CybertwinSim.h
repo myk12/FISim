@@ -66,6 +66,7 @@ class CybertwinSim
     ~CybertwinSim();
 
     int32_t Compiler();
+    int32_t Run();
 
   private:
     // private methods

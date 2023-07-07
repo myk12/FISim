@@ -76,9 +76,7 @@ main(int argc, char* argv[])
 
     CybertwinSim cybertwinSim;
     cybertwinSim.Compiler();
+    cybertwinSim.Run();
 
-    Simulator::Run();
-    Simulator::Stop(Seconds(10));
-    Simulator::Destroy();
     return 0;
 }

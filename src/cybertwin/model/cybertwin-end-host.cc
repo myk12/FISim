@@ -30,7 +30,7 @@ CybertwinEndHost::~CybertwinEndHost()
 }
 
 void
-CybertwinEndHost::Setup()
+CybertwinEndHost::PowerOn()
 {
     NS_LOG_FUNCTION(GetId());
     m_connClient = CreateObject<CybertwinConnClient>();

@@ -17,7 +17,7 @@ class CybertwinCoreServer: public CybertwinNode
 
         static TypeId GetTypeId();
         
-        void Setup();
+        void PowerOn() override;
     
     private:
         Ipv4Address CNRSUpNodeAddress;

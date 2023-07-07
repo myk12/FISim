@@ -6,6 +6,7 @@
 #include "ns3/inet-socket-address.h"
 #include "ns3/socket.h"
 #include "ns3/sequence-number.h"
+#include "nlohmann/json.hpp"
 
 #include <string>
 #include <unordered_map>

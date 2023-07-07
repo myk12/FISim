@@ -26,13 +26,14 @@ CybertwinCoreServer::CybertwinCoreServer()
 }
 
 void
-CybertwinCoreServer::Setup()
+CybertwinCoreServer::PowerOn()
 {
-    NS_LOG_DEBUG("[CybertwinCoreServer] create CybertwinCoreServer.");
-    // install CNRS application
-    cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
-    this->AddApplication(cybertwinCNRSApp);
-    cybertwinCNRSApp->SetStartTime(Simulator::Now());
+    if (m_parents.size() != 0)
+    {
+        // has parents, install CNRS application
+        // only root node has no parents
+        InstallCNRSApp();
+    }
 }
 
 CybertwinCoreServer::~CybertwinCoreServer()

@@ -20,7 +20,7 @@ class CybertwinEndHost : public CybertwinNode
 
     static TypeId GetTypeId();
 
-    void Setup() override;
+    void PowerOn() override;
     void Connect(const CybertwinCertTag&);
     void SendTo(CYBERTWINID_t, uint32_t size = 0);
 

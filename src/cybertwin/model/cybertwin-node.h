@@ -9,6 +9,7 @@
 #include "ns3/network-module.h"
 
 #include <vector>
+#include <unordered_map>
 
 namespace ns3
 {
@@ -23,8 +24,13 @@ class CybertwinNode : public Node
     virtual TypeId GetInstanceTypeId() const;
 
     virtual void SetAddressList(std::vector<Ipv4Address> addressList);
-    virtual void Setup();
     virtual void SetName(std::string name);
+
+    virtual void PowerOn();
+    
+    void AddParent(Ptr<Node> parent);
+    void AddConfigFile(std::string filename, nlohmann::json config);
+    void InstallCNRSApp();
 
   protected:
     std::vector<Ipv4Address> ipv4AddressList;
@@ -32,6 +38,8 @@ class CybertwinNode : public Node
     Ipv4Address m_selfNodeAddress;  // ip address of the current node
     CYBERTWINID_t m_cybertwinId;
     std::string m_name;
+    std::vector<Ptr<Node>> m_parents;
+    std::unordered_map<std::string, nlohmann::json> m_configFiles;
 };
 
 } // namespace ns3

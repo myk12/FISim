@@ -37,13 +37,15 @@ CybertwinEdgeServer::~CybertwinEdgeServer()
 }
 
 void
-CybertwinEdgeServer::Setup()
+CybertwinEdgeServer::PowerOn()
 {
-    NS_LOG_FUNCTION(GetId());
-    // install CNRS application
-    m_cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
-    AddApplication(m_cybertwinCNRSApp);
-    m_cybertwinCNRSApp->SetStartTime(Seconds(0.0));
+    if (m_parents.size() == 0)
+    {
+        NS_LOG_ERROR("Edge server should have parents.");
+        return;
+    }
+
+    InstallCNRSApp();
 
     // install Cybertwin Controller application
     m_cybertwinControllerApp = CreateObject<CybertwinController>();
