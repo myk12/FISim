@@ -1,7 +1,6 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
-#include "cybertwin-edge-server.h"
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
 #include "cybertwin-multipath-controller.h"
@@ -11,10 +10,6 @@
 #include "ns3/address.h"
 #include "ns3/application.h"
 #include "ns3/callback.h"
-#include "ns3/internet-module.h"
-#include "ns3/ipv4-address.h"
-#include "ns3/network-module.h"
-#include "ns3/socket.h"
 
 #include <queue>
 #include <string>
@@ -25,7 +20,8 @@
 namespace ns3
 {
 class CybertwinEdgeServer;
-
+class MultipathConnection;
+class CybertwinDataTransferServer;
 class Cybertwin : public Application
 {
   public:
@@ -46,6 +42,10 @@ class Cybertwin : public Application
               CybertwinInitCallback,
               CybertwinSendCallback,
               CybertwinReceiveCallback);
+    Cybertwin(CYBERTWINID_t,
+              uint16_t,
+              CYBERTWIN_INTERFACE_LIST_t g_interfaces);
+
     ~Cybertwin();
 
     static TypeId GetTypeId();
@@ -132,16 +132,22 @@ class Cybertwin : public Application
     std::unordered_map<Ptr<Socket>, TracedValue<uint64_t>> m_rxSizePerSecond;
 #endif
 
+private:
+    // private member data    
     CYBERTWINID_t m_cybertwinId;
     Address m_address;
+
+    // end related
     Ptr<Socket> m_localSocket;
     uint16_t m_localPort;
+
+    // cloud related
+    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
 
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
 
     // Cybertwin multiple interfaces
-    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
 
 #if MDTP_ENABLED
     // Cybertwin Connections

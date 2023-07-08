@@ -3,9 +3,6 @@
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
 
-#include "ns3/application.h"
-#include "ns3/socket.h"
-
 #include <string>
 #include <unordered_map>
 #include <unordered_set>

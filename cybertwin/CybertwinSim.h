@@ -7,9 +7,6 @@
 #include "ns3/point-to-point-module.h"
 
 #include "ns3/cybertwin-name-resolution-service.h"
-#include "ns3/cybertwin-core-server.h"
-#include "ns3/cybertwin-edge-server.h"
-#include "ns3/cybertwin-end-host.h"
 #include "ns3/cybertwin-node.h"
 
 #include <iostream>

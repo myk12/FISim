@@ -1,16 +1,17 @@
 #ifndef CYBERTWIN_COMMON_H
 #define CYBERTWIN_COMMON_H
 
-#include "ns3/address.h"
 #include "ns3/network-module.h"
-#include "ns3/inet-socket-address.h"
-#include "ns3/socket.h"
+#include "ns3/internet-module.h"
+#include "ns3/core-module.h"
 #include "ns3/sequence-number.h"
+
 #include "nlohmann/json.hpp"
 
 #include <string>
 #include <unordered_map>
 #include <utility>
+#include <openssl/sha.h>
 
 namespace ns3
 {
@@ -33,6 +34,8 @@ namespace ns3
 
 #define NAME_RESOLUTION_SERVICE_PORT (5353)
 #define CYBERTWIN_EDGESERVER_CONTROLLER_PORT (2323)         //Tranportation Layer cybertwin controller server port.
+
+#define CYBERTWIN_MANAGER_PROXY_PORT (17)
 
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\
@@ -110,6 +113,8 @@ void DoSocketMethod(int (Socket::*)(const Address&), Ptr<Socket>, const Address&
 uint16_t DoSocketBind(Ptr<Socket>, const Address&);
 uint16_t GetBindPort(Ptr<Socket>);
 void NotifyCybertwinConfiguration();
+
+uint64_t StringToUint64(std::string);
 
 } // namespace ns3
 

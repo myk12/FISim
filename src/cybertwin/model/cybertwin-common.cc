@@ -69,4 +69,20 @@ void NotifyCybertwinConfiguration()
     NS_LOG_UNCOND("\n\n======= CYBERTWIN CONFIGURATION =======\n");
 }
 
+uint64_t StringToUint64(std::string str)
+{
+    unsigned char hash[SHA256_DIGEST_LENGTH];
+    SHA256_CTX sha256;
+    SHA256_Init(&sha256);
+    SHA256_Update(&sha256, str.c_str(), str.size());
+    SHA256_Final(hash, &sha256);
+    uint64_t ret = 0;
+    for (int i = 0; i < 8; i++)
+    {
+        ret += hash[i];
+        ret <<= 8;
+    }
+    return ret;
+}
+
 } // namespace ns3

@@ -1,4 +1,5 @@
 #include "cybertwin.h"
+#include "cybertwin-node.h"
 
 #include "cybertwin-name-resolution-service.h"
 
@@ -47,6 +48,21 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
     m_MpLogFileName = "mp-test-" + std::to_string(cuid) + ".log";
     m_MpLogFile.open(m_MpLogFileName, std::ios::out);
     m_MpLogFile.close();
+}
+
+Cybertwin::Cybertwin(CYBERTWINID_t cuid,
+                     uint16_t localPort,
+                     CYBERTWIN_INTERFACE_LIST_t g_interfaces)
+    : m_cybertwinId(cuid),
+      m_localSocket(nullptr),
+      m_localPort(localPort),
+      m_interfaces(g_interfaces)
+{
+    NS_LOG_FUNCTION(cuid);
+
+    // get cnrs app
+    Ptr<Node> node = GetNode();
+    m_cnrs = DynamicCast<CybertwinNode>(node)->GetCNRSApp();
 }
 
 

@@ -61,6 +61,58 @@ class CybertwinHeader : public Header
 };
 
 //************************************************************************
+//*               Cybertwin Controller Header                            *
+//************************************************************************
+enum CybertwinProxyCommand
+{
+    CYBERTWIN_REGISTRATION = 0,
+    CYBERTWIN_REGISTRATION_ACK,
+    CYBERTWIN_REGISTRATION_ERROR,
+
+    CYBERTWIN_DESTRUCTION,
+    CYBERTWIN_DESTRUCTION_ACK,
+    CYBERTWIN_DESTRUCTION_ERROR,
+
+    CYBERTWIN_RECONNECT,
+    CYBERTWIN_RECONNECT_ACK,
+    CYBERTWIN_RECONNECT_ERROR,
+};
+
+class CybertwinManagerHeader : public Header
+{
+public:
+  CybertwinManagerHeader();
+  virtual ~CybertwinManagerHeader();
+
+  static TypeId GetTypeId();
+  virtual TypeId GetInstanceTypeId() const;
+
+  void SetCommand(uint8_t command);
+  uint8_t GetCommand() const;
+
+  void SetCName(const std::string& cname);
+  std::string GetCName() const;
+
+  void SetCUID(uint64_t cuid);
+  uint64_t GetCUID() const;
+
+  void SetPort(uint16_t port);
+  uint16_t GetPort() const;
+
+  virtual uint32_t GetSerializedSize() const;
+  virtual void Serialize(Buffer::Iterator start) const;
+  virtual uint32_t Deserialize(Buffer::Iterator start);
+
+  virtual void Print(std::ostream& os) const;
+
+private:
+  uint8_t m_command;
+  std::string m_cname;
+  uint64_t m_cuid;
+  uint16_t m_port;
+};
+
+//************************************************************************
 //*                        Multipath Header                              *
 //************************************************************************
 

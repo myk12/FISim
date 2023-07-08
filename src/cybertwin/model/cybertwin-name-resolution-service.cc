@@ -1,6 +1,5 @@
 #include "cybertwin-name-resolution-service.h"
 
-#include "ns3/core-module.h"
 #include "ns3/log.h"
 #include "ns3/random-variable-stream.h"
 

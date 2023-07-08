@@ -1,16 +1,8 @@
 #include "cybertwin-multipath-controller.h"
-
-#include "cybertwin-header.h"
 #include "cybertwin-tag.h"
 
-#include "ns3/core-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/network-module.h"
-#include "cybertwin-name-resolution-service.h"
-#include "ns3/cybertwin-edge-server.h"
-
-using namespace ns3;
-
+namespace ns3
+{
 NS_LOG_COMPONENT_DEFINE("CybertwinMultipathTransfer");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinDataTransferServer);
 NS_OBJECT_ENSURE_REGISTERED(MultipathConnection);
@@ -1454,3 +1446,5 @@ SinglePath::GetRemoteCybertwinID()
 {
     return m_remoteCybertwinID;
 }
+
+} //namespace ns3
