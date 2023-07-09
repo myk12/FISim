@@ -1,7 +1,4 @@
 #include "cybertwin.h"
-#include "cybertwin-node.h"
-
-#include "cybertwin-name-resolution-service.h"
 
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"

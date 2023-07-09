@@ -3,9 +3,9 @@
 
 #include "cybertwin-common.h"
 #include "cybertwin-header.h"
-#include "cybertwin-multipath-controller.h"
+#include "apps/cybertwin.h"
+#include "networks/cybertwin-multipath-controller.h"
 #include "cybertwin-tag.h"
-#include "cybertwin.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"

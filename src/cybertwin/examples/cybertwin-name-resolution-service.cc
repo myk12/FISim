@@ -3,8 +3,8 @@
 #include "ns3/internet-module.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
-#include "../model/cybertwin-common.h"
-#include "../model/cybertwin-name-resolution-service.h"
+#include "ns3/cybertwin-common.h"
+#include "ns3/cybertwin-name-resolution-service.h"
 
 #include <iostream>
 #include <vector>
@@ -25,9 +25,7 @@
 //
 //
 //******************************************************************
-
 using namespace ns3;
-
 NS_LOG_COMPONENT_DEFINE("CybertwinNameResolutionServiceExample");
 
 int

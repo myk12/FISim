@@ -63,16 +63,10 @@ main(int argc, char* argv[])
     // Time::SetResolution(Time::NS);
 
     LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
-    // LogComponentEnable("V4Ping", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinCoreServer", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinEndHost", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinClient", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
     LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinSim", LOG_LEVEL_INFO);
-    // LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
-    //LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
+    LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
 
     CybertwinSim cybertwinSim;
     cybertwinSim.Compiler();

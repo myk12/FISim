@@ -1,9 +1,9 @@
 #ifndef CYBERTWIN_NODE_H
 #define CYBERTWIN_NODE_H
 
-#include "cybertwin-common.h"
-#include "cybertwin-manager.h"
-#include "cybertwin-name-resolution-service.h"
+#include "../cybertwin-common.h"
+#include "../apps/cybertwin-manager.h"
+#include "../networks/cybertwin-name-resolution-service.h"
 
 #include "ns3/applications-module.h"
 #include "ns3/core-module.h"
@@ -106,8 +106,12 @@ class CybertwinEndHost : public CybertwinNode
     //void SendTo(CYBERTWINID_t, uint32_t size = 0);
 
   private:
+    // private member functions
     //Ptr<CybertwinConnClient> m_connClient;
     //Ptr<CybertwinBulkClient> m_bulkClient;
+  private:
+    // private member variables
+    Ptr<Socket> m_cybertwinSocket;
 };
 
 } // namespace ns3

@@ -1,5 +1,4 @@
 #include "cybertwin-node.h"
-#include "cybertwin-name-resolution-service.h"
 
 namespace ns3
 {

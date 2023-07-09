@@ -1,11 +1,11 @@
 #ifndef CYBERTWIN_MULTIPATH_CONTROLLER_H
 #define CYBERTWIN_MULTIPATH_CONTROLLER_H
-#include "cybertwin-common.h"
-#include "cybertwin-header.h"
-#include "cybertwin-node.h"
+#include "../cybertwin-common.h"
+#include "../cybertwin-header.h"
+#include "../cybertwin-tag.h"
+#include "../devices/cybertwin-node.h"
 #include "ns3/log.h"
 #include "ns3/random-variable-stream.h"
-#include "cybertwin-tag.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>

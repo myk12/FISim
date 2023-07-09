@@ -1,5 +1,3 @@
-#include "cybertwin-multipath-datatransfer.h"
-#include "../model/cybertwin-name-resolution-service.h"
 // Default Network Topology
 //           
 // |`````|----------[10.1.1.0]-------------|``````|
@@ -9,12 +7,13 @@
 //            3 point-to-point links                LAN 10.1.4.0
 //          
 //         
+#include "cybertwin-multipath-datatransfer.h"
+
+#define CYBERTWIN_MULTIPATH_PORT (45670)
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("CybertwinMultipathDataTransferExample");
-
-#define CYBERTWIN_MULTIPATH_PORT (45670)
 
 int
 main(int argc, char* argv[])
@@ -149,9 +148,6 @@ main(int argc, char* argv[])
     return 0;
 }
 
-
-namespace ns3
-{
 TypeId
 MultipathDataTransferApp::GetTypeId()
 {
@@ -287,5 +283,3 @@ MultipathDataTransferApp::SetLocalInterface(CYBERTWINID_t id, CYBERTWIN_INTERFAC
     m_localCyberID = id;
     m_localIfs = ifs;
 }
-
-} // namespace ns3

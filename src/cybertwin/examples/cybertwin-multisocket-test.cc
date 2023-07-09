@@ -126,6 +126,3 @@ MultiSocketServer::HandleAccept(Ptr<Socket> s, const Address& from)
 {
     NS_LOG_FUNCTION(this<< s <<from); 
 }
-    
-} // namespace ns3
-

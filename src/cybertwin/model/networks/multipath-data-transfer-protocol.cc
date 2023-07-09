@@ -1,5 +1,4 @@
-#include "cybertwin-multipath-controller.h"
-#include "cybertwin-tag.h"
+#include "ns3/multipath-data-transfer-protocol.h"
 
 namespace ns3
 {

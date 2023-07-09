@@ -1,11 +1,11 @@
 #ifndef CYBERTWIN_MANAGER_H
 #define CYBERTWIN_MANAGER_H
 
-#include "cybertwin-common.h"
-#include "cybertwin-header.h"
-#include "cybertwin-multipath-controller.h"
-#include "cybertwin-tag.h"
-#include "cybertwin.h"
+#include "../cybertwin-common.h"
+#include "../cybertwin-header.h"
+#include "../networks/multipath-data-transfer-protocol.h"
+#include "../cybertwin-tag.h"
+#include "../apps/cybertwin.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"

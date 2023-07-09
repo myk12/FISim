@@ -1,7 +1,7 @@
 #ifndef CYBERTWIN_NAME_RESOLUTION_SERVICE_H
 #define CYBERTWIN_NAME_RESOLUTION_SERVICE_H
-#include "cybertwin-common.h"
-#include "cybertwin-header.h"
+#include "../cybertwin-common.h"
+#include "../cybertwin-header.h"
 
 #include <string>
 #include <unordered_map>
