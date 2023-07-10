@@ -67,6 +67,10 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinSim", LOG_LEVEL_INFO);
     LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
+    LogComponentEnable("EndHostInitd", LOG_LEVEL_DEBUG);
+    LogComponentEnable("CybertwinManager", LOG_LEVEL_INFO);
+    LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
+    
 
     CybertwinSim cybertwinSim;
     cybertwinSim.Compiler();

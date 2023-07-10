@@ -66,6 +66,12 @@ CybertwinNode::SetName(std::string name)
     m_name = name;
 }
 
+std::string
+CybertwinNode::GetName()
+{
+    return m_name;
+}
+
 void
 CybertwinNode::AddParent(Ptr<Node> parent)
 {
@@ -260,8 +266,13 @@ void
 CybertwinEndHost::PowerOn()
 {
     NS_LOG_FUNCTION(GetId());
-    //m_connClient = CreateObject<CybertwinConnClient>();
-    //m_bulkClient = CreateObject<CybertwinBulkClient>();
+
+    // Create initd
+    Ptr<EndHostInitd> initd = CreateObject<EndHostInitd>();
+    initd->SetAttribute("ProxyAddr", Ipv4AddressValue(m_upperNodeAddress));
+    //initd->SetAttribute("ProxyPort", UintegerValue(m_proxyPort));
+    AddApplication(initd);
+    initd->SetStartTime(Seconds(0.0));
 }
 
 /*

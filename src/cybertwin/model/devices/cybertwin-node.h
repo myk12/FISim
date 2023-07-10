@@ -1,15 +1,10 @@
 #ifndef CYBERTWIN_NODE_H
 #define CYBERTWIN_NODE_H
 
-#include "../cybertwin-common.h"
-#include "../apps/cybertwin-manager.h"
-#include "../networks/cybertwin-name-resolution-service.h"
-
-#include "ns3/applications-module.h"
-#include "ns3/core-module.h"
-#include "ns3/internet-module.h"
-#include "ns3/network-module.h"
-#include "ns3/node.h"
+#include "ns3/cybertwin-common.h"
+#include "ns3/cybertwin-manager.h"
+#include "ns3/cybertwin-name-resolution-service.h"
+#include "ns3/end-host-initd.h"
 
 #include <vector>
 #include <unordered_map>
@@ -28,6 +23,7 @@ class CybertwinNode : public Node
 
     virtual void SetAddressList(std::vector<Ipv4Address> addressList);
     virtual void SetName(std::string name);
+    virtual std::string GetName();
 
     virtual void PowerOn();
     
