@@ -176,7 +176,7 @@ int32_t CybertwinSim::InitTopology()
         Ptr<Node> endHost = m_nodes.GetNodeByName(nodeName);
         if (endHost == nullptr)
         {
-            NS_LOG_ERROR("End host does not exist");
+            NS_LOG_ERROR("End host" << nodeName <<" does not exist");
             return -1;
         }
 

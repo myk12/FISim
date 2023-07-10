@@ -75,6 +75,7 @@ EndHostInitd::RegisterCybertwin()
 void
 EndHostInitd::ConnectCybertwinManager()
 {
+    NS_LOG_FUNCTION(this);
     if (!m_proxySocket)
     {
         m_proxySocket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
@@ -89,6 +90,8 @@ EndHostInitd::ConnectCybertwinManager()
     m_proxySocket->SetConnectCallback(
         MakeCallback(&EndHostInitd::ConnectCybertwinManangerSucceededCallback, this),
         MakeCallback(&EndHostInitd::ConnectCybertwinManangerFailedCallback, this));
+    
+    NS_LOG_DEBUG("Connecting to Cybertwin Manager: "<<m_proxyAddr <<":"<<m_proxyPort);
     InetSocketAddress proxyAddr = InetSocketAddress(m_proxyAddr, m_proxyPort);
     m_proxySocket->Connect(proxyAddr);
 }

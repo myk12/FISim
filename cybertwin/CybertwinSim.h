@@ -17,7 +17,7 @@
 
 #define CORE_CLOUD_CONF_PATH "./cybertwin/system/core_cloud/"
 #define EDGE_CLOUD_CONF_PATH "./cybertwin/system/edge_cloud/"
-#define ACCESS_NET_CONF_PATH "./cybertwin/system/access_network/"
+#define ACCESS_NET_CONF_PATH "./cybertwin/system/access_net/"
 
 #define CORE_CLOUD_NODE_PREFIX "core_cloud_"
 #define EDGE_CLOUD_NODE_PREFIX "edge_cloud_"
