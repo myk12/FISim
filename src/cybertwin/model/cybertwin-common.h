@@ -44,6 +44,12 @@ do {\
     connid += key2;  \
 }while(0)
 
+#define SYSTEM_PACKET_SIZE (516)
+#define MAX_BUFFER_PKT_NUM (1024)
+
+#define GET_PEERID_FROM_STREAMID(streamid) (streamid & 0xFFFFFFFFFFFFFFFF)
+#define GET_CYBERID_FROM_STREAMID(streamid) (streamid >> 64)
+
 typedef uint64_t CYBERTWINID_t;
 typedef uint64_t DEVNAME_t;
 typedef uint16_t NETTYPE_t;

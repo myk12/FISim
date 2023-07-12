@@ -162,7 +162,18 @@ EndHostBulkSend::SendData()
     }
 
     // Create packet
-    Ptr<Packet> packet = Create<Packet>(1024);
+    Ptr<Packet> packet = Create<Packet>();
+    
+    CybertwinHeader header;
+    header.SetCybertwin(1000);
+    header.SetPeer(2000);
+    header.SetCommand(DATA);
+
+    packet->AddHeader(header);
+    packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
+
+    NS_LOG_DEBUG("Sending Packet size: " << packet->GetSize());
+
     // Send packet
     m_sentBytes += m_socket->Send(packet);
 

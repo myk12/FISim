@@ -26,7 +26,7 @@ class CybertwinDataTransferServer;
 class Cybertwin : public Application
 {
   public:
-    typedef Callback<void, CybertwinHeader> CybertwinInitCallback;
+    typedef uint128_t STREAMID_t;
 #if MDTP_ENABLED
     typedef Callback<int, CYBERTWINID_t, MultipathConnection*, Ptr<const Packet>>
         CybertwinSendCallback;
@@ -34,7 +34,6 @@ class Cybertwin : public Application
     typedef Callback<int, CYBERTWINID_t, Ptr<Socket>, Ptr<const Packet>>
         CybertwinSendCallback;
 #endif
-    typedef Callback<int, Ptr<Socket>, Ptr<const Packet>> CybertwinReceiveCallback;
 
     Cybertwin();
     Cybertwin(CYBERTWINID_t,
@@ -51,18 +50,14 @@ class Cybertwin : public Application
     void StopApplication() override;
 
     // locally
-    void StartListeningLocally();
+    void LocallyListen();
     bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
     void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
 
     void LocalRecvCallback(Ptr<Socket>);
-
-    void RecvLocalPacket(const CybertwinHeader&, Ptr<Packet>);
-    void RecvGlobalPacket(const CybertwinHeader&, Ptr<Packet>);
-
-    void ForwardLocalPacket(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&);
+    void LocallyForward();
 
     void UpdateRxSizePerSecond(
 #if MDTP_ENABLED
@@ -80,6 +75,9 @@ class Cybertwin : public Application
 #endif
     );
 
+    // globally
+    void GloballyListen();
+
 #if MDTP_ENABLED
     void NewMpConnectionCreatedCallback(MultipathConnection* conn);
     void NewMpConnectionErrorCallback(MultipathConnection* conn);
@@ -96,14 +94,12 @@ class Cybertwin : public Application
     void SpErrorCloseCallback(Ptr<Socket> sock);
 #endif
 
-    void SendPendingPackets(CYBERTWINID_t);
+    void SendPendingPackets(STREAMID_t streamid);
     void SocketConnectWithResolvedCybertwinName(Ptr<Socket> sock,
                                                 CYBERTWINID_t cyberid,
                                                 CYBERTWIN_INTERFACE_LIST_t ifs);
 
-    CybertwinInitCallback InitCybertwin;
     CybertwinSendCallback SendPacket;
-    CybertwinReceiveCallback ReceivePacket;
 
     // buffer for handling packet fragments; also used for recording all accepted sockets
     std::unordered_map<Ptr<Socket>, Ptr<Packet>> m_streamBuffer;
@@ -118,15 +114,24 @@ class Cybertwin : public Application
     std::unordered_map<CYBERTWINID_t, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
     std::unordered_map<CYBERTWINID_t, TracedValue<uint64_t>> m_rxSizePerSecond;
 #else  // Naive Socket
-    std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_txConnections;
+    //std::unordered_map<STREAMID_t, Ptr<Socket>> m_txConnections;
     std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_txConnectionsReverse;
-    std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_pendingConnections;
-    std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_pendingConnectionsReverse;
+    //std::unordered_map<CYBERTWINID_t, Ptr<Socket>> m_pendingConnections;
+    //std::unordered_map<Ptr<Socket>, CYBERTWINID_t> m_pendingConnectionsReverse;
     std::unordered_set<Ptr<Socket>> m_rxConnections;
     std::unordered_map<Ptr<Socket>, Address> m_rxConnectionsReverse;
     std::unordered_map<Ptr<Socket>, std::queue<Ptr<Packet>>> m_rxPendingBuffer;
     std::unordered_map<Ptr<Socket>, TracedValue<uint64_t>> m_rxSizePerSecond;
 #endif
+private:
+    // tx buffer
+    std::unordered_map<STREAMID_t, std::queue<Ptr<Packet>>> m_txStreamBuffer;
+    std::vector<STREAMID_t> m_txStreamBufferOrder;
+    uint32_t m_lastTxStreamBufferOrder;
+
+    std::unordered_map<STREAMID_t, Ptr<Socket>> m_txConnections;    //established connections
+    std::unordered_map<STREAMID_t, Ptr<Socket>> m_pendingConnections;   //pending connections
+    std::unordered_map<Ptr<Socket>, STREAMID_t> m_pendingConnectionsReverse;
 
 private:
     // private member data    
@@ -142,7 +147,6 @@ private:
 
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
-
     // Cybertwin multiple interfaces
 
 #if MDTP_ENABLED
@@ -158,7 +162,6 @@ private:
     std::string m_MpLogFileName;
 
     //TODO: delete this
-    uint16_t m_localPort;
 };
 
 }; // namespace ns3
