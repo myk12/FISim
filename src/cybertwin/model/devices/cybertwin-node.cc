@@ -85,6 +85,12 @@ CybertwinNode::AddParent(Ptr<Node> parent)
     m_parents.push_back(parent);
 }
 
+Ipv4Address
+CybertwinNode::GetUpperNodeAddress()
+{
+    return m_upperNodeAddress;
+}
+
 void
 CybertwinNode::InstallCNRSApp()
 {
@@ -100,7 +106,6 @@ CybertwinNode::InstallCNRSApp()
             Ptr<Node> upperNode = m_parents[0];
             m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
         }
-        
     }
 
     // install CNRS application
@@ -111,7 +116,7 @@ CybertwinNode::InstallCNRSApp()
 }
 
 void
-CybertwinNode::InstallCybertwinManagerApp()
+CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList, std::vector<Ipv4Address> globalIpList)
 {
     NS_LOG_DEBUG("Installing Cybertwin Manager app.");
     if (!m_upperNodeAddress.IsInitialized())
@@ -129,10 +134,9 @@ CybertwinNode::InstallCybertwinManagerApp()
     }
 
     // install Cybertwin Manager application
-    Ptr<CybertwinManager> cybertwinManagerApp = CreateObject<CybertwinManager>();
+    Ptr<CybertwinManager> cybertwinManagerApp = CreateObject<CybertwinManager>(localIpList, globalIpList);
     this->AddApplication(cybertwinManagerApp);
     cybertwinManagerApp->SetStartTime(Simulator::Now());
-
 }
 
 void
@@ -186,18 +190,37 @@ CybertwinEdgeServer::PowerOn()
     InstallCNRSApp();
 
     // install Cybertwin Controller application
-    InstallCybertwinManagerApp();
-
-    m_CybertwinManagerApp = CreateObject<CybertwinManager>();
-    m_CybertwinManagerApp->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
-    AddApplication(m_CybertwinManagerApp);
-    m_CybertwinManagerApp->SetStartTime(Seconds(0.0));
+    InstallCybertwinManagerApp(m_localAddrList, m_globalAddrList);
 }
 
 Ptr<CybertwinManager>
 CybertwinEdgeServer::GetCtrlApp()
 {
     return m_CybertwinManagerApp;
+}
+
+void
+CybertwinEdgeServer::AddLocalIp(Ipv4Address localIp)
+{
+    m_localAddrList.push_back(localIp);
+}
+
+void
+CybertwinEdgeServer::AddGlobalIp(Ipv4Address globalIp)
+{
+    m_globalAddrList.push_back(globalIp);
+}
+
+std::vector<Ipv4Address>
+CybertwinEdgeServer::GetLocalIpList()
+{
+    return m_localAddrList;
+}
+
+std::vector<Ipv4Address>
+CybertwinEdgeServer::GetGlobalIpList()
+{
+    return m_globalAddrList;
 }
 
 //***************************************************************
@@ -275,30 +298,40 @@ CybertwinEndHost::PowerOn()
     initd->SetStartTime(Seconds(0.0));
 }
 
-/*
 void
-CybertwinEndHost::Connect(const CybertwinCertTag& cert)
+CybertwinEndHost::SetCybertwinId(CYBERTWINID_t id)
 {
-    NS_LOG_FUNCTION(GetId());
-    m_connClient->SetAttribute("LocalAddress", AddressValue(m_selfNodeAddress));
-    m_connClient->SetAttribute("EdgeAddress", AddressValue(m_upperNodeAddress));
-    m_connClient->SetAttribute("LocalCuid", UintegerValue(m_cybertwinId));
-    m_connClient->SetCertificate(cert);
-    AddApplication(m_connClient);
-    m_connClient->SetStartTime(Seconds(0));
+    m_cybertwinId = id;
+}
+
+CYBERTWINID_t
+CybertwinEndHost::GetCybertwinId()
+{
+    return m_cybertwinId;
 }
 
 void
-CybertwinEndHost::SendTo(CYBERTWINID_t peer, uint32_t size)
+CybertwinEndHost::SetCybertwinPort(uint16_t port)
 {
-    NS_LOG_FUNCTION(GetId() << peer << size);
-    // TODO: will this still work when peer changes?
-    m_bulkClient->SetAttribute("PeerCuid", UintegerValue(peer));
-    m_bulkClient->SetAttribute("MaxBytes", UintegerValue(size));
-    AddApplication(m_bulkClient);
-    m_bulkClient->SetStartTime(Seconds(0));
-    m_bulkClient->SetStopTime(Seconds(NORMAL_SIM_SECONDS));
+    m_cybertwinPort = port;
 }
-*/
+
+uint16_t
+CybertwinEndHost::GetCybertwinPort()
+{
+    return m_cybertwinPort;
+}
+
+void
+CybertwinEndHost::SetCybertwinStatus(bool stat)
+{
+    m_isConnected = stat;
+}
+
+bool
+CybertwinEndHost::GetCybertwinStatus()
+{
+    return m_isConnected;
+}
 
 }// namespace ns3

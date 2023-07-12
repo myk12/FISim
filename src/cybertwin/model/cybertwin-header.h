@@ -65,7 +65,7 @@ class CybertwinHeader : public Header
 //************************************************************************
 enum CybertwinProxyCommand
 {
-    CYBERTWIN_REGISTRATION = 0,
+    CYBERTWIN_REGISTRATION = 100,
     CYBERTWIN_REGISTRATION_ACK,
     CYBERTWIN_REGISTRATION_ERROR,
 

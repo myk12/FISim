@@ -20,16 +20,6 @@ CybertwinManager::GetTypeId()
                             .SetParent<Application>()
                             .SetGroupName("cybertwin")
                             .AddConstructor<CybertwinManager>()
-                            .AddAttribute("LocalAddress",
-                                          "The address on which to bind the listening socket",
-                                          AddressValue(),
-                                          MakeAddressAccessor(&CybertwinManager::m_localAddr),
-                                          MakeAddressChecker())
-                            .AddAttribute("LocalPort",
-                                          "The port on which the application sends data",
-                                          UintegerValue(443),
-                                          MakeUintegerAccessor(&CybertwinManager::m_localPort),
-                                          MakeUintegerChecker<uint16_t>())
                             .AddAttribute("ProxyPort",
                                           "The port on which the proxy listens",
                                           UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT),
@@ -43,6 +33,22 @@ CybertwinManager::CybertwinManager()
       m_lastAssignedPort(1000)
 {
     NS_LOG_FUNCTION(this);
+}
+
+CybertwinManager::CybertwinManager(std::vector<Ipv4Address> localIpv4AddrList,
+                                    std::vector<Ipv4Address> globalIpv4AddrList)
+    : m_proxySocket(nullptr),
+      m_lastAssignedPort(1000)
+{
+    NS_LOG_FUNCTION(this);
+    m_localIpv4AddrList = localIpv4AddrList;
+    NS_LOG_DEBUG("=================== Local address list: " << m_localIpv4AddrList.size());
+    m_globalIpv4AddrList = globalIpv4AddrList;
+    NS_LOG_DEBUG("================== Global address list: " << m_globalIpv4AddrList.size());
+    for(auto addr : m_globalIpv4AddrList)
+    {
+        NS_LOG_DEBUG("Global address: " << addr);
+    }
 }
 
 CybertwinManager::~CybertwinManager()
@@ -67,25 +73,10 @@ void
 CybertwinManager::StartApplication()
 {
     NS_LOG_FUNCTION(GetNode()->GetId());
-    NS_LOG_INFO("CybertwinManager started at " << m_localAddr << ":" << m_localPort);
-
-    Ptr<Ipv4L3Protocol> ipv4 = GetNode()->GetObject<Ipv4L3Protocol>();
-    for (uint32_t i = 0; i < ipv4->GetNInterfaces(); i++)
+    NS_LOG_DEBUG("================== Global address list: " << m_globalIpv4AddrList.size());
+    for(auto addr : m_globalIpv4AddrList)
     {
-        Ptr<Ipv4Interface> ipv4If = ipv4->GetInterface(i);
-        Ipv4Address ifaddr = ipv4If->GetAddress(0).GetAddress();
-
-        NS_LOG_UNCOND("Checkt address : "<<ifaddr);
-        if (ifaddr == Ipv4Address::GetAny() ||
-            ifaddr == Ipv4Address::GetLoopback() ||
-            ifaddr == m_localAddr)
-        {
-            NS_LOG_UNCOND("Skip this address.");
-            continue;
-        }
-        NS_LOG_UNCOND("record this address.");
-        m_globalIpv4AddrList.push_back(ifaddr);
-        m_globalIpv4IfList.push_back(ipv4If);
+        NS_LOG_DEBUG("Global address: " << addr);
     }
 
     StartProxy();
@@ -110,7 +101,6 @@ CybertwinManager::StartProxy()
     m_proxySocket->SetCloseCallbacks(MakeCallback(&CybertwinManager::NormalHostClose, this),
                                     MakeCallback(&CybertwinManager::ErrorHostClose, this));
     m_proxySocket->Listen();
-    NS_LOG_INFO("Proxy started at " << m_localAddr << ":" << m_proxyPort);
 }
 
 void
@@ -184,18 +174,19 @@ CybertwinManager::ReceiveFromHost(Ptr<Socket> socket)
 
 void
 CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
-                                                 Ptr<Packet> packet)
+                                              Ptr<Packet> packet)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
+    NS_LOG_FUNCTION(this);
     CybertwinManagerHeader header;
     CybertwinManagerHeader replyHeader;
     std::string name;
     CYBERTWINID_t cuid;
 
     packet->RemoveHeader(header);
-
     name = header.GetCName();
     cuid = StringToUint64(name);
+
+    NS_LOG_DEBUG("Cybertwin name: " << name << ", cuid: " << cuid);
 
     // create a new cybertwin
     if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
@@ -209,14 +200,25 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
     else
     {
         // assign local port for new cybertwin
-        uint16_t port = m_lastAssignedPort++;
+        uint16_t local_port = m_lastAssignedPort++;
+        Address local_addr;
+        socket->GetSockName(local_addr);
+        Ipv4Address local_Addr = InetSocketAddress::ConvertFrom(local_addr).GetIpv4();
+        CYBERTWIN_INTERFACE_t l_interface = std::make_pair(local_Addr, local_port);
 
-        // assign interfaces for new cybertwin
+        NS_LOG_DEBUG("Assign local address: " << local_Addr << ", local port: " << local_port << " to cybertwin " << name);
+
+        // assign global interfaces (multiple addr:port) for new cybertwin
         CYBERTWIN_INTERFACE_LIST_t g_interfaces;
         AssignInterfaces(g_interfaces);
 
+        for (auto interface : g_interfaces)
+        {
+            NS_LOG_DEBUG("Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
+        }
+
         // create a new cybertwin
-        Ptr<Cybertwin> cybertwin = CreateObject<Cybertwin>(cuid, port, g_interfaces);
+        Ptr<Cybertwin> cybertwin = CreateObject<Cybertwin>(cuid, l_interface, g_interfaces);
         GetNode()->AddApplication(cybertwin);
         m_cybertwinTable[cuid] = cybertwin;
 
@@ -226,12 +228,14 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_REGISTRATION_ACK);
         replyHeader.SetCName(name);
-        replyHeader.SetPort(port);
+        replyHeader.SetCUID(cuid);
+        replyHeader.SetPort(local_port);
     }
 
     // send reply
     Ptr<Packet> replyPacket = Create<Packet>(0);
     replyPacket->AddHeader(replyHeader);
+    //replyHeader.Print(std::cout);
     socket->Send(replyPacket);
 }
 

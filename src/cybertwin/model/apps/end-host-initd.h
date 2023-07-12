@@ -5,6 +5,7 @@
 #include "ns3/cybertwin-header.h"
 #include "ns3/cybertwin-node.h"
 #include "ns3/cybertwin-tag.h"
+#include "ns3/end-host-bulk-send.h"
 
 namespace ns3
 {

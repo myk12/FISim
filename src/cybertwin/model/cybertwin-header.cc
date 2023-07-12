@@ -272,10 +272,12 @@ CybertwinManagerHeader::Deserialize(Buffer::Iterator it)
 
 void CybertwinManagerHeader::Print(std::ostream& os) const
 {
-  os << "Command: " << static_cast<uint32_t>(m_command) << std::endl;
-  os << "CName: " << m_cname << std::endl;
-  os << "CUID: " << m_cuid << std::endl;
-  os << "Port: " << m_port << std::endl;
+  os << "------- Cybertwin Manager Header -------" << std::endl
+     << "| Command: " << static_cast<uint32_t>(m_command) << std::endl
+     << "| CName: " << m_cname << std::endl
+     << "| CUID: " << m_cuid << std::endl
+     << "| Port: " << m_port << std::endl
+     << "----------------------------------------" << std::endl;
 }
 
 //********************************************************************

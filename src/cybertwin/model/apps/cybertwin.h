@@ -38,13 +38,7 @@ class Cybertwin : public Application
 
     Cybertwin();
     Cybertwin(CYBERTWINID_t,
-              CYBERTWIN_INTERFACE_LIST_t g_interfaces,
-              const Address&,
-              CybertwinInitCallback,
-              CybertwinSendCallback,
-              CybertwinReceiveCallback);
-    Cybertwin(CYBERTWINID_t,
-              uint16_t,
+              CYBERTWIN_INTERFACE_t l_interface,
               CYBERTWIN_INTERFACE_LIST_t g_interfaces);
 
     ~Cybertwin();
@@ -56,18 +50,19 @@ class Cybertwin : public Application
     void StartApplication() override;
     void StopApplication() override;
 
-    void Initialize();
-
-    void RecvFromSocket(Ptr<Socket>);
-    void RecvLocalPacket(const CybertwinHeader&, Ptr<Packet>);
-    void RecvGlobalPacket(const CybertwinHeader&, Ptr<Packet>);
-
-    void ForwardLocalPacket(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&);
-
+    // locally
+    void StartListeningLocally();
     bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
     void LocalConnCreatedCallback(Ptr<Socket>, const Address&);
     void LocalNormalCloseCallback(Ptr<Socket>);
     void LocalErrorCloseCallback(Ptr<Socket>);
+
+    void LocalRecvCallback(Ptr<Socket>);
+
+    void RecvLocalPacket(const CybertwinHeader&, Ptr<Packet>);
+    void RecvGlobalPacket(const CybertwinHeader&, Ptr<Packet>);
+
+    void ForwardLocalPacket(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t&);
 
     void UpdateRxSizePerSecond(
 #if MDTP_ENABLED
@@ -140,10 +135,10 @@ private:
 
     // end related
     Ptr<Socket> m_localSocket;
-    uint16_t m_localPort;
+    CYBERTWIN_INTERFACE_t m_localInterface;
 
     // cloud related
-    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+    CYBERTWIN_INTERFACE_LIST_t m_globalInterfaces;
 
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
@@ -161,6 +156,9 @@ private:
 
     std::ofstream m_MpLogFile;
     std::string m_MpLogFileName;
+
+    //TODO: delete this
+    uint16_t m_localPort;
 };
 
 }; // namespace ns3

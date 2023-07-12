@@ -69,8 +69,9 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
     LogComponentEnable("EndHostInitd", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinManager", LOG_LEVEL_INFO);
-    LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
-    
+    //LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
+    LogComponentEnable("EndHostBulkSend", LOG_LEVEL_INFO);
 
     CybertwinSim cybertwinSim;
     cybertwinSim.Compiler();

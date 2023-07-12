@@ -19,7 +19,7 @@ namespace ns3
 //*                 COMPILE OPTIONS                               *
 //*****************************************************************
 //1: enable MDTP, 0: disable MDTP
-#define MDTP_ENABLED 1
+#define MDTP_ENABLED 0
 #define STATISTIC_TIME_INTERVAL (10) // ms
 
 #define MAX_SIM_SECONDS (100)

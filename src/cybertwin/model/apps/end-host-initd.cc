@@ -6,6 +6,12 @@ NS_LOG_COMPONENT_DEFINE("EndHostInitd");
 
 EndHostInitd::EndHostInitd()
 {
+    m_isConnectedToCybertwinManager = false;
+    m_isRegisteredToCybertwin = false;
+    m_isConnectedToCybertwin = false;
+
+    m_proxySocket = nullptr;
+    m_cybertwinSocket = nullptr;
     NS_LOG_DEBUG("[EndHostInitd] create EndHostInitd.");
 }
 
@@ -42,6 +48,12 @@ EndHostInitd::StartApplication()
 
     // Register to Cybertwin
     RegisterCybertwin();
+
+    // Connect to Cybertwin
+    Ptr<EndHostBulkSend> bulkSendApp = CreateObject<EndHostBulkSend>();
+    bulkSendApp->SetAttribute("TotalBytes", UintegerValue(1024*3));
+    GetNode()->AddApplication(bulkSendApp);
+    bulkSendApp->SetStartTime(Seconds(0.0));
 }
 
 void
@@ -194,15 +206,16 @@ EndHostInitd::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> packet)
     Ptr<Node> node = GetNode();
     Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(node);
     std::string nodeName = endHost->GetName();
+    if (nodeName != header.GetCName())
+    {
+        NS_LOG_ERROR("Node name mismatch.");
+        return;
+    }
 
-    // get cybertwin info
-    CYBERTWINID_t cybertwinId = header.GetCUID();
-    std::string cybertwinName = header.GetCName();
-    uint16_t cybertwinPort = header.GetPort();
-
-    NS_LOG_DEBUG("Cybertwin ID: " << cybertwinId);
-    NS_LOG_DEBUG("Cybertwin Name: " << cybertwinName);
-    NS_LOG_DEBUG("Cybertwin Port: " << cybertwinPort);
+    // set cybertwin info
+    endHost->SetCybertwinId(header.GetCUID());
+    endHost->SetCybertwinPort(header.GetPort());
+    endHost->SetCybertwinStatus(true);
 }
 
 void

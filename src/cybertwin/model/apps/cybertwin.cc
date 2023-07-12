@@ -27,42 +27,15 @@ Cybertwin::Cybertwin()
 }
 
 Cybertwin::Cybertwin(CYBERTWINID_t cuid,
-                     CYBERTWIN_INTERFACE_LIST_t g_interfaces,
-                     const Address& address,
-                     CybertwinInitCallback initCallback,
-                     CybertwinSendCallback sendCallback,
-                     CybertwinReceiveCallback receiveCallback)
-    : InitCybertwin(initCallback),
-      SendPacket(sendCallback),
-      ReceivePacket(receiveCallback),
-      m_cybertwinId(cuid),
-      m_address(address),
-      m_interfaces(g_interfaces)
-{
-    NS_LOG_FUNCTION(cuid);
-
-    // init multipath log file
-    m_MpLogFileName = "mp-test-" + std::to_string(cuid) + ".log";
-    m_MpLogFile.open(m_MpLogFileName, std::ios::out);
-    m_MpLogFile.close();
-}
-
-Cybertwin::Cybertwin(CYBERTWINID_t cuid,
-                     uint16_t localPort,
+                     CYBERTWIN_INTERFACE_t l_interface,
                      CYBERTWIN_INTERFACE_LIST_t g_interfaces)
     : m_cybertwinId(cuid),
       m_localSocket(nullptr),
-      m_localPort(localPort),
-      m_interfaces(g_interfaces)
+      m_localInterface(l_interface),
+      m_globalInterfaces(g_interfaces)
 {
     NS_LOG_FUNCTION(cuid);
-
-    // get cnrs app
-    Ptr<Node> node = GetNode();
-    m_cnrs = DynamicCast<CybertwinNode>(node)->GetCNRSApp();
 }
-
-
 
 Cybertwin::~Cybertwin()
 {
@@ -71,13 +44,16 @@ Cybertwin::~Cybertwin()
 void
 Cybertwin::StartApplication()
 {
-    NS_LOG_FUNCTION(m_cybertwinId);
-    m_cnrs = GetNode()->GetObject<CybertwinEdgeServer>()->GetCNRSApp();
+    NS_LOG_FUNCTION("Cybertwin[" << m_cybertwinId << "] Start up.");
 
+    // start listen at local port
+    StartListeningLocally();
+
+#if 0
 #if MDTP_ENABLED
     // init data server and listen for incoming connections
     m_dtServer = new CybertwinDataTransferServer();
-    m_dtServer->Setup(GetNode(), m_cybertwinId, m_interfaces);
+    m_dtServer->Setup(GetNode(), m_cybertwinId, m_globalInterfaces);
     m_dtServer->Listen();
     m_dtServer->SetNewConnectCreatedCallback(
         MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
@@ -85,28 +61,17 @@ Cybertwin::StartApplication()
     // init data server and listen for incoming connections
     m_dtServer = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
     //FIXME: attention, the port number is hard-coded here
-    m_dtServer->Bind(InetSocketAddress(Ipv4Address::GetAny(), m_interfaces[0].second));
+    m_dtServer->Bind(InetSocketAddress(Ipv4Address::GetAny(), m_globalInterfaces[0].second));
     m_dtServer->SetAcceptCallback(MakeCallback(&Cybertwin::NewSpConnectionRequestCallback, this),
                                   MakeCallback(&Cybertwin::NewSpConnectionCreatedCallback, this));
     m_dtServer->Listen();
 #endif
+#endif
 
     // report interfaces to CNRS
-    m_cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_interfaces);
-
-    m_localSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
-    m_localPort = DoSocketBind(m_localSocket, m_address);
-    m_localSocket->SetAcceptCallback(MakeCallback(&Cybertwin::LocalConnRequestCallback, this),
-                                     MakeCallback(&Cybertwin::LocalConnCreatedCallback, this));
-    m_localSocket->SetCloseCallbacks(MakeCallback(&Cybertwin::LocalNormalCloseCallback, this),
-                                     MakeCallback(&Cybertwin::LocalErrorCloseCallback, this));
-    m_localSocket->Listen();
-
-    NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
-                           << "]: starts listening locally at port " << m_localPort);
-    // Temporary, simulate the initialization process
-    Simulator::ScheduleNow(&Cybertwin::Initialize, this);
-    // Simulator::Schedule(Seconds(3.), &Cybertwin::Initialize, this);
+    m_cnrs = DynamicCast<CybertwinNode>(GetNode())->GetCNRSApp();
+    NS_ASSERT(m_cnrs != nullptr);
+    m_cnrs->InsertCybertwinInterfaceName(m_cybertwinId, m_globalInterfaces);
 }
 
 void
@@ -133,35 +98,39 @@ Cybertwin::DoDispose()
     Application::DoDispose();
 }
 
+//***************************************************************************************
+//*                     Handle incoming connections from host                           *
+//***************************************************************************************
+
 void
-Cybertwin::Initialize()
+Cybertwin::StartListeningLocally()
 {
-    NS_LOG_FUNCTION(m_cybertwinId);
-    // notify the client through the InitCallback that a cybertwin has been created successfully
-    CybertwinHeader rspHeader;
-    rspHeader.SetCybertwin(m_cybertwinId);
-    rspHeader.SetCommand(CYBERTWIN_CONNECT_SUCCESS);
-    rspHeader.SetCybertwinPort(m_localPort);
-
-#if 0 // Disable GlobalRouteTable
-    if (Ipv4Address::IsMatchingType(m_address))
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: starts listening locally at "
+                              << m_localInterface.first << ":" << m_localInterface.second);
+    if (!m_localSocket)
     {
-        GlobalRouteTable[m_cybertwinId] =
-            InetSocketAddress(Ipv4Address::ConvertFrom(m_address), m_globalPort);
+        m_localSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+        NS_ASSERT(m_localSocket != nullptr);
     }
-    else
-    {
-        GlobalRouteTable[m_cybertwinId] =
-            Inet6SocketAddress(Ipv6Address::ConvertFrom(m_address), m_globalPort);
-    }
-#endif
 
-    Simulator::ScheduleNow(&Cybertwin::InitCybertwin, this, rspHeader);
+    InetSocketAddress localAddr = InetSocketAddress(m_localInterface.first, m_localInterface.second);
+    if (m_localSocket->Bind(localAddr) < 0)
+    {
+        NS_LOG_ERROR("Failed to bind local socket to " << localAddr);
+        return ;
+    }
+
+    m_localSocket->SetAcceptCallback(MakeCallback(&Cybertwin::LocalConnRequestCallback, this),
+                                     MakeCallback(&Cybertwin::LocalConnCreatedCallback, this));
+    m_localSocket->SetCloseCallbacks(MakeCallback(&Cybertwin::LocalNormalCloseCallback, this),
+                                     MakeCallback(&Cybertwin::LocalErrorCloseCallback, this));
+    m_localSocket->Listen();
 }
 
 bool
 Cybertwin::LocalConnRequestCallback(Ptr<Socket> socket, const Address&)
 {
+    NS_LOG_FUNCTION(this);
     return true;
 }
 
@@ -169,7 +138,7 @@ void
 Cybertwin::LocalConnCreatedCallback(Ptr<Socket> socket, const Address& address)
 {
     NS_LOG_FUNCTION(this);
-    socket->SetRecvCallback(MakeCallback(&Cybertwin::RecvFromSocket, this));
+    socket->SetRecvCallback(MakeCallback(&Cybertwin::LocalRecvCallback, this));
 }
 
 void
@@ -178,7 +147,7 @@ Cybertwin::LocalNormalCloseCallback(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this << socket);
     socket->ShutdownSend();
     // client wants to close
-    m_streamBuffer.erase(socket);
+    //m_streamBuffer.erase(socket);
 }
 
 void
@@ -188,7 +157,7 @@ Cybertwin::LocalErrorCloseCallback(Ptr<Socket> socket)
 }
 
 void
-Cybertwin::RecvFromSocket(Ptr<Socket> socket)
+Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
 {
     Ptr<Packet> packet;
     Address from;
@@ -200,43 +169,13 @@ Cybertwin::RecvFromSocket(Ptr<Socket> socket)
             break;
         }
 
-        Ptr<Packet> buffer;
-        if (m_streamBuffer.find(socket) == m_streamBuffer.end())
-        {
-            m_streamBuffer[socket] = Create<Packet>(0);
-        }
-        buffer = m_streamBuffer[socket];
-        buffer->AddAtEnd(packet);
+        Address localAddr, remoteAddr;
+        socket->GetSockName(localAddr);
+        socket->GetPeerName(remoteAddr);
 
-        CybertwinHeader header;
-        buffer->PeekHeader(header);
-        NS_ASSERT(header.isDataPacket());
-        while (buffer->GetSize() >= header.GetSize())
-        {
-            if (header.GetCybertwin() == m_cybertwinId)
-            {
-                // packet from host
-                RecvLocalPacket(header, buffer->CreateFragment(0, header.GetSize()));
-            }
-            else if (header.GetPeer() == m_cybertwinId)
-            {
-                // packet from cybertwin
-                RecvGlobalPacket(header, buffer->CreateFragment(0, header.GetSize()));
-            }
-            else
-            {
-                NS_LOG_ERROR("UNKNOWN PACKET");
-            }
-            buffer->RemoveAtStart(header.GetSize());
-            if (buffer->GetSize() > header.GetSerializedSize())
-            {
-                buffer->PeekHeader(header);
-            }
-            else
-            {
-                break;
-            }
-        }
+        NS_LOG_DEBUG("--[Edge" << GetNode()->GetId() << "-#" << m_cybertwinId
+                               << "]: received packet from " << remoteAddr << " to " << localAddr
+                               << " with size " << packet->GetSize() << " bytes");
     }
 }
 
@@ -303,7 +242,7 @@ Cybertwin::SendPendingPackets(CYBERTWINID_t peerCuid)
         // connection not created yet, initiate a new connection
 #if MDTP_ENABLED
         conn = new MultipathConnection();
-        conn->Setup(GetNode(), m_cybertwinId, m_interfaces);
+        conn->Setup(GetNode(), m_cybertwinId, m_globalInterfaces);
         conn->Connect(peerCuid);
         // send pending packets by callback after connection is created
         conn->SetConnectCallback(MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this),

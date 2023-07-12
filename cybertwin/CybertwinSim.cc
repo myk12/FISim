@@ -27,6 +27,7 @@ int32_t CybertwinSim::Compiler()
 
 int32_t CybertwinSim::Run()
 {
+    NS_LOG_INFO("\n======= Cybertwin::Run Simulator =======\n\n"); 
     // power on all core nodes
     for (uint32_t i=0; i<m_coreCloudNodes.GetN(); i++)
     {
@@ -55,6 +56,7 @@ int32_t CybertwinSim::Run()
 
 int32_t CybertwinSim::InitTopology()
 {   
+   NS_LOG_INFO("\n======= Cybertwin::InitTopology() =======\n\n"); 
     InternetStackHelper stack;
     // install network stack for each nodes
     stack.Install(m_coreCloudNodes);
@@ -73,7 +75,7 @@ int32_t CybertwinSim::InitTopology()
     accessConf = topology["access_net"];
 
     // connect core servers
-    NS_LOG_INFO("Connecting core servers.");
+    NS_LOG_INFO("STEP[1]: Connecting core servers.");
     NetDeviceContainer devices;
     PointToPointHelper p2pHelper;
     Ipv4AddressHelper address;
@@ -96,7 +98,7 @@ int32_t CybertwinSim::InitTopology()
     }
 
     // connect edge servers
-    NS_LOG_INFO("Connecting edge servers.");
+    NS_LOG_INFO("STEP[2]: Connecting edge servers.");
     p2pHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
     p2pHelper.SetChannelAttribute("Delay", StringValue("10ms"));
 
@@ -122,35 +124,26 @@ int32_t CybertwinSim::InitTopology()
         {
             std::string parentName = parent.get<std::string>();
             Ptr<Node> parentNode = m_nodes.GetNodeByName(parentName);
+            Ipv4InterfaceContainer interfaces;
             if (parentNode == nullptr)
             {
                 NS_LOG_ERROR("Parent node does not exist");
                 return -1;
             }
-            NS_LOG_INFO("Connecting edge server " << nodeName << " to parent " << parentName << ".");
 
             if (linkType == "p2p")
             {
-                devices = p2pHelper.Install(parentNode, edgeNode);
+                NS_LOG_DEBUG("link type: p2p");
+                devices = p2pHelper.Install(edgeNode, parentNode);
                 bzero(ipBase, sizeof(ipBase));
                 snprintf(ipBase, sizeof(ipBase), EDGE_CLOUD_DEFAULT_IP_FORMAT, net_id++);
                 address.SetBase(ipBase, EDGE_CLOUD_DEFAULT_MASK);
-                address.Assign(devices);
+                interfaces = address.Assign(devices);
             }
             else if (linkType == "csma")
             {
                 NS_LOG_ERROR("CSMA is not supported yet");
                 return -1;
-                /*
-                CsmaHelper csmaHelper;
-                csmaHelper.SetChannelAttribute("DataRate", StringValue("10Mbps"));
-                csmaHelper.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
-                csmaHelper.SetDeviceAttribute("Mtu", UintegerValue(1500));
-                csmaHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
-                csmaHelper.SetDeviceAttribute("Delay", TimeValue(NanoSeconds(6560)));
-
-                devices = csmaHelper.Install(parentNode, edgeNode);
-                */
             }
             else
             {
@@ -158,11 +151,15 @@ int32_t CybertwinSim::InitTopology()
                 return -1;
             }
 
-            DynamicCast<CybertwinEdgeServer>(edgeNode)->AddParent(parentNode);
+            Ptr<CybertwinEdgeServer> edgeServer = DynamicCast<CybertwinEdgeServer>(edgeNode);
+            edgeServer->AddParent(parentNode);
+            edgeServer->SetAttribute("UpperNodeAddress", Ipv4AddressValue(interfaces.GetAddress(1)));
+            edgeServer->AddGlobalIp(interfaces.GetAddress(0));
         }
 
     }
 
+    NS_LOG_INFO("STEP[3]: Connecting end hosts.");
     // do for each end host
     net_id = 0;
     for (auto host:accessConf.items())
@@ -185,36 +182,30 @@ int32_t CybertwinSim::InitTopology()
         {
             std::string parentName = parent.get<std::string>();
             Ptr<Node> parentNode = m_nodes.GetNodeByName(parentName);
+            Ipv4InterfaceContainer interfaces;
             if (parentNode == nullptr)
             {
                 NS_LOG_ERROR("Parent node does not exist");
                 return -1;
             }
 
-            NS_LOG_INFO("Connecting end host " << nodeName << " to parent " << parentName << ".");
-
             if (linkType == "p2p")
             {
-                devices = p2pHelper.Install(parentNode, endHost);
+                devices = p2pHelper.Install(endHost, parentNode);
                 bzero(ipBase, sizeof(ipBase));
                 snprintf(ipBase, sizeof(ipBase), ACCESS_NET_DEFAULT_IP_FORMAT, net_id++);
                 address.SetBase(ipBase, ACCESS_NET_DEFAULT_MASK);
-                address.Assign(devices);
+                interfaces = address.Assign(devices);
+
+                // set uppernode address
+                DynamicCast<CybertwinNode>(endHost)->SetAttribute("UpperNodeAddress", Ipv4AddressValue(interfaces.GetAddress(1)));
+                DynamicCast<CybertwinEdgeServer>(parentNode)->AddLocalIp(interfaces.GetAddress(1));
+                NS_LOG_INFO("+ Connecting " << nodeName << " to parent " << parentName << ": " << interfaces.GetAddress(0) << " -> " << interfaces.GetAddress(1));
             }
             else if (linkType == "csma")
             {
                 NS_LOG_ERROR("CSMA is not supported yet");
                 return -1;
-                /*
-                CsmaHelper csmaHelper;
-                csmaHelper.SetChannelAttribute("DataRate", StringValue("10Mbps"));
-                csmaHelper.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
-                csmaHelper.SetDeviceAttribute("Mtu", UintegerValue(1500));
-                csmaHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
-                csmaHelper.SetDeviceAttribute("Delay", TimeValue(NanoSeconds(6560)));
-
-                devices = csmaHelper.Install(parentNode, endHost);
-                */
             }
             else
             {
@@ -232,7 +223,7 @@ int32_t CybertwinSim::InitTopology()
 
 int32_t CybertwinSim::ParseNodes()
 {
-   NS_LOG_INFO("Cybertwin::InitTopology()"); 
+   NS_LOG_INFO("\n======= Cybertwin::ParseNodes() =======\n\n"); 
 
    // parse nodes
    // 1. core cloud

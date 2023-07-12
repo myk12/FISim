@@ -24,6 +24,8 @@ class CybertwinManager : public Application
   public:
     static TypeId GetTypeId();
     CybertwinManager();
+    CybertwinManager(std::vector<Ipv4Address> localIpv4AddrList,
+                     std::vector<Ipv4Address> globalIpv4AddrList);
     ~CybertwinManager();
 
   protected:
@@ -49,11 +51,8 @@ class CybertwinManager : public Application
     void HandleCybertwinDestruction(Ptr<Socket>, Ptr<Packet>);
     void HandleCybertwinReconnect(Ptr<Socket>, Ptr<Packet>);
 
-    Address m_localAddr;
-    uint64_t m_localPort;
     std::vector<Ipv4Address> m_localIpv4AddrList;
     std::vector<Ipv4Address> m_globalIpv4AddrList;
-    std::vector<Ptr<Ipv4Interface>> m_globalIpv4IfList;
 
     Ptr<Socket> m_proxySocket;
     uint16_t m_proxyPort;

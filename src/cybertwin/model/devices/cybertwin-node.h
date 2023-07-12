@@ -25,12 +25,15 @@ class CybertwinNode : public Node
     virtual void SetName(std::string name);
     virtual std::string GetName();
 
+    virtual Ipv4Address GetUpperNodeAddress();
+
     virtual void PowerOn();
     
     void AddParent(Ptr<Node> parent);
     void AddConfigFile(std::string filename, nlohmann::json config);
     void InstallCNRSApp();
-    void InstallCybertwinManagerApp();
+    void InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpv4AddrList,
+                                    std::vector<Ipv4Address> globalIpv4AddrList);
 
     Ptr<NameResolutionService> GetCNRSApp();
 
@@ -61,8 +64,15 @@ class CybertwinEdgeServer: public CybertwinNode
     void PowerOn();
 
     Ptr<CybertwinManager> GetCtrlApp();
+    void AddLocalIp(Ipv4Address);
+    void AddGlobalIp(Ipv4Address);
+    std::vector<Ipv4Address> GetLocalIpList();
+    std::vector<Ipv4Address> GetGlobalIpList();
 
   private:
+    std::vector<Ipv4Address> m_localAddrList;
+    std::vector<Ipv4Address> m_globalAddrList;
+
     Ptr<NameResolutionService> m_cybertwinCNRSApp;
     Ptr<CybertwinManager> m_CybertwinManagerApp;
 };
@@ -100,6 +110,13 @@ class CybertwinEndHost : public CybertwinNode
     void PowerOn() override;
     //void Connect(const CybertwinCertTag&);
     //void SendTo(CYBERTWINID_t, uint32_t size = 0);
+    void SetCybertwinId(CYBERTWINID_t);
+    CYBERTWINID_t GetCybertwinId();
+    void SetCybertwinPort(uint16_t);
+    uint16_t GetCybertwinPort();
+
+    void SetCybertwinStatus(bool);
+    bool GetCybertwinStatus();
 
   private:
     // private member functions
@@ -107,6 +124,10 @@ class CybertwinEndHost : public CybertwinNode
     //Ptr<CybertwinBulkClient> m_bulkClient;
   private:
     // private member variables
+    CYBERTWINID_t m_cybertwinId;
+    uint16_t m_cybertwinPort;
+    bool m_isConnected;
+
     Ptr<Socket> m_cybertwinSocket;
 };
 
