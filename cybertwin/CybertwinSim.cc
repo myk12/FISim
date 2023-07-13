@@ -86,6 +86,7 @@ int32_t CybertwinSim::InitTopology()
 
     for (uint32_t i=1; i<m_coreCloudNodes.GetN(); i++)
     {
+        Ipv4InterfaceContainer interfaces;
         Ptr<Node> p = m_coreCloudNodes.Get(i-1);
         Ptr<Node> q = m_coreCloudNodes.Get(i);
 
@@ -94,7 +95,11 @@ int32_t CybertwinSim::InitTopology()
         bzero(ipBase, sizeof(ipBase));
         sprintf(ipBase, CORE_CLOUD_DEFAULT_IP_FORMAT, i);
         address.SetBase(ipBase, CORE_CLOUD_DEFAULT_MASK);
-        address.Assign(devices);
+        interfaces = address.Assign(devices);
+        
+        // set ip address
+        DynamicCast<CybertwinNode>(p)->AddGlobalIp(interfaces.GetAddress(0));
+        DynamicCast<CybertwinNode>(q)->AddGlobalIp(interfaces.GetAddress(1));
     }
 
     // connect edge servers
@@ -199,7 +204,8 @@ int32_t CybertwinSim::InitTopology()
 
                 // set uppernode address
                 DynamicCast<CybertwinNode>(endHost)->SetAttribute("UpperNodeAddress", Ipv4AddressValue(interfaces.GetAddress(1)));
-                DynamicCast<CybertwinEdgeServer>(parentNode)->AddLocalIp(interfaces.GetAddress(1));
+                DynamicCast<CybertwinNode>(parentNode)->AddLocalIp(interfaces.GetAddress(1));
+                DynamicCast<CybertwinNode>(endHost)->AddLocalIp(interfaces.GetAddress(0));
                 NS_LOG_INFO("+ Connecting " << nodeName << " to parent " << parentName << ": " << interfaces.GetAddress(0) << " -> " << interfaces.GetAddress(1));
             }
             else if (linkType == "csma")

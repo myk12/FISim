@@ -37,6 +37,8 @@ namespace ns3
 
 #define CYBERTWIN_MANAGER_PROXY_PORT (17)
 
+#define APP_CONF_FILE_NAME ("apps.conf")
+
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\
     connid = key1;  \

@@ -11,6 +11,7 @@ build_lib(
         model/apps/cybertwin.cc
         model/apps/end-host-initd.cc
         model/apps/end-host-bulk-send.cc
+        model/apps/download-server.cc
         model/devices/cybertwin-node.cc
         model/networks/cybertwin-name-resolution-service.cc
         model/networks/multipath-data-transfer-protocol.cc
@@ -26,6 +27,7 @@ build_lib(
         model/apps/cybertwin.h
         model/apps/end-host-initd.h
         model/apps/end-host-bulk-send.h
+        model/apps/download-server.h
         model/devices/cybertwin-node.h
         model/networks/cybertwin-name-resolution-service.h
         model/networks/multipath-data-transfer-protocol.h

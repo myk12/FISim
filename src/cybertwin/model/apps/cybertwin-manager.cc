@@ -42,9 +42,7 @@ CybertwinManager::CybertwinManager(std::vector<Ipv4Address> localIpv4AddrList,
 {
     NS_LOG_FUNCTION(this);
     m_localIpv4AddrList = localIpv4AddrList;
-    NS_LOG_DEBUG("=================== Local address list: " << m_localIpv4AddrList.size());
     m_globalIpv4AddrList = globalIpv4AddrList;
-    NS_LOG_DEBUG("================== Global address list: " << m_globalIpv4AddrList.size());
     for(auto addr : m_globalIpv4AddrList)
     {
         NS_LOG_DEBUG("Global address: " << addr);

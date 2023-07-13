@@ -92,6 +92,30 @@ CybertwinNode::GetUpperNodeAddress()
 }
 
 void
+CybertwinNode::AddLocalIp(Ipv4Address localIp)
+{
+    m_localAddrList.push_back(localIp);
+}
+
+void
+CybertwinNode::AddGlobalIp(Ipv4Address globalIp)
+{
+    m_globalAddrList.push_back(globalIp);
+}
+
+std::vector<Ipv4Address>
+CybertwinNode::GetLocalIpList()
+{
+    return m_localAddrList;
+}
+
+std::vector<Ipv4Address>
+CybertwinNode::GetGlobalIpList()
+{
+    return m_globalAddrList;
+}
+
+void
 CybertwinNode::InstallCNRSApp()
 {
     NS_LOG_DEBUG("Installing CNRS app.");
@@ -151,6 +175,61 @@ CybertwinNode::GetCNRSApp()
     return m_cybertwinCNRSApp;
 }
 
+void
+CybertwinNode::InstallUserApps()
+{
+    NS_LOG_DEBUG("Installing user applications.");
+    nlohmann::json appConfig;
+    if (m_configFiles.find(APP_CONF_FILE_NAME) == m_configFiles.end())
+    {
+        NS_LOG_WARN("No app.json found.");
+        return;
+    }
+
+    appConfig = m_configFiles[APP_CONF_FILE_NAME];
+    NS_LOG_DEBUG("appConfig: " << appConfig.dump(4));
+
+    for (auto &app:appConfig["app-list"])
+    {
+        std::string type = app["type"];
+        if (type == "end-host-bulk-send")
+        {
+            NS_LOG_DEBUG("end-host-bulk-send is not implemented yet.");
+        }
+        else if (type == "end-host-initd")
+        {
+            NS_LOG_DEBUG("end-host-initd is not implemented yet.");
+        }
+        else if (type == "download-server")
+        {
+            InstallDownloadServer(app);
+        }
+        else
+        {
+            NS_LOG_WARN("Unknown app type.");
+        }
+
+    }
+
+}
+
+void
+CybertwinNode::InstallDownloadServer(nlohmann::json config)
+{
+    NS_LOG_DEBUG("Installing Download Server.");
+    CYBERTWINID_t m_cybertwinId = config["cybertwin-id"];
+    uint16_t m_cybertwinPort = config["cybertwin-port"];
+    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
+    for (auto &ip:m_globalAddrList)
+    {
+        m_interfaces.push_back(std::make_pair(ip, m_cybertwinPort));
+    }
+
+    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(m_cybertwinId, m_interfaces);
+    this->AddApplication(downloadServer);
+    downloadServer->SetStartTime(Simulator::Now());
+}
+
 //***************************************************************
 //*               edge server node                              *
 //***************************************************************
@@ -181,6 +260,7 @@ CybertwinEdgeServer::~CybertwinEdgeServer()
 void
 CybertwinEdgeServer::PowerOn()
 {
+    NS_LOG_DEBUG("------- Powering on " << m_name);
     if (m_parents.size() == 0)
     {
         NS_LOG_ERROR("Edge server should have parents.");
@@ -191,36 +271,15 @@ CybertwinEdgeServer::PowerOn()
 
     // install Cybertwin Controller application
     InstallCybertwinManagerApp(m_localAddrList, m_globalAddrList);
+
+    NS_LOG_DEBUG("xxxxxxxxxxxxxxx Installing user applications.");
+    InstallUserApps();
 }
 
 Ptr<CybertwinManager>
 CybertwinEdgeServer::GetCtrlApp()
 {
     return m_CybertwinManagerApp;
-}
-
-void
-CybertwinEdgeServer::AddLocalIp(Ipv4Address localIp)
-{
-    m_localAddrList.push_back(localIp);
-}
-
-void
-CybertwinEdgeServer::AddGlobalIp(Ipv4Address globalIp)
-{
-    m_globalAddrList.push_back(globalIp);
-}
-
-std::vector<Ipv4Address>
-CybertwinEdgeServer::GetLocalIpList()
-{
-    return m_localAddrList;
-}
-
-std::vector<Ipv4Address>
-CybertwinEdgeServer::GetGlobalIpList()
-{
-    return m_globalAddrList;
 }
 
 //***************************************************************
