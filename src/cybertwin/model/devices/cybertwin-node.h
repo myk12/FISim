@@ -36,8 +36,13 @@ class CybertwinNode : public Node
     void InstallCNRSApp();
     void InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpv4AddrList,
                                     std::vector<Ipv4Address> globalIpv4AddrList);
+    
+    //*******************************************************
+    //*             App parser and installer                *
+    //*******************************************************
     void InstallUserApps();
     void InstallDownloadServer(nlohmann::json config);
+    void InstallDownloadClient(nlohmann::json config);
 
     Ptr<NameResolutionService> GetCNRSApp();
 
@@ -121,6 +126,7 @@ class CybertwinEndHost : public CybertwinNode
 
     void SetCybertwinStatus(bool);
     bool GetCybertwinStatus();
+    bool CybertwinCreated();
 
   private:
     // private member functions

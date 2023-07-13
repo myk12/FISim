@@ -39,6 +39,11 @@ namespace ns3
 
 #define APP_CONF_FILE_NAME ("apps.conf")
 
+#define APPTYPE_DOWNLOAD_SERVER ("download-server")
+#define APPTYPE_DOWNLOAD_CLIENT ("download-client")
+#define APPTYPE_ENDHOST_INITD ("end-host-initd")
+#define APPTYPE_ENDHOST_BULK_SEND ("end-host-bulk-send")
+
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\
     connid = key1;  \
