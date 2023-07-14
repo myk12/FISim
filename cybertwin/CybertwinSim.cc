@@ -22,6 +22,7 @@ int32_t CybertwinSim::Compiler()
 {
     ParseNodes();
     InitTopology();
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     return 0;
 }
 
@@ -87,10 +88,10 @@ int32_t CybertwinSim::InitTopology()
     for (uint32_t i=1; i<m_coreCloudNodes.GetN(); i++)
     {
         Ipv4InterfaceContainer interfaces;
-        Ptr<Node> p = m_coreCloudNodes.Get(i-1);
-        Ptr<Node> q = m_coreCloudNodes.Get(i);
+        Ptr<CybertwinNode> prevNode = DynamicCast<CybertwinNode>(m_coreCloudNodes.Get(i-1));
+        Ptr<CybertwinNode> curNode = DynamicCast<CybertwinNode>(m_coreCloudNodes.Get(i));
 
-        devices = p2pHelper.Install(p, q);
+        devices = p2pHelper.Install(prevNode, curNode);
 
         bzero(ipBase, sizeof(ipBase));
         sprintf(ipBase, CORE_CLOUD_DEFAULT_IP_FORMAT, i);
@@ -98,8 +99,9 @@ int32_t CybertwinSim::InitTopology()
         interfaces = address.Assign(devices);
         
         // set ip address
-        DynamicCast<CybertwinNode>(p)->AddGlobalIp(interfaces.GetAddress(0));
-        DynamicCast<CybertwinNode>(q)->AddGlobalIp(interfaces.GetAddress(1));
+        prevNode->AddGlobalIp(interfaces.GetAddress(0));
+        curNode->AddGlobalIp(interfaces.GetAddress(1));
+        curNode->AddParent(prevNode);
     }
 
     // connect edge servers

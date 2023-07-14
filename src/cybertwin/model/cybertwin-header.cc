@@ -100,7 +100,7 @@ CybertwinHeader::Deserialize(Buffer::Iterator start)
 bool
 CybertwinHeader::isDataPacket() const
 {
-    return m_command == DATA;
+    return m_command == CYBERTWIN_HEADER_DATA;
 }
 
 void
@@ -161,6 +161,24 @@ uint16_t
 CybertwinHeader::GetCybertwinPort() const
 {
     return m_cybertwinPort;
+}
+
+void
+CybertwinHeader::PrintH(std::ostream& os) const
+{
+    os << "------- Cybertwin Header -------" << std::endl
+       << "| Command: " << static_cast<uint32_t>(m_command) << std::endl
+       << "| Cybertwin: " << m_cybertwin << std::endl;
+    if (isDataPacket())
+    {
+        os << "| Peer: " << m_peer << std::endl
+           << "| Size: " << m_size << std::endl;
+    }
+    else
+    {
+        os << "| Port: " << m_cybertwinPort << std::endl;
+    }
+    os << "--------------------------------" << std::endl;
 }
 
 //********************************************************************

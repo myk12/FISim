@@ -34,6 +34,11 @@ DownloadServer::DownloadServer()
 DownloadServer::DownloadServer(CYBERTWINID_t cybertwinID, CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
     NS_LOG_DEBUG("[DownloadServer] create DownloadServer.");
+    NS_LOG_DEBUG("[DownloadServer] Cybertwin ID: " << cybertwinID);
+    for (auto it = interfaces.begin(); it != interfaces.end(); ++it)
+    {
+        NS_LOG_DEBUG("[DownloadServer] Interface: " << it->first << " " << it->second);
+    }
     m_cybertwinID = cybertwinID;
     m_interfaces = interfaces;
 }
@@ -55,7 +60,8 @@ DownloadServer::StartApplication()
 
     Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(GetNode());
     Ptr<NameResolutionService> cnrs = node->GetCNRSApp();
-    cnrs->InsertCybertwinInterfaceName(m_cybertwinID, m_interfaces);
+    NS_LOG_DEBUG("[DownloadServer] Inserting Cybertwin " << m_cybertwinID << " into CNRS.");
+    cnrs->InsertCybertwinInterfaceName(1000, m_interfaces);
 
 }
 

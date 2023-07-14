@@ -50,10 +50,10 @@ EndHostInitd::StartApplication()
     RegisterCybertwin();
 
     // Connect to Cybertwin
-    Ptr<EndHostBulkSend> bulkSendApp = CreateObject<EndHostBulkSend>();
-    bulkSendApp->SetAttribute("TotalBytes", UintegerValue(1024*3));
-    GetNode()->AddApplication(bulkSendApp);
-    bulkSendApp->SetStartTime(Seconds(0.0));
+    //Ptr<EndHostBulkSend> bulkSendApp = CreateObject<EndHostBulkSend>();
+    //bulkSendApp->SetAttribute("TotalBytes", UintegerValue(1024*3));
+    //GetNode()->AddApplication(bulkSendApp);
+    //bulkSendApp->SetStartTime(Seconds(0.0));
 }
 
 void
@@ -213,6 +213,7 @@ EndHostInitd::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> packet)
     }
 
     // set cybertwin info
+    //header.Print(std::cout);
     endHost->SetCybertwinId(header.GetCUID());
     endHost->SetCybertwinPort(header.GetPort());
     endHost->SetCybertwinStatus(true);

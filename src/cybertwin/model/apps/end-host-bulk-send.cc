@@ -167,7 +167,7 @@ EndHostBulkSend::SendData()
     CybertwinHeader header;
     header.SetCybertwin(1000);
     header.SetPeer(2000);
-    header.SetCommand(DATA);
+    header.SetCommand(CYBERTWIN_HEADER_DATA);
 
     packet->AddHeader(header);
     packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());

@@ -91,18 +91,17 @@ void
 NameResolutionService::InitNameResolutionServer()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("CNRS: Init Name Resolution Service.");
+    NS_LOG_DEBUG("[CNRS] Init Name Resolution Service.");
     if (!serviceSocket)
     {
-        TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-        serviceSocket = Socket::CreateSocket(GetNode(), tid);
+        serviceSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::UdpSocketFactory"));
         InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
 
         if (serviceSocket->Bind(local) == -1)
         {
             NS_FATAL_ERROR("Failed to bind socket");
         }
-        NS_LOG_DEBUG("CNRS: Init service UDP socket success.");
+        NS_LOG_DEBUG("[CNRS]: Serve at " << local.GetIpv4() << ":" << local.GetPort());
     }
 
     serviceSocket->SetRecvCallback(MakeCallback(&NameResolutionService::ServiceRecvHandler, this));
@@ -122,8 +121,7 @@ NameResolutionService::InitClientUDPSocket()
     {
         NS_LOG_DEBUG("Init client UDP socket.");
         int ret = 0;
-        TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
-        clientSocket = Socket::CreateSocket(GetNode(), tid);
+        clientSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::UdpSocketFactory"));
         if (clientSocket->Bind() < 0)
         {
             NS_FATAL_ERROR("Failed to bind socket.");
@@ -347,7 +345,7 @@ NameResolutionService::QuerySuperior(CYBERTWINID_t id, QUERY_ID_t qId)
     }
 
     // case2: has superior
-    NS_LOG_DEBUG("CNRS: query superior.");
+    NS_LOG_DEBUG("[CNRS] query superior : " << superior);
     Ptr<Packet> packet = Create<Packet>();
 
     CNRSHeader header;
@@ -361,7 +359,17 @@ NameResolutionService::QuerySuperior(CYBERTWINID_t id, QUERY_ID_t qId)
         InitClientUDPSocket();
     }
 
-    clientSocket->Send(packet);
+    Address peerAddr;
+    clientSocket->GetPeerName(peerAddr);
+    NS_LOG_DEBUG("peerAddr: " << InetSocketAddress::ConvertFrom(peerAddr).GetIpv4() << " peerPort: " << InetSocketAddress::ConvertFrom(peerAddr).GetPort());
+
+    int32_t ret = clientSocket->Send(packet);
+    if (ret <= 0)
+    {
+        NS_LOG_DEBUG("CNRS: send query packet to superior fail : " << ret);
+        return -2;
+    }
+    NS_LOG_DEBUG("[CNRS] send query packet to superior.");
     return 0;
 }
 
@@ -438,7 +446,7 @@ NameResolutionService::GetCybertwinInterfaceByName(
     CYBERTWINID_t name,
     Callback<void, CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> callback)
 {
-    NS_LOG_DEBUG("Resolve Cybertwin name.");
+    NS_LOG_DEBUG("[CRNS] Resolve Cybertwin name : " << name);
     if (itemCache.find(name) != itemCache.end())
     {
         // find in cache
@@ -465,13 +473,15 @@ int32_t
 NameResolutionService::InsertCybertwinInterfaceName(CYBERTWINID_t name,
                                                     CYBERTWIN_INTERFACE_LIST_t& interfaces)
 {
-    NS_LOG_DEBUG("CNRS: Insert Cybertwin Interface name.");
-    NS_LOG_DEBUG("CNRS: name: " << name);
-    NS_LOG_DEBUG("CNRS: interfaces: ");
+    NS_LOG_DEBUG("-------------[CNRS Insert]----------------");
+    NS_LOG_DEBUG("| CNRS: Insert Cybertwin Interface name.");
+    NS_LOG_DEBUG("| CNRS: name: " << name);
     for (uint32_t i = 0; i < interfaces.size(); i++)
     {
-        NS_LOG_DEBUG("CNRS: " << interfaces[i]);
+        NS_LOG_DEBUG("| CNRS interface: " << interfaces[i]);
     }
+    NS_LOG_DEBUG("------------------------------------------");
+
     // insert to cache
     // to prevent circle, check if already exist
     if (itemCache.find(name) != itemCache.end() && itemCache[name] == interfaces)

@@ -71,11 +71,11 @@ void
 CybertwinManager::StartApplication()
 {
     NS_LOG_FUNCTION(GetNode()->GetId());
-    NS_LOG_DEBUG("================== Global address list: " << m_globalIpv4AddrList.size());
-    for(auto addr : m_globalIpv4AddrList)
-    {
-        NS_LOG_DEBUG("Global address: " << addr);
-    }
+    //NS_LOG_DEBUG("================== Global address list: " << m_globalIpv4AddrList.size());
+    //for(auto addr : m_globalIpv4AddrList)
+    //{
+    //    NS_LOG_DEBUG("Global address: " << addr);
+    //}
 
     StartProxy();
 }

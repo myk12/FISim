@@ -118,29 +118,33 @@ CybertwinNode::GetGlobalIpList()
 void
 CybertwinNode::InstallCNRSApp()
 {
-    NS_LOG_DEBUG("Installing CNRS app.");
-    if (!m_upperNodeAddress.IsInitialized())
+    NS_LOG_DEBUG("[Load][InstallCNRSApp] Installing CNRS app to " << m_name << ".");
+    Ptr<NameResolutionService> cybertwinCNRSApp = nullptr;
+    if (!m_upperNodeAddress.IsInitialized() && m_parents.size() == 0)
     {
-        if (m_parents.size() == 0)
+        NS_LOG_DEBUG("[Load][InstallCNRSApp] CNRS Root node " << m_name << ".");
+        cybertwinCNRSApp = CreateObject<NameResolutionService>();
+    }
+    else
+    {
+        if (!m_upperNodeAddress.IsInitialized())
         {
-            NS_LOG_WARN("No parent node found.");
-            return ;
-        }else
-        {
-            Ptr<Node> upperNode = m_parents[0];
-            m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
+            m_upperNodeAddress = m_parents[0]->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
         }
+
+        // install CNRS application
+        NS_LOG_DEBUG("[Load][InstallCNRSApp] CNRS Child node " << m_name << ".");
+        cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
     }
 
-    // install CNRS application
-    Ptr<NameResolutionService> cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
     this->AddApplication(cybertwinCNRSApp);
     cybertwinCNRSApp->SetStartTime(Simulator::Now());
     m_cybertwinCNRSApp = cybertwinCNRSApp;
 }
 
 void
-CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList, std::vector<Ipv4Address> globalIpList)
+CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList,
+                                          std::vector<Ipv4Address> globalIpList)
 {
     NS_LOG_DEBUG("Installing Cybertwin Manager app.");
     if (!m_upperNodeAddress.IsInitialized())
@@ -148,17 +152,18 @@ CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList, 
         if (m_parents.size() == 0)
         {
             NS_LOG_WARN("No parent node found.");
-            return ;
-        }else
+            return;
+        }
+        else
         {
             Ptr<Node> upperNode = m_parents[0];
             m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
         }
-        
     }
 
     // install Cybertwin Manager application
-    Ptr<CybertwinManager> cybertwinManagerApp = CreateObject<CybertwinManager>(localIpList, globalIpList);
+    Ptr<CybertwinManager> cybertwinManagerApp =
+        CreateObject<CybertwinManager>(localIpList, globalIpList);
     this->AddApplication(cybertwinManagerApp);
     cybertwinManagerApp->SetStartTime(Simulator::Now());
 }
@@ -189,7 +194,7 @@ CybertwinNode::InstallUserApps()
     appConfig = m_configFiles[APP_CONF_FILE_NAME];
     NS_LOG_DEBUG("appConfig: " << appConfig.dump(4));
 
-    for (auto &app:appConfig["app-list"])
+    for (auto& app : appConfig["app-list"])
     {
         std::string type = app["type"];
         if (type == APPTYPE_ENDHOST_BULK_SEND)
@@ -212,39 +217,40 @@ CybertwinNode::InstallUserApps()
         {
             NS_LOG_WARN("Unknown app type.");
         }
-
     }
-
 }
 
 void
 CybertwinNode::InstallDownloadServer(nlohmann::json config)
 {
     NS_LOG_DEBUG("Installing Download Server.");
-    CYBERTWINID_t m_cybertwinId = config["cybertwin-id"];
-    uint16_t m_cybertwinPort = config["cybertwin-port"];
-    uint32_t m_startDelay = config["start-delay"];
-    CYBERTWIN_INTERFACE_LIST_t m_interfaces;
-    for (auto &ip:m_globalAddrList)
+    CYBERTWINID_t cybertwinId = config["cybertwin-id"];
+    uint16_t cybertwinPort = config["cybertwin-port"];
+    uint32_t startDelay = config["start-delay"];
+    CYBERTWIN_INTERFACE_LIST_t interfaces;
+    for (auto& ip : m_globalAddrList)
     {
-        m_interfaces.push_back(std::make_pair(ip, m_cybertwinPort));
+        interfaces.push_back(std::make_pair(ip, cybertwinPort));
+        NS_LOG_DEBUG("interface: " << ip << ":" << cybertwinPort);
     }
 
-    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(m_cybertwinId, m_interfaces);
+    NS_LOG_DEBUG("cybertwinId: " << cybertwinId);
+    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
     this->AddApplication(downloadServer);
-    downloadServer->SetStartTime(Simulator::Now() + Seconds(m_startDelay));
+    downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 
 void
 CybertwinNode::InstallDownloadClient(nlohmann::json config)
 {
     NS_LOG_DEBUG("Installing Download Client.");
-    CYBERTWINID_t m_cybertwinId = config["cybertwin-id"];
-    uint32_t m_startDelay = config["start-delay"];
+    CYBERTWINID_t targetCybertwin = config["cybertwin-id"];
+    uint32_t startDelay = config["start-delay"];
 
-    Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>(m_cybertwinId);
+    Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
     this->AddApplication(downloadClient);
-    downloadClient->SetStartTime(Simulator::Now() + Seconds(m_startDelay));
+    downloadClient->AddCUID(targetCybertwin);
+    downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 
 //***************************************************************
@@ -277,7 +283,7 @@ CybertwinEdgeServer::~CybertwinEdgeServer()
 void
 CybertwinEdgeServer::PowerOn()
 {
-    NS_LOG_DEBUG("------- Powering on " << m_name);
+    NS_LOG_DEBUG("-------------- Powering on " << m_name);
     if (m_parents.size() == 0)
     {
         NS_LOG_ERROR("Edge server should have parents.");
@@ -289,7 +295,6 @@ CybertwinEdgeServer::PowerOn()
     // install Cybertwin Controller application
     InstallCybertwinManagerApp(m_localAddrList, m_globalAddrList);
 
-    NS_LOG_DEBUG("xxxxxxxxxxxxxxx Installing user applications.");
     InstallUserApps();
 }
 
@@ -323,12 +328,9 @@ CybertwinCoreServer::CybertwinCoreServer()
 void
 CybertwinCoreServer::PowerOn()
 {
-    if (m_parents.size() != 0)
-    {
-        // has parents, install CNRS application
-        // only root node has no parents
-        InstallCNRSApp();
-    }
+    NS_LOG_DEBUG("************** Powering on " << m_name);
+
+    InstallCNRSApp();
 }
 
 CybertwinCoreServer::~CybertwinCoreServer()
@@ -364,14 +366,16 @@ CybertwinEndHost::~CybertwinEndHost()
 void
 CybertwinEndHost::PowerOn()
 {
-    NS_LOG_FUNCTION(GetId());
+    NS_LOG_DEBUG("-+-+-+-+-+-+ Powering on " << m_name);
 
     // Create initd
     Ptr<EndHostInitd> initd = CreateObject<EndHostInitd>();
     initd->SetAttribute("ProxyAddr", Ipv4AddressValue(m_upperNodeAddress));
-    //initd->SetAttribute("ProxyPort", UintegerValue(m_proxyPort));
+    // initd->SetAttribute("ProxyPort", UintegerValue(m_proxyPort));
     AddApplication(initd);
     initd->SetStartTime(Seconds(0.0));
+
+    InstallUserApps();
 }
 
 void
@@ -416,4 +420,4 @@ CybertwinEndHost::CybertwinCreated()
     return m_isConnected;
 }
 
-}// namespace ns3
+} // namespace ns3

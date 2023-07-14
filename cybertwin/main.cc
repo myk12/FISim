@@ -73,6 +73,9 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
     LogComponentEnable("EndHostBulkSend", LOG_LEVEL_INFO);
     LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
+    LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
+    LogComponentEnable("Socket", LOG_LEVEL_INFO);
+    
 
     CybertwinSim cybertwinSim;
     cybertwinSim.Compiler();

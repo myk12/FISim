@@ -155,6 +155,7 @@ private:
 #else
     Ptr<Socket> m_dtServer;
 #endif
+    uint32_t m_noneDataCnt;
 
     uint64_t m_serverTxBytes; //number of sent times
 

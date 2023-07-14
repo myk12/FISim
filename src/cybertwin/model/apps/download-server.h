@@ -30,7 +30,7 @@ class DownloadServer: public Application
     void BulkSend(Ptr<Socket>);
 
   private:
-    CYBERTWINID_t m_cybertwinID;
+    uint64_t m_cybertwinID;
     CYBERTWIN_INTERFACE_LIST_t m_interfaces;
 #if MDTP_ENABLED
     // Cybertwin Connections

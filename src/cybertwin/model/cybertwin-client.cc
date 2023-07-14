@@ -412,7 +412,7 @@ CybertwinBulkClient::SendData()
             header.SetCybertwin(m_localCuid);
             header.SetPeer(m_peerCuid);
             header.SetSize(toSend);
-            header.SetCommand(DATA);
+            header.SetCommand(CYBERTWIN_HEADER_DATA);
             NS_ABORT_IF(toSend < header.GetSerializedSize());
             packet = Create<Packet>(toSend - header.GetSerializedSize());
             packet->AddHeader(header);

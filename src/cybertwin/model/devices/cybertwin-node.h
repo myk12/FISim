@@ -5,6 +5,7 @@
 #include "ns3/cybertwin-manager.h"
 #include "ns3/cybertwin-name-resolution-service.h"
 #include "ns3/download-server.h"
+#include "ns3/download-client.h"
 #include "ns3/end-host-initd.h"
 
 #include <unordered_map>
@@ -128,10 +129,6 @@ class CybertwinEndHost : public CybertwinNode
     bool GetCybertwinStatus();
     bool CybertwinCreated();
 
-  private:
-    // private member functions
-    // Ptr<CybertwinConnClient> m_connClient;
-    // Ptr<CybertwinBulkClient> m_bulkClient;
   private:
     // private member variables
     CYBERTWINID_t m_cybertwinId;

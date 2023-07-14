@@ -51,8 +51,10 @@ do {\
     connid += key2;  \
 }while(0)
 
-#define SYSTEM_PACKET_SIZE (516)
+#define SYSTEM_PACKET_SIZE (536)
 #define MAX_BUFFER_PKT_NUM (1024)
+
+#define CYBERTWIN_FORWARD_MAX_WAIT_NUM (10000)
 
 #define GET_PEERID_FROM_STREAMID(streamid) (streamid & 0xFFFFFFFFFFFFFFFF)
 #define GET_CYBERID_FROM_STREAMID(streamid) (streamid >> 64)

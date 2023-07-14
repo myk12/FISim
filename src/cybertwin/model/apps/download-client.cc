@@ -2,72 +2,214 @@
 
 namespace ns3
 {
-DownloadClient::DownloadClient(uint64_t cuid) : m_cuid(cuid)
-{
-  // TODO: Initialize m_nameResolutionService
+NS_LOG_COMPONENT_DEFINE("DownloadClient");
+NS_OBJECT_ENSURE_REGISTERED(DownloadClient);
 
-  // Resolve CUID to server address
-  ResolveCUID();
+//******************************************************************************
+//*                         download client                                    *
+//******************************************************************************
+
+TypeId
+DownloadClient::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::DownloadClient")
+            .SetParent<Application>()
+            .SetGroupName("Cybertwin")
+            .AddConstructor<DownloadClient>();
+    return tid;
+}
+
+DownloadClient::DownloadClient()
+{
+    NS_LOG_DEBUG("[DownloadClient] create DownloadClient.");
+}
+
+DownloadClient::DownloadClient(std::vector<CYBERTWINID_t> cuids)
+{
+    NS_LOG_DEBUG("[DownloadClient] create DownloadClient.");
+    m_cuidList = cuids;
 }
 
 DownloadClient::~DownloadClient()
 {
 }
 
-void DownloadClient::StartApplication()
+void
+DownloadClient::AddCUID(CYBERTWINID_t cuid)
+{
+    m_cuidList.push_back(cuid);
+}
+
+void
+DownloadClient::StartApplication()
 {
     NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[DownloadClient] Starting DownloadClient.");
+
+    StartDownloadStreams();
+}
+
+void
+DownloadClient::StartDownloadStreams()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[DownloadClient] Starting DownloadClient.");
     m_endHost = DynamicCast<CybertwinEndHost>(GetNode());
     if (!m_endHost)
     {
         NS_FATAL_ERROR("Node is not a CybertwinEndHost.");
-        return ;
-    }
-
-    ConnectCybertwin();
-}
-
-void
-DownloadClient::ConnectCybertwin()
-{
-    if (!m_endHost->CybertwinCreated())
-    {
-        NS_LOG_DEBUG("Cybertwin not created yet.");
-        // schedule next second
-        Simulator::Schedule(Seconds(1), &DownloadClient::ConnectCybertwin, this);
         return;
     }
 
-    // Get Cybertwin Socket
-    CYBERTWINID_t selfID = endHost->GetCybertwinId();
-    uint16_t cybertwinPort = endHost->GetCybertwinPort();
-    Ipv4Address cybertwinAddr = endHost->GetUpperNodeAddress();
-    
-    if (!m_socket)
+    if (!m_endHost->CybertwinCreated())
     {
-        m_socket = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
-        m_socket->Bind();
-        m_socket->Connect(InetSocketAddress(cybertwinAddr, cybertwinPort));
-        m_socket->SetRecvCallback(MakeCallback(&DownloadClient::HandleRead, this));
+        NS_LOG_DEBUG("[DownloadClient] Cybertwin not created yet.");
+        Simulator::Schedule(Seconds(1.0), &DownloadClient::StartDownloadStreams, this);
+        return;
     }
 
-  
+    Ipv4Address cybertwinAddress = m_endHost->GetUpperNodeAddress();
+    uint16_t cybertwinPort = m_endHost->GetCybertwinPort();
+
+    uint32_t streamID = 0;
+    for (auto cuid : m_cuidList)
+    {
+        DownloadStream stream;
+        stream.SetNode(GetNode());
+        stream.SetStreamID(streamID++);
+        stream.SetTargetID(cuid);
+        stream.SetCybertwin(cybertwinAddress, cybertwinPort);
+        stream.Activate();
+    }
 }
 
-void DownloadClient::StopApplication()
+void
+DownloadClient::StopApplication()
 {
-  if (m_socket)
-    m_socket->Close();
+    NS_LOG_FUNCTION(this);
 }
 
-void DownloadClient::ResolveCUID()
+//******************************************************************************
+//*                         download stream                                    *
+//******************************************************************************
+
+DownloadStream::DownloadStream()
 {
-  // TODO: Implement CUID resolution logic using m_nameResolutionService
-
-  // Example: Hardcode server address and port for testing
-  Ipv4Address serverIp("192.168.0.1");
-  uint16_t serverPort = 5000;
-  m_serverAddress = InetSocketAddress(serverIp, serverPort);
+    m_socket = nullptr;
 }
+
+DownloadStream::~DownloadStream()
+{
+}
+
+void
+DownloadStream::SetNode(Ptr<Node> node)
+{
+    m_node = node;
+}
+
+void
+DownloadStream::SetStreamID(uint32_t streamID)
+{
+    m_streamID = streamID;
+}
+
+void
+DownloadStream::SetTargetID(CYBERTWINID_t targetID)
+{
+    m_targetID = targetID;
+}
+
+void
+DownloadStream::SetCybertwin(Ipv4Address cybertwinAddress, uint16_t cybertwinPort)
+{
+    m_cybertwinAddress = cybertwinAddress;
+    m_cybertwinPort = cybertwinPort;
+}
+
+void
+DownloadStream::SetCUID(CYBERTWINID_t cuid)
+{
+    m_cuid = cuid;
+}
+
+void
+DownloadStream::Activate()
+{
+    NS_LOG_FUNCTION(this);  
+    NS_LOG_DEBUG("[DownloadStream] Activate stream " << m_streamID << " to " << m_targetID);
+
+    m_socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
+    m_socket->Bind();
+    m_socket->Connect(InetSocketAddress(m_cybertwinAddress, m_cybertwinPort));
+    NS_LOG_DEBUG("[DownloadStream] Connecting to " << m_cybertwinAddress << ":" << m_cybertwinPort);
+    m_socket->SetConnectCallback(MakeCallback(&DownloadStream::ConnectionSucceeded, this),
+                                 MakeCallback(&DownloadStream::ConnectionFailed, this));
+    m_socket->SetCloseCallbacks(MakeCallback(&DownloadStream::ConnectionNormalClosed, this),
+                                MakeCallback(&DownloadStream::ConnectionErrorClosed, this));
+    NS_LOG_DEBUG("[DownloadStream] " << this);
+    NS_LOG_DEBUG("[DownloadStream] Connecting to " << m_targetID);
+}
+
+void
+DownloadStream::ConnectionSucceeded(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[DownloadStream] " << this);
+    NS_LOG_DEBUG("[DownloadStream] Connection succeeded.");
+    NS_LOG_DEBUG("[DownloadStream] 1Sending request to " << m_targetID << ".");
+
+    // set recv callback
+    socket->SetRecvCallback(MakeCallback(&DownloadStream::RecvCallback, this));
+
+    // send request
+    CybertwinHeader header;
+    header.SetCommand(CYBERTWIN_HEADER_DATA);
+    header.SetCybertwin(m_cuid);
+    NS_LOG_DEBUG("[DownloadStream] 2Sending request to " << m_targetID << ".");
+    header.SetPeer(1000);
+
+    Ptr<Packet> packet = Create<Packet>();
+    packet->AddHeader(header);
+    packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
+
+    socket->Send(packet);
+    header.PrintH(std::cout);
+}
+
+void
+DownloadStream::RecvCallback(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    Ptr<Packet> packet;
+    while ((packet = socket->Recv()))
+    {
+        NS_LOG_DEBUG("[DownloadStream] Received packet from " << packet->GetSize() << " bytes.");
+    }
+}
+
+void
+DownloadStream::ConnectionFailed(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_WARN("[DownloadStream] Connection failed.");
+}
+
+void
+DownloadStream::ConnectionNormalClosed(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[DownloadStream] Connection closed.");
+}
+
+void
+DownloadStream::ConnectionErrorClosed(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_WARN("[DownloadStream] Connection error closed.");
+}
+
+
 
 } // namespace ns3
