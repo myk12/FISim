@@ -155,15 +155,15 @@ CybertwinManager::ReceiveFromHost(Ptr<Socket> socket)
         switch (header.GetCommand())
         {
         case CYBERTWIN_REGISTRATION:
-            NS_LOG_DEBUG("CYBERTWIN_REGISTRATION");
+            NS_LOG_INFO("CYBERTWIN_REGISTRATION");
             HandleCybertwinRegistration(socket, packet);
             break;
         case CYBERTWIN_DESTRUCTION:
-            NS_LOG_DEBUG("CYBERTWIN_DESTRUCTION");
+            NS_LOG_INFO("CYBERTWIN_DESTRUCTION");
             HandleCybertwinDestruction(socket, packet);
             break;
         case CYBERTWIN_RECONNECT:
-            NS_LOG_DEBUG("CYBERTWIN_RECONNECT");
+            NS_LOG_INFO("CYBERTWIN_RECONNECT");
             HandleCybertwinReconnect(socket, packet);
             break;
         }
@@ -204,7 +204,7 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
         Ipv4Address local_Addr = InetSocketAddress::ConvertFrom(local_addr).GetIpv4();
         CYBERTWIN_INTERFACE_t l_interface = std::make_pair(local_Addr, local_port);
 
-        NS_LOG_DEBUG("Assign local address: " << local_Addr << ", local port: " << local_port << " to cybertwin " << name);
+        NS_LOG_INFO("Assign local address: " << local_Addr << ", local port: " << local_port << " to cybertwin " << name);
 
         // assign global interfaces (multiple addr:port) for new cybertwin
         CYBERTWIN_INTERFACE_LIST_t g_interfaces;
@@ -212,7 +212,7 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
 
         for (auto interface : g_interfaces)
         {
-            NS_LOG_DEBUG("Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
+            NS_LOG_INFO("Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
         }
 
         // create a new cybertwin

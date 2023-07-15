@@ -3,12 +3,23 @@
 
 #include "ns3/cybertwin-common.h"
 #include "ns3/cybertwin-node.h"
+#include "ns3/random-variable-stream.h"
 
 namespace ns3
 {
 
 class EndHostBulkSend : public Application
 {
+  enum TrafficPattern
+  {
+    TRAFFIC_PATTERN_PARETO,
+    TRAFFIC_PATTERN_UNIFORM,
+    TRAFFIC_PATTERN_NORMAL,
+    TRAFFIC_PATTERN_EXPONENTIAL,
+    TRAFFIC_PATTERN_CONSTANT,
+    TRAFFIC_PATTERN_MAX
+  };
+
   public:
     EndHostBulkSend();
     ~EndHostBulkSend();
@@ -19,6 +30,7 @@ class EndHostBulkSend : public Application
     void StartApplication();
     void StopApplication();
 
+    void InitRandomVariableStream();
     void ConnectCybertwin();
 
     // callbacks
@@ -39,6 +51,9 @@ class EndHostBulkSend : public Application
 
     uint32_t m_totalBytes;
     uint32_t m_sentBytes;
+
+    TrafficPattern m_trafficPattern;
+    Ptr<RandomVariableStream> m_randomVariableStream;
 };
     
 } // namespace ns

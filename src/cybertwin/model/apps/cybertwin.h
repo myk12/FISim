@@ -1,12 +1,12 @@
 #ifndef CYBERTWIN_H
 #define CYBERTWIN_H
 
-#include "../cybertwin-common.h"
-#include "../cybertwin-header.h"
-#include "../devices/cybertwin-node.h"
-#include "../networks/multipath-data-transfer-protocol.h"
-#include "../networks/cybertwin-name-resolution-service.h"
-#include "../cybertwin-tag.h"
+#include "ns3/cybertwin-common.h"
+#include "ns3/cybertwin-header.h"
+#include "ns3/cybertwin-node.h"
+#include "ns3/multipath-data-transfer-protocol.h"
+#include "ns3/cybertwin-name-resolution-service.h"
+#include "ns3/cybertwin-tag.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -58,22 +58,6 @@ class Cybertwin : public Application
 
     void LocalRecvCallback(Ptr<Socket>);
     void LocallyForward();
-
-    void UpdateRxSizePerSecond(
-#if MDTP_ENABLED
-        CYBERTWINID_t conn
-#else
-        Ptr<Socket> sock
-#endif
-    );
-
-    void CybertwinServerBulkSend(
-#if MDTP_ENABLED
-        MultipathConnection* conn
-#else
-        Ptr<Socket> sock
-#endif
-    );
 
     // globally
     void GloballyListen();

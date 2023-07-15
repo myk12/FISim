@@ -68,10 +68,10 @@ main(int argc, char* argv[])
     //LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
     LogComponentEnable("EndHostInitd", LOG_LEVEL_DEBUG);
-    LogComponentEnable("CybertwinManager", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinManager", LOG_LEVEL_DEBUG);
     //LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
-    LogComponentEnable("EndHostBulkSend", LOG_LEVEL_INFO);
+    LogComponentEnable("EndHostBulkSend", LOG_LEVEL_DEBUG);
     LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
     LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
     LogComponentEnable("Socket", LOG_LEVEL_INFO);

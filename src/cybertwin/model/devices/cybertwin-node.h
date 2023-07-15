@@ -7,6 +7,7 @@
 #include "ns3/download-server.h"
 #include "ns3/download-client.h"
 #include "ns3/end-host-initd.h"
+#include "ns3/end-host-bulk-send.h"
 
 #include <unordered_map>
 #include <vector>
@@ -44,6 +45,7 @@ class CybertwinNode : public Node
     void InstallUserApps();
     void InstallDownloadServer(nlohmann::json config);
     void InstallDownloadClient(nlohmann::json config);
+    void InstallEndHostBulkSend(nlohmann::json config);
 
     Ptr<NameResolutionService> GetCNRSApp();
 
@@ -126,8 +128,7 @@ class CybertwinEndHost : public CybertwinNode
     uint16_t GetCybertwinPort();
 
     void SetCybertwinStatus(bool);
-    bool GetCybertwinStatus();
-    bool CybertwinCreated();
+    bool isCybertwinCreated();
 
   private:
     // private member variables

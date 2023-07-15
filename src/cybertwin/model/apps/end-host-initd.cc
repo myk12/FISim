@@ -48,12 +48,6 @@ EndHostInitd::StartApplication()
 
     // Register to Cybertwin
     RegisterCybertwin();
-
-    // Connect to Cybertwin
-    //Ptr<EndHostBulkSend> bulkSendApp = CreateObject<EndHostBulkSend>();
-    //bulkSendApp->SetAttribute("TotalBytes", UintegerValue(1024*3));
-    //GetNode()->AddApplication(bulkSendApp);
-    //bulkSendApp->SetStartTime(Seconds(0.0));
 }
 
 void
@@ -162,7 +156,7 @@ void
 EndHostInitd::RecvFromCybertwinManangerCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("Received from CybertwinManager.");
+    NS_LOG_DEBUG("[Initd][EndHost] Receiving from CybertwinManager.");
 
     Ptr<Packet> packet;
     Address from;
@@ -175,18 +169,16 @@ EndHostInitd::RecvFromCybertwinManangerCallback(Ptr<Socket> socket)
         switch (header.GetCommand())
         {
         case CYBERTWIN_REGISTRATION_ACK: {
-            NS_LOG_DEBUG("Received registration ack.");
             m_isRegisteredToCybertwin = true;
             RegisterSuccessHandler(socket, packet);
             break;
         }
         case CYBERTWIN_REGISTRATION_ERROR: {
-            NS_LOG_DEBUG("Received registration error.");
             RegisterFailureHandler(socket, packet);
             break;
         }
         default: {
-            NS_LOG_ERROR("Unknown command.");
+            NS_LOG_ERROR("[Initd][EndHost] Unknown command: " << header.GetCommand());
             break;
         }
         }
@@ -197,7 +189,7 @@ void
 EndHostInitd::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("Handling registration success.");
+    NS_LOG_DEBUG("[Initd][EndHost] Cybertwin Registration Success.");
 
     CybertwinManagerHeader header;
     packet->RemoveHeader(header);
@@ -213,7 +205,7 @@ EndHostInitd::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> packet)
     }
 
     // set cybertwin info
-    //header.Print(std::cout);
+    header.Print(std::cout);
     endHost->SetCybertwinId(header.GetCUID());
     endHost->SetCybertwinPort(header.GetPort());
     endHost->SetCybertwinStatus(true);

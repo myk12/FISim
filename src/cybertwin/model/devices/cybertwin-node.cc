@@ -199,7 +199,7 @@ CybertwinNode::InstallUserApps()
         std::string type = app["type"];
         if (type == APPTYPE_ENDHOST_BULK_SEND)
         {
-            NS_LOG_DEBUG("end-host-bulk-send is not implemented yet.");
+            InstallEndHostBulkSend(app);
         }
         else if (type == APPTYPE_ENDHOST_INITD)
         {
@@ -221,9 +221,21 @@ CybertwinNode::InstallUserApps()
 }
 
 void
+CybertwinNode::InstallEndHostBulkSend(nlohmann::json config)
+{
+    NS_LOG_DEBUG(m_name << " - Installing EndHostBulkSend.");
+
+    uint32_t startDelay = config["start-delay"];
+
+    Ptr<EndHostBulkSend> endHostBulkSend = CreateObject<EndHostBulkSend>();
+    this->AddApplication(endHostBulkSend);
+    endHostBulkSend->SetStartTime(Simulator::Now() + Seconds(startDelay));
+}
+
+void
 CybertwinNode::InstallDownloadServer(nlohmann::json config)
 {
-    NS_LOG_DEBUG("Installing Download Server.");
+    NS_LOG_DEBUG(m_name <<" - Installing Download Server.");
     CYBERTWINID_t cybertwinId = config["cybertwin-id"];
     uint16_t cybertwinPort = config["cybertwin-port"];
     uint32_t startDelay = config["start-delay"];
@@ -243,7 +255,7 @@ CybertwinNode::InstallDownloadServer(nlohmann::json config)
 void
 CybertwinNode::InstallDownloadClient(nlohmann::json config)
 {
-    NS_LOG_DEBUG("Installing Download Client.");
+    NS_LOG_DEBUG(m_name << " - Installing Download Client.");
     CYBERTWINID_t targetCybertwin = config["cybertwin-id"];
     uint32_t startDelay = config["start-delay"];
 
@@ -356,6 +368,7 @@ CybertwinEndHost::GetTypeId()
 CybertwinEndHost::CybertwinEndHost()
 {
     NS_LOG_DEBUG("[CybertwinEndHost] create CybertwinEndHost.");
+    m_isConnected = false;
 }
 
 CybertwinEndHost::~CybertwinEndHost()
@@ -393,6 +406,7 @@ CybertwinEndHost::GetCybertwinId()
 void
 CybertwinEndHost::SetCybertwinPort(uint16_t port)
 {
+    NS_LOG_DEBUG("[CybertwinEndHost] SetCybertwinPort: " << port);
     m_cybertwinPort = port;
 }
 
@@ -409,13 +423,7 @@ CybertwinEndHost::SetCybertwinStatus(bool stat)
 }
 
 bool
-CybertwinEndHost::GetCybertwinStatus()
-{
-    return m_isConnected;
-}
-
-bool
-CybertwinEndHost::CybertwinCreated()
+CybertwinEndHost::isCybertwinCreated()
 {
     return m_isConnected;
 }

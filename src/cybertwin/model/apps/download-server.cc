@@ -20,7 +20,7 @@ DownloadServer::GetTypeId()
                           MakeUintegerChecker<uint64_t>())
             .AddAttribute("MaxBytes",
                           "Maximum bytes to send.",
-                          UintegerValue(0),
+                          UintegerValue(1024*1024),
                           MakeUintegerAccessor(&DownloadServer::m_maxBytes),
                           MakeUintegerChecker<uint32_t>());
     return tid;
@@ -115,6 +115,7 @@ DownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address &from)
 {
     NS_LOG_FUNCTION(this << socket << from);
     // put into the map
+    NS_LOG_DEBUG("[App][DownloadServer] New connection with " << InetSocketAddress::ConvertFrom(from).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(from).GetPort());
 
     // set recv callback
     socket->SetRecvCallback(MakeCallback(&DownloadServer::RecvCallback, this));
@@ -128,20 +129,25 @@ void
 DownloadServer::BulkSend(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_DEBUG("Bulk send.");
 
     // send data
     Ptr<Packet> packet = Create<Packet>(1024);
     uint32_t txBytes = socket->Send(packet);
     m_sendBytes[socket] += txBytes;
 
+    Address peername;
+    socket->GetPeerName(peername);
+
+    NS_LOG_LOGIC("[App][DownloadServer] Send " << txBytes << " bytes to " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
+
     // schedule next bulk send
     if (m_maxBytes == 0 || m_sendBytes[socket] < m_maxBytes)
     {
-        Simulator::ScheduleNow(&DownloadServer::BulkSend, this, socket);
+        Simulator::Schedule(Seconds(0.1), &DownloadServer::BulkSend, this, socket);
     }
     else
     {
+        NS_LOG_DEBUG("[App][DownloadServer] 1MB data sent, Close connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
         socket->Close();
     }
 }
@@ -150,10 +156,13 @@ void
 DownloadServer::RecvCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_DEBUG("Recv callback.");
+
     Ptr<Packet> packet = socket->Recv();
     uint32_t rxBytes = packet->GetSize();
-    NS_LOG_DEBUG("Received " << rxBytes << " bytes.");
+
+    Address peername;
+    socket->GetPeerName(peername);
+    NS_LOG_DEBUG("[App][DownloadServer] Received "<< rxBytes << " bytes from " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
 }
 
 void

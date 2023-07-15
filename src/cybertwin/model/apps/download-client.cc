@@ -62,7 +62,7 @@ DownloadClient::StartDownloadStreams()
         return;
     }
 
-    if (!m_endHost->CybertwinCreated())
+    if (!m_endHost->isCybertwinCreated())
     {
         NS_LOG_DEBUG("[DownloadClient] Cybertwin not created yet.");
         Simulator::Schedule(Seconds(1.0), &DownloadClient::StartDownloadStreams, this);
