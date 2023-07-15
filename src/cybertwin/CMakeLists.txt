@@ -7,6 +7,7 @@ build_lib(
     LIBNAME cybertwin
     SOURCE_FILES
         helper/cybertwin-helper.cc
+        model/apps/cybertwin-app.cc
         model/apps/cybertwin-manager.cc
         model/apps/cybertwin.cc
         model/apps/end-host-initd.cc
@@ -24,6 +25,7 @@ build_lib(
         
     HEADER_FILES
         helper/cybertwin-helper.h
+        model/apps/cybertwin-app.h
         model/apps/cybertwin-manager.h
         model/apps/cybertwin.h
         model/apps/end-host-initd.h

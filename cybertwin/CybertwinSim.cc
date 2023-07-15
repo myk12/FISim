@@ -276,6 +276,10 @@ CybertwinSim::ParseNodes()
 
                 coreServer->AddConfigFile(fileName, conf);
             }
+
+            // get log dir sbsolute path
+            std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
+            coreServer->SetLogDir(logDir);
         }
     }
 
@@ -312,6 +316,10 @@ CybertwinSim::ParseNodes()
 
                 edgeServer->AddConfigFile(fileName, conf);
             }
+
+            // get log dir sbsolute path
+            std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
+            edgeServer->SetLogDir(logDir);
         }
     }
 
@@ -348,6 +356,10 @@ CybertwinSim::ParseNodes()
 
                 endHost->AddConfigFile(fileName, conf);
             }
+
+            // get log dir sbsolute path
+            std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
+            endHost->SetLogDir(logDir);
         }
     }
 

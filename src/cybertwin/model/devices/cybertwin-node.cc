@@ -66,6 +66,18 @@ CybertwinNode::SetName(std::string name)
     m_name = name;
 }
 
+void
+CybertwinNode::SetLogDir(std::string logDir)
+{
+    m_logDir = logDir;
+}
+
+std::string
+CybertwinNode::GetLogDir()
+{
+    return m_logDir;
+}
+
 std::string
 CybertwinNode::GetName()
 {

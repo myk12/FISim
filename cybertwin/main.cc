@@ -74,8 +74,8 @@ main(int argc, char* argv[])
     LogComponentEnable("EndHostBulkSend", LOG_LEVEL_DEBUG);
     LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
     LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
-    //LogComponentEnable("Socket", LOG_LEVEL_INFO);
-    //LogComponentEnable("Node", LOG_LEVEL_DEBUG);
+    LogComponentEnable("Socket", LOG_LEVEL_INFO);
+    LogComponentEnableAll(LOG_LEVEL_DEBUG);
     
 
     CybertwinSim cybertwinSim;

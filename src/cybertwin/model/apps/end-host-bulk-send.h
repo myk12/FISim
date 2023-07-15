@@ -4,11 +4,12 @@
 #include "ns3/cybertwin-common.h"
 #include "ns3/cybertwin-node.h"
 #include "ns3/random-variable-stream.h"
+#include "ns3/cybertwin-app.h"
 
 namespace ns3
 {
 
-class EndHostBulkSend : public Application
+class EndHostBulkSend : public CybertwinApp
 {
   enum TrafficPattern
   {

@@ -25,8 +25,13 @@ class CybertwinNode : public Node
     static TypeId GetTypeId();
     virtual TypeId GetInstanceTypeId() const;
 
+    //setters
     virtual void SetAddressList(std::vector<Ipv4Address> addressList);
     virtual void SetName(std::string name);
+    virtual void SetLogDir(std::string logDir);
+
+    //getters
+    virtual std::string GetLogDir();
     virtual std::string GetName();
 
     virtual Ipv4Address GetUpperNodeAddress();
@@ -65,6 +70,7 @@ class CybertwinNode : public Node
 
     Ptr<NameResolutionService> m_cybertwinCNRSApp;
     std::string m_name;
+    std::string m_logDir;
     std::vector<Ptr<Node>> m_parents;
     std::unordered_map<std::string, nlohmann::json> m_configFiles;
 };

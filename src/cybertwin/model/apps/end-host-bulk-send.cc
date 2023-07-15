@@ -8,7 +8,6 @@ NS_OBJECT_ENSURE_REGISTERED(EndHostBulkSend);
 
 EndHostBulkSend::EndHostBulkSend()
 {
-    m_trafficPattern = TRAFFIC_PATTERN_PARETO;
     NS_LOG_DEBUG("[EndHostBulkSend] create EndHostBulkSend.");
 }
 
@@ -40,6 +39,16 @@ EndHostBulkSend::StartApplication()
     NS_LOG_DEBUG("[App][EndHostBulkSend] Starting EndHostBulkSend.");
     m_trafficPattern = TRAFFIC_PATTERN_EXPONENTIAL;
 
+    Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(GetNode());
+    if (!node)
+    {
+        NS_LOG_ERROR("[EndHostBulkSend] Node is not a CybertwinNode.");
+        return;
+    }
+
+    m_trafficPattern = TRAFFIC_PATTERN_PARETO;
+    OpenLogFile(node->GetLogDir(), "end-host-bulk-send.log");
+
     // Connect to Cybertwin
     ConnectCybertwin();
 
@@ -52,6 +61,8 @@ EndHostBulkSend::StopApplication()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("Stopping EndHostBulkSend.");
+
+    CloseLogFile();
 
     if (m_socket)
     {
@@ -91,12 +102,14 @@ EndHostBulkSend::ConnectCybertwin()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connecting to Cybertwin.");
+    m_logStream << Simulator::Now() << " Connecting to Cybertwin." << std::endl;
 
     // Check if Cybertwin address is set
     Ptr<CybertwinEndHost> host = DynamicCast<CybertwinEndHost>(GetNode());
     if (!host)
     {
         NS_LOG_ERROR("[App][EndHostBulkSend] Node is not a CybertwinEndHost.");
+        m_logStream << Simulator::Now() << " Node is not a CybertwinEndHost." << std::endl;
         return;
     }
 
@@ -104,6 +117,7 @@ EndHostBulkSend::ConnectCybertwin()
     {
         // Cybertwin is not created
         NS_LOG_ERROR("[App][EndHostBulkSend] Cybertwin is not connected. Wait for 100 millisecond.");
+        m_logStream << Simulator::Now() << " Cybertwin is not connected. Wait for 100 millisecond." << std::endl;
         Simulator::Schedule(MilliSeconds(100.0), &EndHostBulkSend::ConnectCybertwin, this);
     }
     else
@@ -111,6 +125,7 @@ EndHostBulkSend::ConnectCybertwin()
         m_cybertwinAddr = host->GetUpperNodeAddress();
         m_cybertwinPort = host->GetCybertwinPort();
         NS_LOG_DEBUG("[App][EndHostBulkSend] Cybertwin is created. Try to connect to Cybertwin " << m_cybertwinAddr << ":" << m_cybertwinPort);
+        m_logStream << Simulator::Now() << " Cybertwin is created. Try to connect to Cybertwin " << m_cybertwinAddr << ":" << m_cybertwinPort << std::endl;
         // Cybertwin is created, connect and send data
         if (!m_socket)
         {
@@ -132,6 +147,7 @@ EndHostBulkSend::ConnectionSucceeded(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connection succeeded.");
+    m_logStream << Simulator::Now() << " Connection succeeded." << std::endl;
 
     socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
     // Send data
@@ -145,6 +161,7 @@ EndHostBulkSend::ConnectionFailed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connection failed with error " << socket->GetErrno());
+    m_logStream << Simulator::Now() << " Connection failed with error " << socket->GetErrno() << std::endl;
 }
 
 void
@@ -152,6 +169,7 @@ EndHostBulkSend::ConnectionNormalClosed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connection closed normally.");
+    m_logStream << Simulator::Now() << " Connection closed normally." << std::endl;
 }
 
 void
@@ -159,6 +177,7 @@ EndHostBulkSend::ConnectionErrorClosed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connection closed with error.");
+    m_logStream << Simulator::Now() << " Connection closed with error." << std::endl;
 }
 
 void
@@ -166,12 +185,14 @@ EndHostBulkSend::RecvData(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Received data.");
+    m_logStream << Simulator::Now() << " Received data." << std::endl;
 
     Ptr<Packet> packet;
     Address from;
     while ((packet = socket->RecvFrom(from)))
     {
         NS_LOG_DEBUG("[App][EndHostBulkSend] Received packet from " << InetSocketAddress::ConvertFrom(from).GetIpv4());
+        m_logStream << Simulator::Now() << " Received packet from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << std::endl;
     }
 }
 
@@ -205,6 +226,9 @@ EndHostBulkSend::SendData()
 
     packet->AddHeader(header);
     packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
+
+    NS_LOG_DEBUG(Simulator::Now() << "Sending Packet size: " << packet->GetSize());
+    m_logStream << Simulator::Now() << " Sending Packet size: " << packet->GetSize() << std::endl;
 
     // Send packet
     int32_t size = m_socket->Send(packet);
