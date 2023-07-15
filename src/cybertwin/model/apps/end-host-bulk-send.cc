@@ -27,7 +27,7 @@ EndHostBulkSend::GetTypeId()
             .AddConstructor<EndHostBulkSend>()
             .AddAttribute("TotalBytes",
                           "Total bytes to send.",
-                          UintegerValue(0),
+                          UintegerValue(1024),
                           MakeUintegerAccessor(&EndHostBulkSend::m_totalBytes),
                           MakeUintegerChecker<uint32_t>());
     return tid;
@@ -103,8 +103,8 @@ EndHostBulkSend::ConnectCybertwin()
     if (host->isCybertwinCreated() == false)
     {
         // Cybertwin is not created
-        NS_LOG_ERROR("[App][EndHostBulkSend] Cybertwin is not connected. Wait for 10 millisecond.");
-        Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ConnectCybertwin, this);
+        NS_LOG_ERROR("[App][EndHostBulkSend] Cybertwin is not connected. Wait for 100 millisecond.");
+        Simulator::Schedule(MilliSeconds(100.0), &EndHostBulkSend::ConnectCybertwin, this);
     }
     else
     {

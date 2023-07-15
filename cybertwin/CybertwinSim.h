@@ -20,9 +20,12 @@
 #define EDGE_CLOUD_CONF_PATH "./cybertwin/system/edge_cloud/"
 #define ACCESS_NET_CONF_PATH "./cybertwin/system/access_net/"
 
+#define SYS_CONF_DIR_NAME "/etc/"
+#define SYS_LOG_DIR_NAME "/log/"
+
 #define CORE_CLOUD_NODE_PREFIX "core_cloud_"
 #define EDGE_CLOUD_NODE_PREFIX "edge_cloud_"
-#define ACCESS_NET_NODE_PREFIX "access_net_"
+#define ACCESS_NET_NODE_PREFIX "end_host_"
 
 #define CYBERTWIN_TOPOLOGY_FILE "./cybertwin/system/topology.json"
 
