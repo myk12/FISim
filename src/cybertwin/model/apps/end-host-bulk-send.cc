@@ -49,6 +49,10 @@ EndHostBulkSend::StartApplication()
     m_trafficPattern = TRAFFIC_PATTERN_PARETO;
     OpenLogFile(node->GetLogDir(), "end-host-bulk-send.log");
 
+    m_totalBytes = 1024*1024*100;
+    m_totalSendBytes = 0;
+    m_sentBytes = 0;
+
     // Connect to Cybertwin
     ConnectCybertwin();
 
@@ -87,8 +91,7 @@ EndHostBulkSend::InitRandomVariableStream()
     case TRAFFIC_PATTERN_EXPONENTIAL:
         NS_LOG_DEBUG("Exponential distribution.");
         m_randomVariableStream = CreateObject<ExponentialRandomVariable>();
-        m_randomVariableStream->SetAttribute("Mean", DoubleValue(10));
-        m_randomVariableStream->SetAttribute("Bound", DoubleValue(0.0));
+        m_randomVariableStream->SetAttribute("Mean", DoubleValue(0.1));
         break;
     
     default:
@@ -151,8 +154,7 @@ EndHostBulkSend::ConnectionSucceeded(Ptr<Socket> socket)
 
     socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
     // Send data
-    m_startTime = Simulator::Now();
-    NS_LOG_DEBUG("[App][EndHostBulkSend] Start sending data at " << m_startTime.GetSeconds() << " seconds.");
+    Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
     SendData();
 }
 
@@ -234,17 +236,38 @@ EndHostBulkSend::SendData()
     int32_t size = m_socket->Send(packet);
     if (size < 0)
     {
-        NS_LOG_INFO("[App][EndHostBulkSend] Error while sending packet << " << size << " error msg: " << m_socket->GetErrno() << ".");
-    }else
-    {
+        NS_LOG_ERROR("[App][EndHostBulkSend] Error while sending data.");
+    }else{
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << size << " bytes.");
+        m_totalSendBytes += size;
         m_sentBytes += size;
-        NS_LOG_INFO("[App][EndHostBulkSend] Sent " << size << " bytes.");
     }
 
     // Schedule next send
     double interArrivalTime = m_randomVariableStream->GetValue();
-    //NS_LOG_DEBUG("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
-    Simulator::Schedule(MicroSeconds(interArrivalTime*10), &EndHostBulkSend::SendData, this);
+    NS_LOG_DEBUG("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
+    Simulator::Schedule(MicroSeconds(10), &EndHostBulkSend::SendData, this);
+}
+
+void
+EndHostBulkSend::ThroughputLogger()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[App][EndHostBulkSend] ThroughputLogger.");
+    //m_logStream << Simulator::Now() << " ThroughputLogger." << std::endl;
+    if (m_sentBytes == 0)
+    {
+        // No data sent, stop logging
+        return;
+    }
+
+    Time now = Simulator::Now();
+    double throughput = (m_sentBytes * 8.0) / (now - m_lastTime).GetSeconds() / 1000000.0;
+    m_lastTime = now;
+    m_sentBytes = 0;
+
+    m_logStream << Simulator::Now().GetMilliSeconds() << " " << throughput << std::endl;
+    Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
 }
 
 } // namespace ns3

@@ -236,6 +236,12 @@ void
 CybertwinNode::InstallEndHostBulkSend(nlohmann::json config)
 {
     NS_LOG_DEBUG(m_name << " - Installing EndHostBulkSend.");
+    int32_t enable = config["enabled"];
+    if (enable == 0)
+    {
+        NS_LOG_DEBUG("EndHostBulkSend is disabled.");
+        return;
+    }
 
     uint32_t startDelay = config["start-delay"];
 
@@ -248,6 +254,13 @@ void
 CybertwinNode::InstallDownloadServer(nlohmann::json config)
 {
     NS_LOG_DEBUG(m_name <<" - Installing Download Server.");
+    int32_t enable = config["enabled"];
+    if (enable == 0)
+    {
+        NS_LOG_DEBUG("DownloadServer is disabled.");
+        return;
+    }
+
     CYBERTWINID_t cybertwinId = config["cybertwin-id"];
     uint16_t cybertwinPort = config["cybertwin-port"];
     uint32_t startDelay = config["start-delay"];
@@ -268,6 +281,13 @@ void
 CybertwinNode::InstallDownloadClient(nlohmann::json config)
 {
     NS_LOG_DEBUG(m_name << " - Installing Download Client.");
+    int32_t enable = config["enabled"];
+    if (enable == 0)
+    {
+        NS_LOG_DEBUG("DownloadClient is disabled.");
+        return;
+    }
+
     CYBERTWINID_t targetCybertwin = config["cybertwin-id"];
     uint32_t startDelay = config["start-delay"];
 

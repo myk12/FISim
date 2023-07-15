@@ -49,7 +49,6 @@ CybertwinApp::OpenLogFile(std::string logDir, std::string logFile)
     std::string logPath = logDir + "/" + logFile;
     //create file if not exist
     std::ofstream file(logPath);
-    file.close();
     m_logStream.open(logPath, std::ios::app);
     if (!m_logStream.is_open())
     {
@@ -58,14 +57,16 @@ CybertwinApp::OpenLogFile(std::string logDir, std::string logFile)
     }
     m_logStream << "Time\t"
                 << "Message" << std::endl;
-    m_logStream.close();
 }
 
 void
 CybertwinApp::CloseLogFile()
 {
     NS_LOG_FUNCTION(this);
-    m_logStream.close();
+    if (m_logStream.is_open())
+    {
+        m_logStream.close();
+    }
 }
 
 } // namespace ns3

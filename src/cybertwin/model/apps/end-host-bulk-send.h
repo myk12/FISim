@@ -14,6 +14,7 @@ class EndHostBulkSend : public CybertwinApp
   enum TrafficPattern
   {
     TRAFFIC_PATTERN_PARETO,
+    TRAFFIC_PATTERN_POISSON,
     TRAFFIC_PATTERN_UNIFORM,
     TRAFFIC_PATTERN_NORMAL,
     TRAFFIC_PATTERN_EXPONENTIAL,
@@ -42,6 +43,7 @@ class EndHostBulkSend : public CybertwinApp
 
     void RecvData(Ptr<Socket>);
     void SendData();
+    void ThroughputLogger();
 
   private:
     //private member variables
@@ -51,11 +53,15 @@ class EndHostBulkSend : public CybertwinApp
     Ptr<Socket> m_socket;
 
     uint32_t m_totalBytes;
+    uint32_t m_totalSendBytes;
     uint32_t m_sentBytes;
     Time m_startTime;
 
     TrafficPattern m_trafficPattern;
     Ptr<RandomVariableStream> m_randomVariableStream;
+
+    Time m_startTime;
+    Time m_lastTime;
 };
     
 } // namespace ns

@@ -252,15 +252,18 @@ NameResolutionService::ProcessQuery(CNRSHeader& rcvHeader, Ptr<Socket> socket, A
     // TODO: packet check
     CYBERTWINID_t id = rcvHeader.GetCuid();
     QUERY_ID_t qId = rcvHeader.GetQueryId();
+    NS_LOG_DEBUG("[CRNS][Query] Query from "<< InetSocketAddress::ConvertFrom(from).GetIpv4()
+                                            << ":" << InetSocketAddress::ConvertFrom(from).GetPort()
+                                            << " for " << id);
 
     if (itemCache.find(id) != itemCache.end())
     { // case1: query cybertwinID locally hit
-        NS_LOG_DEBUG("CNRS: query cybertwinID hit.");
+        NS_LOG_DEBUG("[CNRS][Query] Query for " << id << " hit.");
         InformCNRSResult(id, qId, socket, from);
     }
     else
     { // case2: query cybertwinID locally miss
-        NS_LOG_DEBUG("CNRS: query cybertwinID miss. query superior.");
+        NS_LOG_DEBUG("[CNRS][Query] Query for " << id << " miss. Query superior.");
         m_queryClientCache[qId] = std::make_pair(socket, from);
         m_queryCache[qId] = MakeCallback(&NameResolutionService::QueryResponseCallback, this);
 
