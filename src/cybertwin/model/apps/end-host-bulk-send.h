@@ -51,6 +51,7 @@ class EndHostBulkSend : public Application
 
     uint32_t m_totalBytes;
     uint32_t m_sentBytes;
+    Time m_startTime;
 
     TrafficPattern m_trafficPattern;
     Ptr<RandomVariableStream> m_randomVariableStream;

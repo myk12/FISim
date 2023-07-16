@@ -106,7 +106,7 @@ int32_t CybertwinSim::InitTopology()
 
     // connect edge servers
     NS_LOG_INFO("STEP[2]: Connecting edge servers.");
-    p2pHelper.SetDeviceAttribute("DataRate", StringValue("10Mbps"));
+    p2pHelper.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
     p2pHelper.SetChannelAttribute("Delay", StringValue("10ms"));
 
     // do for each edge server

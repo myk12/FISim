@@ -44,6 +44,8 @@ namespace ns3
 #define APPTYPE_ENDHOST_INITD ("end-host-initd")
 #define APPTYPE_ENDHOST_BULK_SEND ("end-host-bulk-send")
 
+#define END_HOST_BULK_SEND_TEST_TIME (1) //seconds
+
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\
     connid = key1;  \
@@ -58,6 +60,8 @@ do {\
 
 #define GET_PEERID_FROM_STREAMID(streamid) (streamid & 0xFFFFFFFFFFFFFFFF)
 #define GET_CYBERID_FROM_STREAMID(streamid) (streamid >> 64)
+
+#define COMM_TEST_CYBERTWIN_ID (18888)
 
 typedef uint64_t CYBERTWINID_t;
 typedef uint64_t DEVNAME_t;

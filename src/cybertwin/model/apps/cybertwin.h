@@ -146,6 +146,29 @@ private:
     std::ofstream m_MpLogFile;
     std::string m_MpLogFileName;
 
+    // statistic
+    void CybertwinCommModelStatistical();
+    // traffic shaping
+    void CybertwinCommModelTrafficShaping(uint32_t speed);
+    void GenerateToken(uint32_t);
+    void ConsumeToken();
+    void TrafficShapingStatistical();
+    EventId m_tokenGeneratorEvent;
+    EventId m_consumerEvent;
+    EventId m_statisticalEvent;
+    uint64_t m_tokenBucket;
+    uint64_t m_consumeBytes;
+
+    // traffic policing
+    void CybertwinCommModelTrafficPolicing();
+    bool m_isStart;
+    uint64_t m_comm_test_total_bytes;
+    uint64_t m_comm_test_interval_bytes;
+    Time m_startTime;
+    Time m_lastTime;
+    Time m_endTime;
+    std::queue<Ptr<Packet>> m_pktQueue;
+
     //TODO: delete this
 };
 

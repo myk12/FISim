@@ -885,6 +885,7 @@ TcpSocketBase::Send(Ptr<Packet> p, uint32_t flags)
     }
     else
     { // Connection not established yet
+        NS_LOG_UNCOND("Connection not established yet");
         m_errno = ERROR_NOTCONN;
         return -1; // Send failure
     }

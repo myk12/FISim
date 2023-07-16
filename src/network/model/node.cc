@@ -350,6 +350,10 @@ Node::ReceiveFromDevice(Ptr<NetDevice> device,
 
     if (!m_firewall.IsNull() && !m_firewall(device, packet, protocol))
     {
+        NS_LOG_DEBUG("Node " << GetId() << " ReceiveFromDevice:  dev " << device->GetIfIndex()
+                             << " (type=" << device->GetInstanceTypeId().GetName()
+                             << ") Packet UID " << packet->GetUid()
+                             << " dropped by firewall");
         return false;
     }
 

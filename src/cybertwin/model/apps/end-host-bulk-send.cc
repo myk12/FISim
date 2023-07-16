@@ -27,7 +27,7 @@ EndHostBulkSend::GetTypeId()
             .AddConstructor<EndHostBulkSend>()
             .AddAttribute("TotalBytes",
                           "Total bytes to send.",
-                          UintegerValue(1024*1024),
+                          UintegerValue(0),
                           MakeUintegerAccessor(&EndHostBulkSend::m_totalBytes),
                           MakeUintegerChecker<uint32_t>());
     return tid;
@@ -38,6 +38,7 @@ EndHostBulkSend::StartApplication()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Starting EndHostBulkSend.");
+    m_trafficPattern = TRAFFIC_PATTERN_EXPONENTIAL;
 
     // Connect to Cybertwin
     ConnectCybertwin();
@@ -72,6 +73,12 @@ EndHostBulkSend::InitRandomVariableStream()
         m_randomVariableStream->SetAttribute("Shape", DoubleValue(2));
         m_randomVariableStream->SetAttribute("Scale", DoubleValue(5));
         break;
+    case TRAFFIC_PATTERN_EXPONENTIAL:
+        NS_LOG_DEBUG("Exponential distribution.");
+        m_randomVariableStream = CreateObject<ExponentialRandomVariable>();
+        m_randomVariableStream->SetAttribute("Mean", DoubleValue(10));
+        m_randomVariableStream->SetAttribute("Bound", DoubleValue(0.0));
+        break;
     
     default:
         break;
@@ -96,8 +103,8 @@ EndHostBulkSend::ConnectCybertwin()
     if (host->isCybertwinCreated() == false)
     {
         // Cybertwin is not created
-        NS_LOG_ERROR("[App][EndHostBulkSend] Cybertwin is not connected. Wait for 1 millisecond.");
-        Simulator::Schedule(MilliSeconds(1.0), &EndHostBulkSend::ConnectCybertwin, this);
+        NS_LOG_ERROR("[App][EndHostBulkSend] Cybertwin is not connected. Wait for 10 millisecond.");
+        Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ConnectCybertwin, this);
     }
     else
     {
@@ -126,8 +133,10 @@ EndHostBulkSend::ConnectionSucceeded(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this << socket);
     NS_LOG_DEBUG("[App][EndHostBulkSend] Connection succeeded.");
 
-    m_socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
+    socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
     // Send data
+    m_startTime = Simulator::Now();
+    NS_LOG_DEBUG("[App][EndHostBulkSend] Start sending data at " << m_startTime.GetSeconds() << " seconds.");
     SendData();
 }
 
@@ -170,34 +179,48 @@ void
 EndHostBulkSend::SendData()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[App][EndHostBulkSend] Sending data.");
+    //NS_LOG_DEBUG("[App][EndHostBulkSend] Sending data.");
     if (m_totalBytes != 0 && m_sentBytes >= m_totalBytes)
     {
-        NS_LOG_DEBUG("Sent " << m_sentBytes << " bytes.");
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_sentBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
+        m_socket->Close();
+        return;
+    }
+    
+    if((Simulator::Now() - m_startTime).GetSeconds() >= END_HOST_BULK_SEND_TEST_TIME)
+    {
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_sentBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
         m_socket->Close();
         return;
     }
 
+    // Send data
     // Create packet
     Ptr<Packet> packet = Create<Packet>();
 
     CybertwinHeader header;
-    header.SetCybertwin(1000);
-    header.SetPeer(2000);
+    header.SetCybertwin(COMM_TEST_CYBERTWIN_ID);
+    header.SetPeer(COMM_TEST_CYBERTWIN_ID);
     header.SetCommand(CYBERTWIN_HEADER_DATA);
 
     packet->AddHeader(header);
     packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
 
-    Time now = Simulator::Now();
-    NS_LOG_DEBUG(now << "Sending Packet size: " << packet->GetSize());
-
     // Send packet
-    m_sentBytes += m_socket->Send(packet);
+    int32_t size = m_socket->Send(packet);
+    if (size < 0)
+    {
+        NS_LOG_INFO("[App][EndHostBulkSend] Error while sending packet << " << size << " error msg: " << m_socket->GetErrno() << ".");
+    }else
+    {
+        m_sentBytes += size;
+        NS_LOG_INFO("[App][EndHostBulkSend] Sent " << size << " bytes.");
+    }
 
     // Schedule next send
     double interArrivalTime = m_randomVariableStream->GetValue();
-    Simulator::Schedule(MicroSeconds(interArrivalTime), &EndHostBulkSend::SendData, this);
+    //NS_LOG_DEBUG("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
+    Simulator::Schedule(MicroSeconds(interArrivalTime*10), &EndHostBulkSend::SendData, this);
 }
 
 } // namespace ns3
