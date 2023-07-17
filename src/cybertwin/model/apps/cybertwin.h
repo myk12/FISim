@@ -7,6 +7,7 @@
 #include "ns3/multipath-data-transfer-protocol.h"
 #include "ns3/cybertwin-name-resolution-service.h"
 #include "ns3/cybertwin-tag.h"
+#include "ns3/cybertwin-app.h"
 
 #include "ns3/address.h"
 #include "ns3/application.h"
@@ -23,7 +24,7 @@ namespace ns3
 class CybertwinEdgeServer;
 class MultipathConnection;
 class CybertwinDataTransferServer;
-class Cybertwin : public Application
+class Cybertwin : public CybertwinApp
 {
   public:
     typedef uint128_t STREAMID_t;
@@ -150,14 +151,17 @@ private:
     void CybertwinCommModelStatistical();
     // traffic shaping
     void CybertwinCommModelTrafficShaping(uint32_t speed);
-    void GenerateToken(uint32_t);
+    void GenerateToken(double);
     void ConsumeToken();
     void TrafficShapingStatistical();
+    Time m_lastShapingTime;
+    void StopTrafficShaping();
     EventId m_tokenGeneratorEvent;
     EventId m_consumerEvent;
     EventId m_statisticalEvent;
     uint64_t m_tokenBucket;
     uint64_t m_consumeBytes;
+    bool m_statisticalEnd;
 
     // traffic policing
     void CybertwinCommModelTrafficPolicing();
@@ -167,7 +171,7 @@ private:
     Time m_startTime;
     Time m_lastTime;
     Time m_endTime;
-    std::queue<Ptr<Packet>> m_pktQueue;
+    std::queue<Ptr<Packet>> m_tsPktQueue;
 
     //TODO: delete this
 };

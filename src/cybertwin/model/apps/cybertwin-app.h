@@ -16,8 +16,8 @@ class CybertwinApp: public Application
     static TypeId GetTypeId();
 
   private:
-    void StartApplication();
-    void StopApplication();
+    virtual void StartApplication();
+    virtual void StopApplication();
 
   protected:
     void OpenLogFile(std::string logDir, std::string logFile);

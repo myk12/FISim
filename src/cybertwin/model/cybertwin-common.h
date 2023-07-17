@@ -44,7 +44,8 @@ namespace ns3
 #define APPTYPE_ENDHOST_INITD ("end-host-initd")
 #define APPTYPE_ENDHOST_BULK_SEND ("end-host-bulk-send")
 
-#define END_HOST_BULK_SEND_TEST_TIME (1) //seconds
+#define END_HOST_BULK_SEND_TEST_TIME (0.5) //seconds
+#define STATISTIC_INTERVAL_MILLISECONDS (10) //milliseconds
 
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\

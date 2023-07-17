@@ -87,8 +87,8 @@ CybertwinSim::InitTopology()
     Ipv4AddressHelper address;
     char ipBase[128] = {0};
 
-    p2pHelper.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
-    p2pHelper.SetChannelAttribute("Delay", StringValue("2ms"));
+    p2pHelper.SetDeviceAttribute("DataRate", StringValue(CORE_LINE_RATE));
+    p2pHelper.SetChannelAttribute("Delay", StringValue("1ms"));
 
     for (uint32_t i = 1; i < m_coreCloudNodes.GetN(); i++)
     {
@@ -111,8 +111,8 @@ CybertwinSim::InitTopology()
 
     // connect edge servers
     NS_LOG_INFO("STEP[2]: Connecting edge servers.");
-    p2pHelper.SetDeviceAttribute("DataRate", StringValue("100Mbps"));
-    p2pHelper.SetChannelAttribute("Delay", StringValue("10ms"));
+    p2pHelper.SetDeviceAttribute("DataRate", StringValue(EDGE_LINE_RATE));
+    p2pHelper.SetChannelAttribute("Delay", StringValue("1ms"));
 
     // do for each edge server
     int net_id = 0;

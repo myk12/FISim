@@ -38,6 +38,9 @@
 #define ACCESS_NET_DEFAULT_IP_FORMAT "30.%d.0.0"
 #define ACCESS_NET_DEFAULT_MASK "255.255.255.0"
 
+#define CORE_LINE_RATE "1000Mbps"
+#define EDGE_LINE_RATE "1000Mbps"
+
 namespace ns3
 {
     

@@ -26,9 +26,14 @@ EndHostBulkSend::GetTypeId()
             .AddConstructor<EndHostBulkSend>()
             .AddAttribute("TotalBytes",
                           "Total bytes to send.",
-                          UintegerValue(1024),
-                          MakeUintegerAccessor(&EndHostBulkSend::m_totalBytes),
-                          MakeUintegerChecker<uint32_t>());
+                          UintegerValue(0),
+                          MakeUintegerAccessor(&EndHostBulkSend::m_maxBytes),
+                          MakeUintegerChecker<uint32_t>())
+            .AddAttribute("AverateSendRate",
+                          "Average send rate in Mbps.",
+                          DoubleValue(100),
+                          MakeDoubleAccessor(&EndHostBulkSend::m_averageSendRate),
+                          MakeDoubleChecker<double>());
     return tid;
 }
 
@@ -36,8 +41,7 @@ void
 EndHostBulkSend::StartApplication()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[App][EndHostBulkSend] Starting EndHostBulkSend.");
-    m_trafficPattern = TRAFFIC_PATTERN_EXPONENTIAL;
+    NS_LOG_DEBUG("[App][EndHostBulkSend] Starting EndHostBulkSend at time " << Simulator::Now().GetSeconds() << " seconds.");
 
     Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(GetNode());
     if (!node)
@@ -46,10 +50,8 @@ EndHostBulkSend::StartApplication()
         return;
     }
 
-    m_trafficPattern = TRAFFIC_PATTERN_PARETO;
     OpenLogFile(node->GetLogDir(), "end-host-bulk-send.log");
-
-    m_totalBytes = 1024*1024*100;
+    m_trafficPattern = TRAFFIC_PATTERN_EXPONENTIAL;
     m_totalSendBytes = 0;
     m_sentBytes = 0;
 
@@ -78,20 +80,20 @@ void
 EndHostBulkSend::InitRandomVariableStream()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("Initializing random variable stream.");
+    NS_LOG_DEBUG("[App][EndHostBulkSend] InitRandomVariableStream.");
 
     switch (m_trafficPattern)
     {
     case TRAFFIC_PATTERN_PARETO:
-        NS_LOG_DEBUG("Pareto distribution.");
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Pareto distribution.");
         m_randomVariableStream = CreateObject<ParetoRandomVariable>();
         m_randomVariableStream->SetAttribute("Shape", DoubleValue(2));
         m_randomVariableStream->SetAttribute("Scale", DoubleValue(5));
         break;
     case TRAFFIC_PATTERN_EXPONENTIAL:
-        NS_LOG_DEBUG("Exponential distribution.");
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Exponential distribution.");
         m_randomVariableStream = CreateObject<ExponentialRandomVariable>();
-        m_randomVariableStream->SetAttribute("Mean", DoubleValue(0.1));
+        m_randomVariableStream->SetAttribute("Mean", DoubleValue(40)); // 40 microseconds per packet
         break;
     
     default:
@@ -155,6 +157,7 @@ EndHostBulkSend::ConnectionSucceeded(Ptr<Socket> socket)
     socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
     // Send data
     Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
+    m_startTime = Simulator::Now();
     SendData();
 }
 
@@ -203,17 +206,17 @@ EndHostBulkSend::SendData()
 {
     NS_LOG_FUNCTION(this);
     //NS_LOG_DEBUG("[App][EndHostBulkSend] Sending data.");
-    if (m_totalBytes != 0 && m_sentBytes >= m_totalBytes)
+    if (m_maxBytes != 0 && m_totalSendBytes >= m_maxBytes)
     {
-        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_sentBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
-        m_socket->Close();
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_totalSendBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
+        EndSend();
         return;
     }
     
     if((Simulator::Now() - m_startTime).GetSeconds() >= END_HOST_BULK_SEND_TEST_TIME)
     {
-        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_sentBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
-        m_socket->Close();
+        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << m_totalSendBytes << " bytes. Stop sending data at " << Simulator::Now().GetSeconds() << " seconds.");
+        EndSend();
         return;
     }
 
@@ -229,24 +232,61 @@ EndHostBulkSend::SendData()
     packet->AddHeader(header);
     packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
 
-    NS_LOG_DEBUG(Simulator::Now() << "Sending Packet size: " << packet->GetSize());
-    m_logStream << Simulator::Now() << " Sending Packet size: " << packet->GetSize() << std::endl;
-
-    // Send packet
+    //m_logStream << Simulator::Now() << " Sending Packet size: " << packet->GetSize() << std::endl;
+    // Schedule next send
     int32_t size = m_socket->Send(packet);
-    if (size < 0)
+
+    // if send error, try to send again for 10 times
+    if (size <= 0)
     {
-        NS_LOG_ERROR("[App][EndHostBulkSend] Error while sending data.");
-    }else{
-        NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << size << " bytes.");
-        m_totalSendBytes += size;
-        m_sentBytes += size;
+        NS_LOG_INFO("[App][EndHostBulkSend] Sent error with code " << size <<" errorno: " << m_socket->GetErrno());
+
+        for (int32_t i=0; i<10; i++)
+        {
+            // try to send again
+            size = m_socket->Send(packet);
+            if (size > 0)
+            {
+                m_logStream << Simulator::Now() << " Try to send again. Sent " << size << " bytes." << std::endl << "after " << i << " times." << std::endl;
+                break;
+            }
+        }
     }
 
-    // Schedule next send
+    if (size > 0)
+    {
+        //NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << size << " bytes.");
+        m_logStream << Simulator::Now() << " Sent " << size << " bytes." << std::endl;
+        m_totalSendBytes += size;
+        m_sentBytes += size;
+    }else
+    {
+        m_logStream << Simulator::Now() << " Sent error with code " << size << std::endl;
+    }
+
+    // schedule next send
     double interArrivalTime = m_randomVariableStream->GetValue();
-    NS_LOG_DEBUG("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
-    Simulator::Schedule(MicroSeconds(10), &EndHostBulkSend::SendData, this);
+    NS_LOG_INFO("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
+    m_logStream << Simulator::Now() << " Inter arrival time: " << interArrivalTime << std::endl;
+    Simulator::Schedule(MicroSeconds(interArrivalTime), &EndHostBulkSend::SendData, this);
+}
+
+void
+EndHostBulkSend::EndSend()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[App][EndHostBulkSend] EndSend.");
+    if (m_socket)
+    {
+        m_socket->Close();
+    }
+
+    if (m_loggerEvent.IsRunning())
+    {
+        Simulator::Cancel(m_loggerEvent);
+    }
+
+    m_logStream << Simulator::Now() << " EndSend." << std::endl;
 }
 
 void
@@ -266,8 +306,8 @@ EndHostBulkSend::ThroughputLogger()
     m_lastTime = now;
     m_sentBytes = 0;
 
-    m_logStream << Simulator::Now().GetMilliSeconds() << " " << throughput << std::endl;
-    Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
+    m_logStream << Simulator::Now() << "BulkSend Throughput: " << throughput << " Mbps." << std::endl;
+    m_loggerEvent = Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
 }
 
 } // namespace ns3

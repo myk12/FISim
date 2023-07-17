@@ -43,6 +43,7 @@ class EndHostBulkSend : public CybertwinApp
 
     void RecvData(Ptr<Socket>);
     void SendData();
+    void EndSend();
     void ThroughputLogger();
 
   private:
@@ -51,17 +52,18 @@ class EndHostBulkSend : public CybertwinApp
     uint16_t m_cybertwinPort;
 
     Ptr<Socket> m_socket;
+    double m_averageSendRate;
 
-    uint32_t m_totalBytes;
+    uint32_t m_maxBytes;
     uint32_t m_totalSendBytes;
     uint32_t m_sentBytes;
     Time m_startTime;
+    Time m_lastTime;
+    EventId m_loggerEvent;
 
     TrafficPattern m_trafficPattern;
     Ptr<RandomVariableStream> m_randomVariableStream;
 
-    Time m_startTime;
-    Time m_lastTime;
 };
     
 } // namespace ns
