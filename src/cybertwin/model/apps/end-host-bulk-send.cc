@@ -52,8 +52,6 @@ EndHostBulkSend::StartApplication()
 
     OpenLogFile(node->GetLogDir(), "end-host-bulk-send.log");
     m_trafficPattern = TRAFFIC_PATTERN_EXPONENTIAL;
-    m_totalSendBytes = 0;
-    m_sentBytes = 0;
 
     // Connect to Cybertwin
     ConnectCybertwin();
@@ -156,8 +154,15 @@ EndHostBulkSend::ConnectionSucceeded(Ptr<Socket> socket)
 
     socket->SetRecvCallback(MakeCallback(&EndHostBulkSend::RecvData, this));
     // Send data
-    Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
+    Simulator::Schedule(MilliSeconds(1), &EndHostBulkSend::ThroughputLogger, this, 1.0);
+    Simulator::Schedule(MilliSeconds(10), &EndHostBulkSend::ThroughputLogger, this, 10.0);
+    Simulator::Schedule(MilliSeconds(100), &EndHostBulkSend::ThroughputLogger, this, 100.0);
     m_startTime = Simulator::Now();
+    m_endSend = false;
+    m_totalSendBytes = 0;
+    m_sendBytes1msLogger = 0;
+    m_sendBytes10msLogger = 0;
+    m_sendBytes100msLogger = 0;
     SendData();
 }
 
@@ -256,9 +261,11 @@ EndHostBulkSend::SendData()
     if (size > 0)
     {
         //NS_LOG_DEBUG("[App][EndHostBulkSend] Sent " << size << " bytes.");
-        m_logStream << Simulator::Now() << " Sent " << size << " bytes." << std::endl;
+        m_logStream << Simulator::Now().GetMilliSeconds() << " ms: Sent " << size << " bytes." << std::endl;
         m_totalSendBytes += size;
-        m_sentBytes += size;
+        m_sendBytes1msLogger += size;
+        m_sendBytes10msLogger += size;
+        m_sendBytes100msLogger += size;
     }else
     {
         m_logStream << Simulator::Now() << " Sent error with code " << size << std::endl;
@@ -266,8 +273,6 @@ EndHostBulkSend::SendData()
 
     // schedule next send
     double interArrivalTime = m_randomVariableStream->GetValue();
-    NS_LOG_INFO("[App][EndHostBulkSend] Inter arrival time: " << interArrivalTime);
-    m_logStream << Simulator::Now() << " Inter arrival time: " << interArrivalTime << std::endl;
     Simulator::Schedule(MicroSeconds(interArrivalTime), &EndHostBulkSend::SendData, this);
 }
 
@@ -281,33 +286,45 @@ EndHostBulkSend::EndSend()
         m_socket->Close();
     }
 
-    if (m_loggerEvent.IsRunning())
-    {
-        Simulator::Cancel(m_loggerEvent);
-    }
+    m_endSend = true;
 
     m_logStream << Simulator::Now() << " EndSend." << std::endl;
 }
 
 void
-EndHostBulkSend::ThroughputLogger()
+EndHostBulkSend::ThroughputLogger(double interval)
 {
-    NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[App][EndHostBulkSend] ThroughputLogger.");
-    //m_logStream << Simulator::Now() << " ThroughputLogger." << std::endl;
-    if (m_sentBytes == 0)
+    if (m_endSend)
     {
-        // No data sent, stop logging
+        NS_LOG_DEBUG("[App][EndHostBulkSend] EndSend. Stop ThroughputLogger with interval " << interval << " milliseconds.");
+        return;
+    }
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[App][EndHostBulkSend] ThroughputLogger with interval " << interval << " milliseconds.");
+    uint64_t sendBytes = 0;
+
+    if (interval == 1.0)
+    {
+        sendBytes = m_sendBytes1msLogger;
+        m_sendBytes1msLogger = 0;
+    }else if (interval == 10.0)
+    {
+        sendBytes = m_sendBytes10msLogger;
+        m_sendBytes10msLogger = 0;
+    }else if (interval == 100.0)
+    {
+        sendBytes = m_sendBytes100msLogger;
+        m_sendBytes100msLogger = 0;
+    }else
+    {
+        NS_LOG_ERROR("[App][EndHostBulkSend] ThroughputLogger with interval " << interval << " milliseconds is not supported.");
         return;
     }
 
-    Time now = Simulator::Now();
-    double throughput = (m_sentBytes * 8.0) / (now - m_lastTime).GetSeconds() / 1000000.0;
-    m_lastTime = now;
-    m_sentBytes = 0;
+    double throughput = (sendBytes * 8.0) / (interval / 1000) / 1000000.0; //Mbps
+    m_logStream << (Simulator::Now() - m_startTime).GetMilliSeconds() << " statistic interval  " << interval << "ms, throughput: " << throughput << " Mbps." << std::endl;
 
-    m_logStream << Simulator::Now() << "BulkSend Throughput: " << throughput << " Mbps." << std::endl;
-    m_loggerEvent = Simulator::Schedule(MilliSeconds(10.0), &EndHostBulkSend::ThroughputLogger, this);
+    Simulator::Schedule(MilliSeconds(interval), &EndHostBulkSend::ThroughputLogger, this, interval);
 }
 
 } // namespace ns3

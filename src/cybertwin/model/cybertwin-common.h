@@ -46,6 +46,10 @@ namespace ns3
 
 #define END_HOST_BULK_SEND_TEST_TIME (0.5) //seconds
 #define STATISTIC_INTERVAL_MILLISECONDS (10) //milliseconds
+#define TRAFFIC_POLICING_INTERVAL_MILLISECONDS (10) // milliseconds
+#define TRAFFIC_POLICING_LIMIT_THROUGHPUT (120) // Mbps
+#define TRAFFIC_SHAPING_LIMIT_THROUGHPUT (120) // Mbps
+#define CYBERTWIN_COMM_MODEL_STAT_INTERVAL_MILLISECONDS (10) //milliseconds
 
 #define SP_KEYS_TO_CONNEID(connid, key1, key2)\
 do {\

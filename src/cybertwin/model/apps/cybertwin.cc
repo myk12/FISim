@@ -32,7 +32,7 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
       m_localSocket(nullptr),
       m_localInterface(l_interface),
       m_globalInterfaces(g_interfaces),
-      m_isStart(false),
+      m_isStartTrafficOpt(false),
       m_comm_test_total_bytes(0),
       m_comm_test_interval_bytes(0)
 {
@@ -182,21 +182,26 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
 
             // put into queue
             m_tsPktQueue.push(packet);
+            m_tpPktQueue.push(packet);
 
-            if (m_isStart == false)
+            if (m_isStartTrafficOpt == false)
             {
                 // first packet, start statistics
                 NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: start statistics");
                 m_logStream << "--[Edge-#" << m_cybertwinId << "]: start statistics" << std::endl;
-                m_isStart = true;
-                m_startTime = m_currTime;
+                m_isStartTrafficOpt = true;
+                m_startShapingTime = m_currTime;
                 m_lastTime = m_currTime;
                 m_lastShapingTime = m_currTime;
 
                 m_statisticalEnd = false;
 
                 Simulator::ScheduleNow(&Cybertwin::CybertwinCommModelStatistical, this);
-                Simulator::ScheduleNow(&Cybertwin::CybertwinCommModelTrafficShaping, this, 90);
+
+                // start traffic shaping
+                Simulator::ScheduleNow(&Cybertwin::CybertwinCommModelTrafficShaping, this);
+                // start traffic policing
+                Simulator::ScheduleNow(&Cybertwin::CybertwinCommModelTrafficPolicing, this);
             }
             
             continue;
@@ -363,7 +368,7 @@ Cybertwin::CybertwinCommModelStatistical()
 {
     NS_LOG_FUNCTION(this);
     uint64_t intervalBytes = m_comm_test_interval_bytes;
-    if ((Simulator::Now() - m_startTime).GetSeconds() >= END_HOST_BULK_SEND_TEST_TIME)
+    if ((Simulator::Now() - m_startShapingTime).GetSeconds() >= END_HOST_BULK_SEND_TEST_TIME)
     {
         // stop test
         NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: stop test");
@@ -381,9 +386,9 @@ Cybertwin::CybertwinCommModelStatistical()
     double speed = intervalBytes * 8.0 / interval.GetSeconds() / 1000000.0; // Mbps
 
     // report thoughput
-    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startTime).GetMilliSeconds()
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
                 << " ms, throughput = " << speed << " Mbps" << std::endl;
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startTime).GetMilliSeconds()
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
                               << " ms, throughput = " << speed << " Mbps");
 
     // schedule next report
@@ -625,11 +630,12 @@ Cybertwin::GloballyListen()
  * @param speed in Mbps
  */
 void
-Cybertwin::CybertwinCommModelTrafficShaping(uint32_t speed)
+Cybertwin::CybertwinCommModelTrafficShaping()
 {
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: traffic shaping with speed " << speed << " Mbps");
+    double thoughput = TRAFFIC_SHAPING_LIMIT_THROUGHPUT;
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: traffic shaping with speed " << thoughput << " Mbps");
     // schedule a timer to generate token
-    double interval_millisecond = (1 / ((speed * 1000000.0) / (500.0 * 8))) * 1000000.0; // 计算token生成间隔
+    double interval_millisecond = (1 / ((thoughput * 1000000.0) / (515.0 * 8))) * 1000000.0; // 计算token生成间隔
     NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: token generate interval is " << interval_millisecond << " us");
     Simulator::ScheduleNow(&Cybertwin::GenerateToken, this, interval_millisecond);
 
@@ -681,9 +687,9 @@ Cybertwin::TrafficShapingStatistical()
     m_lastShapingTime = now;
 
     double thoughput = m_consumeBytes * 8 / interval.GetSeconds() / 1000000.0; // Mbps
-    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startTime).GetMilliSeconds()
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
                 << " ms, traffic shaping thoughput is " << thoughput << " Mbps" << std::endl;
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startTime).GetMilliSeconds()
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
                               << " ms, traffic shaping thoughput is " << thoughput << " Mbps");
     m_consumeBytes = 0;
     m_statisticalEvent = Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS), &Cybertwin::TrafficShapingStatistical, this);
@@ -705,10 +711,93 @@ void
 Cybertwin::CybertwinCommModelTrafficPolicing()
 {
     NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: traffic policing");
+    m_startPolicingTime = Simulator::Now();
+    m_lastTpStartTime = Simulator::Now();
+    m_lastTpStaticTime = Simulator::Now();
+
+    Simulator::ScheduleNow(&Cybertwin::CCMTrafficPolicingConsumePacket, this);
+    Simulator::ScheduleNow(&Cybertwin::CCMTrafficPolicingStatistical, this);
 }
 
+void
+Cybertwin::CCMTrafficPolicingConsumePacket()
+{
+    // calculate if out of limit
+    Time currTime = Simulator::Now();
+    if ((currTime - m_lastTpStartTime).GetMilliSeconds() >= TRAFFIC_POLICING_INTERVAL_MILLISECONDS)
+    {
+        // renew policing
+        m_lastTpStartTime = currTime;
+        m_intervalTpBytes = 0;
 
+        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+        return;
+    }
 
+    // calculate current average thoughput
+    if (m_tpPktQueue.empty())
+    {
+        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+        return;
+    }
+
+    Ptr<Packet> pkt = m_tpPktQueue.front();
+    m_tpPktQueue.pop();
+    uint32_t pktSize = pkt->GetSize();
+    Time interval = Simulator::Now() - m_lastTpStartTime;
+
+    double intervalThroughput = ((m_intervalTpBytes + pktSize) * 8) / (interval.GetSeconds()) / 1000000.0; // Mbps
+    if (intervalThroughput < TRAFFIC_POLICING_LIMIT_THROUGHPUT)
+    {
+        // consume
+        m_tpTotalConsumeBytes += pktSize;
+        m_intervalTpBytes += pktSize;
+    }else
+    {
+        // drop pkt
+        m_tpTotalDropedBytes += pktSize;
+    }
+
+    // Schedule next consume
+    m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+}
+
+void
+Cybertwin::CCMTrafficPolicingStatistical()
+{
+    Time now = Simulator::Now();
+
+    if ((now - m_startPolicingTime).GetSeconds() >= END_HOST_BULK_SEND_TEST_TIME)
+    {
+        CCMTrafficPolicingStop();
+        return;
+    }
+
+    double throughput = (m_tpTotalConsumeBytes * 8) / ((now - m_lastTpStaticTime).GetSeconds()) / 1000000.0; // Mbps
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startPolicingTime).GetMilliSeconds()
+                              << " ms, traffic policing thoughput is " << throughput << " Mbps");
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startPolicingTime).GetMilliSeconds()
+                << " ms, traffic policing thoughput is " << throughput << " Mbps" << std::endl;
+    m_lastTpStaticTime = now;
+    m_tpTotalConsumeBytes = 0;
+    
+    // schedule next
+    m_tpStatisticEvent = Simulator::Schedule(MilliSeconds(CYBERTWIN_COMM_MODEL_STAT_INTERVAL_MILLISECONDS), &Cybertwin::CCMTrafficPolicingStatistical, this);
+}
+
+void
+Cybertwin::CCMTrafficPolicingStop()
+{
+    if (m_tpConsumeEvent.IsRunning())
+    {
+        Simulator::Cancel(m_tpConsumeEvent);
+    }
+
+    if (m_tpStatisticEvent.IsRunning())
+    {
+        Simulator::Cancel(m_tpStatisticEvent);
+    }
+}
 
 
 } // namespace ns3

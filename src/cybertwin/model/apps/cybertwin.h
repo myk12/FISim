@@ -149,8 +149,11 @@ private:
 
     // statistic
     void CybertwinCommModelStatistical();
-    // traffic shaping
-    void CybertwinCommModelTrafficShaping(uint32_t speed);
+    //************************************************************
+    //*                     traffic shaping                      *
+    //************************************************************
+    std::queue<Ptr<Packet>> m_tsPktQueue; // received packet queue
+    void CybertwinCommModelTrafficShaping();
     void GenerateToken(double);
     void ConsumeToken();
     void TrafficShapingStatistical();
@@ -163,15 +166,31 @@ private:
     uint64_t m_consumeBytes;
     bool m_statisticalEnd;
 
-    // traffic policing
+    //************************************************************
+    //*                     traffic policing                     *
+    //************************************************************
+    std::queue<Ptr<Packet>> m_tpPktQueue; // received packet queue
     void CybertwinCommModelTrafficPolicing();
-    bool m_isStart;
+    void CCMTrafficPolicingConsumePacket();
+    void CCMTrafficPolicingStatistical();
+    void CCMTrafficPolicingStop();
+    Time m_startPolicingTime;
+    Time m_lastTpStartTime;
+    Time m_lastTpStaticTime;
+    uint64_t m_tpTotalConsumeBytes;
+    uint64_t m_tpTotalDropedBytes;
+    uint64_t m_intervalTpBytes;
+    EventId m_tpConsumeEvent;
+    EventId m_tpStatisticEvent;
+
+
+
+    bool m_isStartTrafficOpt;
     uint64_t m_comm_test_total_bytes;
     uint64_t m_comm_test_interval_bytes;
-    Time m_startTime;
+    Time m_startShapingTime;
     Time m_lastTime;
     Time m_endTime;
-    std::queue<Ptr<Packet>> m_tsPktQueue;
 
     //TODO: delete this
 };

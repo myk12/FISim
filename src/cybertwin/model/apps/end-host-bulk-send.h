@@ -44,7 +44,7 @@ class EndHostBulkSend : public CybertwinApp
     void RecvData(Ptr<Socket>);
     void SendData();
     void EndSend();
-    void ThroughputLogger();
+    void ThroughputLogger(double interval);
 
   private:
     //private member variables
@@ -53,13 +53,18 @@ class EndHostBulkSend : public CybertwinApp
 
     Ptr<Socket> m_socket;
     double m_averageSendRate;
+    bool m_endSend;
 
     uint32_t m_maxBytes;
     uint32_t m_totalSendBytes;
-    uint32_t m_sentBytes;
     Time m_startTime;
     Time m_lastTime;
     EventId m_loggerEvent;
+
+    // throughput logger
+    uint64_t m_sendBytes1msLogger;
+    uint64_t m_sendBytes10msLogger;
+    uint64_t m_sendBytes100msLogger;
 
     TrafficPattern m_trafficPattern;
     Ptr<RandomVariableStream> m_randomVariableStream;
