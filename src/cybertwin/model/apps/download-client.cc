@@ -71,14 +71,17 @@ DownloadClient::StartDownloadStreams()
 
     Ipv4Address cybertwinAddress = m_endHost->GetUpperNodeAddress();
     uint16_t cybertwinPort = m_endHost->GetCybertwinPort();
+    NS_LOG_DEBUG("[DownloadClient] Cybertwin created, address: " << cybertwinAddress << ":" << cybertwinPort << " Start download streams.");
 
     uint32_t streamID = 0;
     for (auto cuid : m_cuidList)
     {
+        NS_LOG_DEBUG("[DownloadClient] Create download stream to " << cuid << ".");
         DownloadStream stream;
         stream.SetNode(GetNode());
         stream.SetStreamID(streamID++);
         stream.SetTargetID(cuid);
+        stream.SetCUID(0);
         stream.SetCybertwin(cybertwinAddress, cybertwinPort);
         stream.Activate();
     }
@@ -165,17 +168,26 @@ DownloadStream::ConnectionSucceeded(Ptr<Socket> socket)
 
     // send request
     CybertwinHeader header;
-    header.SetCommand(CYBERTWIN_HEADER_DATA);
-    header.SetCybertwin(m_cuid);
+    header.SetCommand(CREATE_STREAM);
+    header.SetSelfID(m_cuid);
     NS_LOG_DEBUG("[DownloadStream] 2Sending request to " << m_targetID << ".");
-    header.SetPeer(1000);
+    header.SetPeerID(1000);
+    header.Print(std::cout);
 
     Ptr<Packet> packet = Create<Packet>();
     packet->AddHeader(header);
     packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
+    int32_t ret = socket->Send(packet);
+    if (ret <= 0)
+    {
+        NS_LOG_ERROR("[DownloadStream] Send request failed.");
+        return;
+    }
 
-    socket->Send(packet);
-    header.PrintH(std::cout);
+    // start statistical
+    m_lastTime = Simulator::Now();
+    m_intervalBytes = 0;
+    //m_statisticalEvent = Simulator::Schedule(MilliSeconds(10), &DownloadStream::DownloadThroughputStatistical, this);
 }
 
 void
@@ -185,8 +197,11 @@ DownloadStream::RecvCallback(Ptr<Socket> socket)
     Ptr<Packet> packet;
     while ((packet = socket->Recv()))
     {
-        NS_LOG_DEBUG("[DownloadStream] Received packet from " << packet->GetSize() << " bytes.");
+        NS_LOG_DEBUG("[DownloadStream] Received packet from " << m_targetID << ". Size: " << packet->GetSize() << " bytes.");
+        //m_intervalBytes += packet->GetSize();
     }
+
+    NS_LOG_DEBUG("[DownloadStream] Received packet size: " << m_intervalBytes << " bytes.");
 }
 
 void
@@ -201,6 +216,10 @@ DownloadStream::ConnectionNormalClosed(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("[DownloadStream] Connection closed.");
+    if (m_statisticalEvent.IsRunning())
+    {
+        Simulator::Cancel(m_statisticalEvent);
+    }
 }
 
 void
@@ -210,6 +229,23 @@ DownloadStream::ConnectionErrorClosed(Ptr<Socket> socket)
     NS_LOG_WARN("[DownloadStream] Connection error closed.");
 }
 
+void
+DownloadStream::DownloadThroughputStatistical()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[DownloadStream] Download throughput statistical.");
 
+    Time now = Simulator::Now();
+    Time interval = now - m_lastTime;
+
+    double throughput = (double)m_intervalBytes * 8.0 / interval.GetSeconds() / 1024.0 / 1024.0;
+
+    NS_LOG_INFO("[DownloadStream] Download throughput: " << throughput << " Mbps.");
+
+    m_intervalBytes = 0;
+    m_lastTime = now;
+
+    m_statisticalEvent = Simulator::Schedule(MilliSeconds(10), &DownloadStream::DownloadThroughputStatistical, this);
+}
 
 } // namespace ns3

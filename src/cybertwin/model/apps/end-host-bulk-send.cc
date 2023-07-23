@@ -230,8 +230,8 @@ EndHostBulkSend::SendData()
     Ptr<Packet> packet = Create<Packet>();
 
     CybertwinHeader header;
-    header.SetCybertwin(COMM_TEST_CYBERTWIN_ID);
-    header.SetPeer(COMM_TEST_CYBERTWIN_ID);
+    header.SetSelfID(COMM_TEST_CYBERTWIN_ID);
+    header.SetPeerID(COMM_TEST_CYBERTWIN_ID);
     header.SetCommand(CYBERTWIN_HEADER_DATA);
 
     packet->AddHeader(header);

@@ -24,6 +24,76 @@ namespace ns3
 class CybertwinEdgeServer;
 class MultipathConnection;
 class CybertwinDataTransferServer;
+//**********************************************************************
+//*                 Cybertwin Full Duplex Stream                       *
+//**********************************************************************
+class CybertwinFullDuplexStream: public Object
+{
+  public:
+    enum ENDPOINT_STATUS
+    {
+        ENDPOINT_NONE,
+        ENDPOINT_CONNECTING,
+        ENDPOINT_CONNECTED,
+        ENDPOINT_DISCONNECTED
+    };
+    static TypeId GetTypeId();
+
+    CybertwinFullDuplexStream();
+    CybertwinFullDuplexStream(Ptr<Node> node,
+                            Ptr<NameResolutionService> cnrs,
+                            CYBERTWINID_t end,
+                            CYBERTWINID_t cloud);
+    ~CybertwinFullDuplexStream();
+    void Activate();
+    void Deactivate();
+
+    void SetEndID(CYBERTWINID_t id);
+    void SetCloudID(CYBERTWINID_t id);
+    void SetEndSocket(Ptr<Socket> sock);
+    void SetCloudSocket(Ptr<Socket> sock);
+
+  private:
+    void DuplexStreamEndRecvCallback(Ptr<Socket>);
+    // Buffer Output
+    void OuputCloudBuffer();
+    void OuputEndBuffer();
+
+    // Cloud related
+    void DuplexStreamCloudConnect(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs);
+    void DuplexStreamCloudConnectCallback(Ptr<Socket>);
+    void DuplexStreamCloudConnectErrorCallback(Ptr<Socket>);
+    void DuplexStreamCloudRecvCallback(Ptr<Socket>);
+    void DuplexStreamCloudNormalCloseCallback(Ptr<Socket>);
+    void DuplexStreamCloudErrorCloseCallback(Ptr<Socket>);
+
+
+    // End related
+
+
+  private:
+    Ptr<Node> m_node;
+    Ptr<NameResolutionService> m_cnrs;
+    Ptr<Socket> m_endSocket;
+    Ptr<Socket> m_cloudSocket;
+    CYBERTWINID_t m_endID;
+    CYBERTWINID_t m_cloudID;
+    ENDPOINT_STATUS m_endStatus;
+    ENDPOINT_STATUS m_cloudStatus;
+    std::queue<Ptr<Packet>> m_endBuffer;
+    std::queue<Ptr<Packet>> m_cloudBuffer;
+
+    EventId m_sendToCloudEvent;
+    uint64_t m_sendToCloudBytes;
+    Time m_cloudStartTime;
+    EventId m_sendToEndEvent;
+    uint64_t m_sendToEndBytes;
+    Time m_endStartTime;
+};
+
+//**********************************************************************
+//*                 Cybertwin Application                              *
+//**********************************************************************
 class Cybertwin : public CybertwinApp
 {
   public:
@@ -133,6 +203,8 @@ private:
     Ptr<NameResolutionService> m_cnrs;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> nameResolutionCache;
     // Cybertwin multiple interfaces
+
+    std::vector<Ptr<CybertwinFullDuplexStream>> m_streams;
 
 #if MDTP_ENABLED
     // Cybertwin Connections

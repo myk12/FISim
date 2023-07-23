@@ -16,6 +16,7 @@ enum CybertwinCommand_t
     CYBERTWIN_CONNECT_ERROR,
     // Data commands
     CYBERTWIN_HEADER_DATA,
+    CREATE_STREAM,
 };
 
 class CybertwinHeader : public Header
@@ -36,11 +37,11 @@ class CybertwinHeader : public Header
     void SetCommand(uint8_t);
     uint8_t GetCommand() const;
 
-    void SetCybertwin(CYBERTWINID_t);
-    CYBERTWINID_t GetCybertwin() const;
+    void SetSelfID(CYBERTWINID_t);
+    CYBERTWINID_t GetSelfID() const;
 
-    void SetPeer(CYBERTWINID_t);
-    CYBERTWINID_t GetPeer() const;
+    void SetPeerID(CYBERTWINID_t);
+    CYBERTWINID_t GetPeerID() const;
 
     void SetSize(uint32_t);
     uint32_t GetSize() const;

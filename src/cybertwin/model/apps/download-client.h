@@ -29,7 +29,12 @@ public:
   void ConnectionErrorClosed(Ptr<Socket>);
   void RecvCallback(Ptr<Socket>);
 
-
+private:
+  //function
+  void DownloadThroughputStatistical();
+  Time m_lastTime;
+  uint32_t m_intervalBytes;
+  EventId m_statisticalEvent;
 private:
 
   Ptr<Node> m_node;

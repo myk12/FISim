@@ -5,6 +5,9 @@
 
 namespace ns3
 {
+//********************************************************************
+//*             Cybertwin Header                                      *
+//********************************************************************
 NS_LOG_COMPONENT_DEFINE("CybertwinHeader");
 NS_OBJECT_ENSURE_REGISTERED(CybertwinHeader);
 
@@ -33,20 +36,6 @@ CybertwinHeader::CybertwinHeader()
 {
 }
 
-void
-CybertwinHeader::Print(std::ostream& os) const
-{
-    os << "command=" << int(m_command) << ", cybertwin=" << m_cybertwin;
-    if (isDataPacket())
-    {
-        os << ", peer=" << m_peer << ", size=" << m_size;
-    }
-    else
-    {
-        os << ", port=" << m_cybertwinPort;
-    }
-}
-
 std::string
 CybertwinHeader::ToString() const
 {
@@ -58,8 +47,11 @@ CybertwinHeader::ToString() const
 uint32_t
 CybertwinHeader::GetSerializedSize() const
 {
-    return sizeof(m_command) + sizeof(m_cybertwin) +
-           (isDataPacket() ? sizeof(m_peer) + sizeof(m_size) : sizeof(m_cybertwinPort));
+    return sizeof(m_command)
+        + sizeof(m_cybertwin)
+        + sizeof(m_peer)
+        + sizeof(m_size)
+        + sizeof(m_cybertwinPort);
 }
 
 void
@@ -68,15 +60,9 @@ CybertwinHeader::Serialize(Buffer::Iterator start) const
     Buffer::Iterator i = start;
     i.WriteU8(m_command);
     i.WriteHtonU64(m_cybertwin);
-    if (isDataPacket())
-    {
-        i.WriteHtonU64(m_peer);
-        i.WriteHtonU32(m_size);
-    }
-    else
-    {
-        i.WriteHtonU16(m_cybertwinPort);
-    }
+    i.WriteHtonU64(m_peer);
+    i.WriteHtonU32(m_size);
+    i.WriteHtonU16(m_cybertwinPort);
 }
 
 uint32_t
@@ -85,15 +71,10 @@ CybertwinHeader::Deserialize(Buffer::Iterator start)
     Buffer::Iterator i = start;
     m_command = i.ReadU8();
     m_cybertwin = i.ReadNtohU64();
-    if (isDataPacket())
-    {
-        m_peer = i.ReadNtohU64();
-        m_size = i.ReadNtohU32();
-    }
-    else
-    {
-        m_cybertwinPort = i.ReadNtohU16();
-    }
+    m_peer = i.ReadNtohU64();
+    m_size = i.ReadNtohU32();
+    m_cybertwinPort = i.ReadNtohU16();
+
     return GetSerializedSize();
 }
 
@@ -116,25 +97,25 @@ CybertwinHeader::GetCommand() const
 }
 
 void
-CybertwinHeader::SetCybertwin(CYBERTWINID_t val)
+CybertwinHeader::SetSelfID(CYBERTWINID_t val)
 {
     m_cybertwin = val;
 }
 
 CYBERTWINID_t
-CybertwinHeader::GetCybertwin() const
+CybertwinHeader::GetSelfID() const
 {
     return m_cybertwin;
 }
 
 void
-CybertwinHeader::SetPeer(CYBERTWINID_t val)
+CybertwinHeader::SetPeerID(CYBERTWINID_t val)
 {
     m_peer = val;
 }
 
 CYBERTWINID_t
-CybertwinHeader::GetPeer() const
+CybertwinHeader::GetPeerID() const
 {
     return m_peer;
 }
@@ -164,21 +145,15 @@ CybertwinHeader::GetCybertwinPort() const
 }
 
 void
-CybertwinHeader::PrintH(std::ostream& os) const
+CybertwinHeader::Print(std::ostream& os) const
 {
     os << "------- Cybertwin Header -------" << std::endl
        << "| Command: " << static_cast<uint32_t>(m_command) << std::endl
-       << "| Cybertwin: " << m_cybertwin << std::endl;
-    if (isDataPacket())
-    {
-        os << "| Peer: " << m_peer << std::endl
-           << "| Size: " << m_size << std::endl;
-    }
-    else
-    {
-        os << "| Port: " << m_cybertwinPort << std::endl;
-    }
-    os << "--------------------------------" << std::endl;
+       << "| Cybertwin: " << m_cybertwin << std::endl
+       << "| Peer: " << m_peer << std::endl
+       << "| Size: " << m_size << std::endl
+       << "| Port: " << m_cybertwinPort << std::endl
+       << "--------------------------------" << std::endl;
 }
 
 //********************************************************************
