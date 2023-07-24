@@ -39,8 +39,10 @@ class DownloadServer: public Application
     Ptr<Socket> m_dtServer;
 #endif
     std::unordered_map<Ptr<Socket>, uint64_t> m_sendBytes;
+    std::unordered_map<Ptr<Socket>, Time> m_startTimes;
 
     uint32_t m_maxBytes;
+    Time m_maxSendTime;
 };
 } // namespace ns3
 

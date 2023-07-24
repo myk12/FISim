@@ -25,20 +25,14 @@ DownloadClient::DownloadClient()
     NS_LOG_DEBUG("[DownloadClient] create DownloadClient.");
 }
 
-DownloadClient::DownloadClient(std::vector<CYBERTWINID_t> cuids)
-{
-    NS_LOG_DEBUG("[DownloadClient] create DownloadClient.");
-    m_cuidList = cuids;
-}
-
 DownloadClient::~DownloadClient()
 {
 }
 
 void
-DownloadClient::AddCUID(CYBERTWINID_t cuid)
+DownloadClient::AddTargetServer(CYBERTWINID_t cuid, uint8_t rate)
 {
-    m_cuidList.push_back(cuid);
+    m_targetServers.push_back(std::make_pair(cuid, rate));
 }
 
 void
@@ -74,16 +68,20 @@ DownloadClient::StartDownloadStreams()
     NS_LOG_DEBUG("[DownloadClient] Cybertwin created, address: " << cybertwinAddress << ":" << cybertwinPort << " Start download streams.");
 
     uint32_t streamID = 0;
-    for (auto cuid : m_cuidList)
+    for (auto tar : m_targetServers)
     {
-        NS_LOG_DEBUG("[DownloadClient] Create download stream to " << cuid << ".");
-        DownloadStream stream;
-        stream.SetNode(GetNode());
-        stream.SetStreamID(streamID++);
-        stream.SetTargetID(cuid);
-        stream.SetCUID(0);
-        stream.SetCybertwin(cybertwinAddress, cybertwinPort);
-        stream.Activate();
+        NS_LOG_DEBUG("[DownloadClient] Create download stream to " << tar.first << ".");
+        Ptr<DownloadStream> stream = CreateObject<DownloadStream>();
+        stream->SetNode(GetNode());
+        stream->SetStreamID(streamID++);
+        stream->SetTargetID(tar.first);
+        stream->SetRate(tar.second);
+        stream->SetCUID(0);
+        stream->SetCybertwin(cybertwinAddress, cybertwinPort);
+        stream->SetLogDir(m_endHost->GetLogDir());
+        stream->Activate();
+
+        m_streams.push_back(stream);
     }
 }
 
@@ -96,6 +94,16 @@ DownloadClient::StopApplication()
 //******************************************************************************
 //*                         download stream                                    *
 //******************************************************************************
+TypeId
+DownloadStream::GetTypeId()
+{
+    static TypeId tid =
+        TypeId("ns3::DownloadStream")
+            .SetParent<Object>()
+            .SetGroupName("Cybertwin")
+            .AddConstructor<DownloadStream>();
+    return tid;
+}
 
 DownloadStream::DownloadStream()
 {
@@ -138,21 +146,36 @@ DownloadStream::SetCUID(CYBERTWINID_t cuid)
 }
 
 void
+DownloadStream::SetLogDir(std::string logDir)
+{
+    m_logDir = logDir;
+}
+
+void
+DownloadStream::SetRate(uint8_t rate)
+{
+    m_rate = rate;
+}
+
+void
 DownloadStream::Activate()
 {
     NS_LOG_FUNCTION(this);  
     NS_LOG_DEBUG("[DownloadStream] Activate stream " << m_streamID << " to " << m_targetID);
 
+    // create socket
     m_socket = Socket::CreateSocket(m_node, TcpSocketFactory::GetTypeId());
     m_socket->Bind();
     m_socket->Connect(InetSocketAddress(m_cybertwinAddress, m_cybertwinPort));
-    NS_LOG_DEBUG("[DownloadStream] Connecting to " << m_cybertwinAddress << ":" << m_cybertwinPort);
     m_socket->SetConnectCallback(MakeCallback(&DownloadStream::ConnectionSucceeded, this),
                                  MakeCallback(&DownloadStream::ConnectionFailed, this));
-    m_socket->SetCloseCallbacks(MakeCallback(&DownloadStream::ConnectionNormalClosed, this),
-                                MakeCallback(&DownloadStream::ConnectionErrorClosed, this));
-    NS_LOG_DEBUG("[DownloadStream] " << this);
     NS_LOG_DEBUG("[DownloadStream] Connecting to " << m_targetID);
+
+    // open log file
+    std::string logFile = "download-stream-" + std::to_string(m_streamID) + ".log";
+    std::string logFileName = m_logDir + "/" + logFile;
+    std::ofstream file(logFileName);
+    m_logStream.open(m_logDir + "/" + logFile, std::ios::app);
 }
 
 void
@@ -165,13 +188,20 @@ DownloadStream::ConnectionSucceeded(Ptr<Socket> socket)
 
     // set recv callback
     socket->SetRecvCallback(MakeCallback(&DownloadStream::RecvCallback, this));
+    socket->SetCloseCallbacks(MakeCallback(&DownloadStream::ConnectionNormalClosed, this),
+                              MakeCallback(&DownloadStream::ConnectionErrorClosed, this));
+
+    // set statistical event
+    m_lastTime = Simulator::Now();
+    m_intervalBytes = 0;
+    m_statisticalEvent = Simulator::Schedule(MilliSeconds(10), &DownloadStream::DownloadThroughputStatistical, this);
 
     // send request
     CybertwinHeader header;
     header.SetCommand(CREATE_STREAM);
     header.SetSelfID(m_cuid);
-    NS_LOG_DEBUG("[DownloadStream] 2Sending request to " << m_targetID << ".");
-    header.SetPeerID(1000);
+    header.SetPeerID(m_targetID);
+    header.SetRecvRate(m_rate);
     header.Print(std::cout);
 
     Ptr<Packet> packet = Create<Packet>();
@@ -183,11 +213,6 @@ DownloadStream::ConnectionSucceeded(Ptr<Socket> socket)
         NS_LOG_ERROR("[DownloadStream] Send request failed.");
         return;
     }
-
-    // start statistical
-    m_lastTime = Simulator::Now();
-    m_intervalBytes = 0;
-    //m_statisticalEvent = Simulator::Schedule(MilliSeconds(10), &DownloadStream::DownloadThroughputStatistical, this);
 }
 
 void
@@ -197,11 +222,9 @@ DownloadStream::RecvCallback(Ptr<Socket> socket)
     Ptr<Packet> packet;
     while ((packet = socket->Recv()))
     {
-        NS_LOG_DEBUG("[DownloadStream] Received packet from " << m_targetID << ". Size: " << packet->GetSize() << " bytes.");
-        //m_intervalBytes += packet->GetSize();
+        NS_LOG_INFO("[DownloadStream] " << Simulator::Now() << " Received packet from " << m_targetID << ". Size: " << packet->GetSize() << " bytes.");
+        m_intervalBytes += packet->GetSize();
     }
-
-    NS_LOG_DEBUG("[DownloadStream] Received packet size: " << m_intervalBytes << " bytes.");
 }
 
 void
@@ -220,6 +243,17 @@ DownloadStream::ConnectionNormalClosed(Ptr<Socket> socket)
     {
         Simulator::Cancel(m_statisticalEvent);
     }
+
+    if (m_logStream.is_open())
+    {
+        m_logStream.close();
+    }
+
+    if (m_socket)
+    {
+        m_socket->Close();
+        m_socket = nullptr;
+    }
 }
 
 void
@@ -233,14 +267,16 @@ void
 DownloadStream::DownloadThroughputStatistical()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[DownloadStream] Download throughput statistical.");
+    //NS_LOG_DEBUG("[DownloadStream] Download throughput statistical.");
 
     Time now = Simulator::Now();
     Time interval = now - m_lastTime;
 
     double throughput = (double)m_intervalBytes * 8.0 / interval.GetSeconds() / 1024.0 / 1024.0;
 
-    NS_LOG_INFO("[DownloadStream] Download throughput: " << throughput << " Mbps.");
+    NS_LOG_DEBUG("[DownloadStream] " << now.GetSeconds() << " Download throughput " << throughput << " Mbps.");
+
+    m_logStream << now.GetSeconds() << "(s) Download throughput " << throughput << " Mbps." << std::endl;
 
     m_intervalBytes = 0;
     m_lastTime = now;

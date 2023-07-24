@@ -35,7 +35,8 @@ class CybertwinFullDuplexStream: public Object
         ENDPOINT_NONE,
         ENDPOINT_CONNECTING,
         ENDPOINT_CONNECTED,
-        ENDPOINT_DISCONNECTED
+        ENDPOINT_DISCONNECTED,
+        ENDPOINT_DONE,
     };
     static TypeId GetTypeId();
 
@@ -69,7 +70,9 @@ class CybertwinFullDuplexStream: public Object
 
 
     // End related
-
+    //void DuplexStreamEndConnect(CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t ifs);
+    void DuplexStreamEndNormalCloseCallback(Ptr<Socket>);
+    void DuplexStreamEndErrorCloseCallback(Ptr<Socket>);
 
   private:
     Ptr<Node> m_node;
@@ -89,6 +92,9 @@ class CybertwinFullDuplexStream: public Object
     EventId m_sendToEndEvent;
     uint64_t m_sendToEndBytes;
     Time m_endStartTime;
+
+    double m_cloudRateLimit;
+    double m_endRateLimit;
 };
 
 //**********************************************************************

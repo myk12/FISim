@@ -20,9 +20,14 @@ DownloadServer::GetTypeId()
                           MakeUintegerChecker<uint64_t>())
             .AddAttribute("MaxBytes",
                           "Maximum bytes to send.",
-                          UintegerValue(1024*1024),
+                          UintegerValue(0),
                           MakeUintegerAccessor(&DownloadServer::m_maxBytes),
-                          MakeUintegerChecker<uint32_t>());
+                          MakeUintegerChecker<uint32_t>())
+            .AddAttribute("MaxTime",
+                          "Maximum time to send.",
+                          TimeValue(Seconds(0.5)),
+                          MakeTimeAccessor(&DownloadServer::m_maxSendTime),
+                          MakeTimeChecker());
     return tid;
 }
 
@@ -72,7 +77,10 @@ DownloadServer::StopApplication()
     NS_LOG_DEBUG("Stopping DownloadServer.");
     for (auto it = m_sendBytes.begin(); it != m_sendBytes.end(); ++it)
     {
-        it->first->Close();
+        if (it->first)
+        {
+            it->first->Close();
+        }
     }
 }
 
@@ -101,6 +109,7 @@ DownloadServer::Init()
     NS_LOG_DEBUG("[App][DownloadServer] Server is listening on " << m_interfaces[0].second);
 #endif
 
+    m_maxSendTime = Seconds(0.5);
 }
 
 bool
@@ -122,6 +131,7 @@ DownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address &from)
 
     // start bulk send
     m_sendBytes[socket] = 0;
+    m_startTimes[socket] = Simulator::Now();
     Simulator::ScheduleNow(&DownloadServer::BulkSend, this, socket);
 }
 
@@ -129,54 +139,79 @@ void
 DownloadServer::BulkSend(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
+    NS_LOG_INFO("[App][DownloadServer] BulkSend");
+    if (!socket)
+    {
+        NS_LOG_ERROR("[App][DownloadServer] Connection closed.");
+        return;
+    }
+
+    if ((m_startTimes[socket] + m_maxSendTime < Simulator::Now()))
+    //((m_maxBytes != 0) && (m_sendBytes[socket] > m_maxBytes)))
+    {
+        //NS_LOG_DEBUG("[App][DownloadServer] Start Time " << m_startTimes[socket] << " Now " << Simulator::Now() << " Max Time " << m_maxSendTime);
+        NS_LOG_DEBUG("[App][DownloadServer] Send "
+                     << m_sendBytes[socket] << " bytes"
+                     << " during " << Simulator::Now() - m_startTimes[socket] << " seconds.");
+        socket->Close();
+        return;
+    }
 
     // send data
-    Ptr<Packet> packet = Create<Packet>(1024);
-    uint32_t txBytes = socket->Send(packet);
-    m_sendBytes[socket] += txBytes;
-
-    Address peername;
-    socket->GetPeerName(peername);
-
-    NS_LOG_LOGIC("[App][DownloadServer] Send " << txBytes << " bytes to " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
-
-    // schedule next bulk send
-    if (m_maxBytes == 0 || m_sendBytes[socket] < m_maxBytes)
+    Ptr<Packet> packet = Create<Packet>(SYSTEM_PACKET_SIZE);
+    int32_t sendSize = socket->Send(packet);
+    if (sendSize <= 0)
     {
-        Simulator::Schedule(Seconds(0.1), &DownloadServer::BulkSend, this, socket);
+        //NS_LOG_ERROR("[App][DownloadServer] Send error.");
     }
     else
     {
-        NS_LOG_DEBUG("[App][DownloadServer] 1MB data sent, Close connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
-        socket->Close();
+        NS_LOG_INFO("[App][DownloadServer] Send " << sendSize << " bytes.");
+        m_sendBytes[socket] += sendSize;
     }
+
+    Simulator::Schedule(MicroSeconds(10), &DownloadServer::BulkSend, this, socket);
 }
 
 void
 DownloadServer::RecvCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
+    NS_LOG_INFO("[App][DownloadServer] RecvCallback");
 
+    if (!socket)
+    {
+        NS_LOG_ERROR("[App][DownloadServer] Connection closed.");
+        return;
+    }
+
+#if 0
     Ptr<Packet> packet = socket->Recv();
     uint32_t rxBytes = packet->GetSize();
 
     Address peername;
     socket->GetPeerName(peername);
     NS_LOG_DEBUG("[App][DownloadServer] Received "<< rxBytes << " bytes from " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort());
+#endif
 }
 
 void
 DownloadServer::NormalCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_DEBUG("Normal close.");
+
+    Address peername;
+    socket->GetPeerName(peername);
+    NS_LOG_DEBUG("[App][DownloadServer] Normal Connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
 }
 
 void
 DownloadServer::ErrorCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_DEBUG("Error close.");
+    Address peername;
+    socket->GetPeerName(peername);
+    NS_LOG_DEBUG("[App][DownloadServer] Error Connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
 }
 
 

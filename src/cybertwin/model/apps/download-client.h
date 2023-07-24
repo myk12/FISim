@@ -5,13 +5,16 @@
 #include "ns3/cybertwin-name-resolution-service.h"
 #include "ns3/cybertwin-node.h"
 #include "ns3/cybertwin-header.h"
+#include "ns3/cybertwin-app.h"
 
 namespace ns3
 {
 class CybertwinEndHost;
-class DownloadStream
+class DownloadStream: public Object
 {
 public:
+  static TypeId GetTypeId();
+
   DownloadStream();
   ~DownloadStream();
 
@@ -20,6 +23,8 @@ public:
   void SetNode(Ptr<Node> node);
   void SetCUID(CYBERTWINID_t cuid);
   void SetCybertwin(Ipv4Address cybertwinAddress, uint16_t cybertwinPort);
+  void SetLogDir(std::string logDir);
+  void SetRate(uint8_t rate);
 
   void Activate();
   //callbacks
@@ -29,12 +34,6 @@ public:
   void ConnectionErrorClosed(Ptr<Socket>);
   void RecvCallback(Ptr<Socket>);
 
-private:
-  //function
-  void DownloadThroughputStatistical();
-  Time m_lastTime;
-  uint32_t m_intervalBytes;
-  EventId m_statisticalEvent;
 private:
 
   Ptr<Node> m_node;
@@ -46,18 +45,27 @@ private:
 
   Ipv4Address m_cybertwinAddress;
   uint16_t m_cybertwinPort;
+
+  // statistics
+  void DownloadThroughputStatistical();
+  Time m_lastTime;
+  EventId m_statisticalEvent;
+  uint32_t m_intervalBytes;
+
+  std::string m_logDir;
+  std::ofstream m_logStream;
+
+  uint8_t m_rate;
 };
 
-class DownloadClient : public Application
+class DownloadClient : public CybertwinApp
 {
 public:
   static TypeId GetTypeId();
 
   DownloadClient();
-  DownloadClient(std::vector<CYBERTWINID_t> cuidList);
   virtual ~DownloadClient();
-
-  void AddCUID(CYBERTWINID_t cuid);
+  void AddTargetServer(CYBERTWINID_t cuid, uint8_t rate);
 
 private:
   virtual void StartApplication();
@@ -65,9 +73,9 @@ private:
 
   void StartDownloadStreams();
 
-  std::vector<CYBERTWINID_t> m_cuidList;
   Ptr<CybertwinEndHost> m_endHost;
-  std::vector<DownloadStream> m_streams;
+  std::vector<std::pair<CYBERTWINID_t, uint8_t>> m_targetServers;
+  std::vector<Ptr<DownloadStream>> m_streams;
 };
 
 }

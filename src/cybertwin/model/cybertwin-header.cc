@@ -51,7 +51,8 @@ CybertwinHeader::GetSerializedSize() const
         + sizeof(m_cybertwin)
         + sizeof(m_peer)
         + sizeof(m_size)
-        + sizeof(m_cybertwinPort);
+        + sizeof(m_cybertwinPort)
+        + sizeof(m_recvRate);
 }
 
 void
@@ -63,6 +64,7 @@ CybertwinHeader::Serialize(Buffer::Iterator start) const
     i.WriteHtonU64(m_peer);
     i.WriteHtonU32(m_size);
     i.WriteHtonU16(m_cybertwinPort);
+    i.WriteU8(m_recvRate);
 }
 
 uint32_t
@@ -74,6 +76,7 @@ CybertwinHeader::Deserialize(Buffer::Iterator start)
     m_peer = i.ReadNtohU64();
     m_size = i.ReadNtohU32();
     m_cybertwinPort = i.ReadNtohU16();
+    m_recvRate = i.ReadU8();
 
     return GetSerializedSize();
 }
@@ -145,6 +148,18 @@ CybertwinHeader::GetCybertwinPort() const
 }
 
 void
+CybertwinHeader::SetRecvRate(uint8_t val)
+{
+    m_recvRate = val;
+}
+
+uint8_t
+CybertwinHeader::GetRecvRate() const
+{
+    return m_recvRate;
+}
+
+void
 CybertwinHeader::Print(std::ostream& os) const
 {
     os << "------- Cybertwin Header -------" << std::endl
@@ -153,6 +168,7 @@ CybertwinHeader::Print(std::ostream& os) const
        << "| Peer: " << m_peer << std::endl
        << "| Size: " << m_size << std::endl
        << "| Port: " << m_cybertwinPort << std::endl
+       << "| RecvRate: " << static_cast<uint32_t>(m_recvRate) << std::endl
        << "--------------------------------" << std::endl;
 }
 

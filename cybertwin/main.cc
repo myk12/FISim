@@ -72,8 +72,8 @@ main(int argc, char* argv[])
     //LogComponentEnable("TcpSocketBase", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
     LogComponentEnable("EndHostBulkSend", LOG_LEVEL_DEBUG);
-    LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
-    LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
+    LogComponentEnable("DownloadServer", LOG_LEVEL_DEBUG);
+    LogComponentEnable("DownloadClient", LOG_LEVEL_DEBUG);
     //LogComponentEnable("Socket", LOG_LEVEL_INFO);
     //LogComponentEnableAll(LOG_LEVEL_DEBUG);
     

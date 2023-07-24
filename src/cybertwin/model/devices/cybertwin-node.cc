@@ -288,12 +288,19 @@ CybertwinNode::InstallDownloadClient(nlohmann::json config)
         return;
     }
 
-    CYBERTWINID_t targetCybertwin = config["cybertwin-id"];
     uint32_t startDelay = config["start-delay"];
+    nlohmann::json targetLists = config["target-cybertwins"];
 
     Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
     this->AddApplication(downloadClient);
-    downloadClient->AddCUID(targetCybertwin);
+    for (auto& target : targetLists)
+    {
+        CYBERTWINID_t targetId = target["cybertwinID"];
+        int rate = target["recvRate"];
+        NS_LOG_DEBUG("targetId: " << targetId << " rate: " << rate);
+        downloadClient->AddTargetServer(targetId, rate);
+    }
+    
     downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 

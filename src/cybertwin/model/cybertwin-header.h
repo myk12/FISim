@@ -49,7 +49,8 @@ class CybertwinHeader : public Header
     void SetCybertwinPort(uint16_t);
     uint16_t GetCybertwinPort() const;
 
-    void PrintH(std::ostream& os) const;
+    void SetRecvRate(uint8_t);
+    uint8_t GetRecvRate() const;
 
   protected:
     uint8_t m_command;
@@ -61,6 +62,9 @@ class CybertwinHeader : public Header
 
     // control packet payload
     uint16_t m_cybertwinPort;
+
+    // QoS
+    uint8_t m_recvRate; //Mbps
 };
 
 //************************************************************************

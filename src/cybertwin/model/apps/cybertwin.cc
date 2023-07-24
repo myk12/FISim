@@ -179,6 +179,7 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
                                      << " to " << receiver);
             CYBERTWINID_t selfID = header.GetSelfID();
             CYBERTWINID_t targetId = header.GetPeerID();
+            uint8_t rate = header.GetRecvRate();
 
             // create a new stream
             NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: create a new duplex stream from " << selfID
@@ -186,6 +187,8 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
             Ptr<CybertwinFullDuplexStream> stream = CreateObject<CybertwinFullDuplexStream>(m_node, m_cnrs, selfID, targetId);
             m_streams.push_back(stream);
             stream->SetEndSocket(socket);
+            stream->SetAttribute("CloudRateLimit", DoubleValue(static_cast<double>(rate)));
+            //stream->SetAttributes("EndRateLimit", DoubleValue(m_endRateLimit));
             stream->Activate();
     
             //STREAMID_t streamId = sender;
@@ -829,7 +832,17 @@ CybertwinFullDuplexStream::GetTypeId(void)
         TypeId("ns3::CybertwinFullDuplexStream")
             .SetParent<Object>()
             .SetGroupName("Cybertwin")
-            .AddConstructor<CybertwinFullDuplexStream>();
+            .AddConstructor<CybertwinFullDuplexStream>()
+            .AddAttribute("CloudRateLimit",
+                          "The rate limit of cloud to end",
+                          DoubleValue(100),
+                          MakeDoubleAccessor(&CybertwinFullDuplexStream::m_cloudRateLimit),
+                          MakeDoubleChecker<double>())
+            .AddAttribute("EndRateLimit",
+                            "The rate limit of end to cloud",
+                            DoubleValue(100),
+                            MakeDoubleAccessor(&CybertwinFullDuplexStream::m_endRateLimit),
+                            MakeDoubleChecker<double>());
     return tid;
 }
 
@@ -850,7 +863,6 @@ CybertwinFullDuplexStream::CybertwinFullDuplexStream(Ptr<Node> node,
     m_cloudID = cloud;
     m_endStatus = ENDPOINT_NONE;
     m_cloudStatus = ENDPOINT_NONE;
-    NS_LOG_DEBUG("[CybertwinFullDuplexStream] Create a full duplex stream from " << m_endID << " to " << m_cloudID);
 }
 
 CybertwinFullDuplexStream::~CybertwinFullDuplexStream()
@@ -867,6 +879,10 @@ CybertwinFullDuplexStream::Activate()
     m_endStartTime = Simulator::Now();
     m_cloudStartTime = Simulator::Now();
 
+    NS_LOG_DEBUG("[CybertwinFullDuplexStream] Activate full duplex stream from "
+                 << m_endID << " to " << m_cloudID << " with cloud rate limit " << m_cloudRateLimit
+                 << " Mbps and end rate limit " << m_endRateLimit << " Mbps");
+
     if (m_endSocket == nullptr)
     {
         m_endStatus = ENDPOINT_DISCONNECTED;
@@ -877,6 +893,8 @@ CybertwinFullDuplexStream::Activate()
     {
         m_endStatus = ENDPOINT_CONNECTED;
         m_endSocket->SetRecvCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndRecvCallback, this));
+        m_endSocket->SetCloseCallbacks(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndNormalCloseCallback, this),
+                                       MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndErrorCloseCallback, this));
     }
 
     if (m_cloudSocket == nullptr)
@@ -889,6 +907,28 @@ CybertwinFullDuplexStream::Activate()
         m_cloudStatus = ENDPOINT_CONNECTED;
         m_cloudSocket->SetRecvCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback, this));
     }
+}
+
+void
+CybertwinFullDuplexStream::DuplexStreamEndNormalCloseCallback(Ptr<Socket> sock)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[CybertwinFullDuplexStream] End connection closed");
+    m_endStatus = ENDPOINT_DISCONNECTED;
+
+    // if end is closed, the cloud must be closed
+    if (m_cloudSocket != nullptr)
+    {
+        m_cloudSocket->Close();
+    }
+}
+
+void
+CybertwinFullDuplexStream::DuplexStreamEndErrorCloseCallback(Ptr<Socket> sock)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_ERROR("[CybertwinFullDuplexStream] End connection error");
+    m_endStatus = ENDPOINT_DISCONNECTED;
 }
 
 void
@@ -938,7 +978,12 @@ CybertwinFullDuplexStream::DuplexStreamCloudNormalCloseCallback(Ptr<Socket> sock
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud connection closed");
-    m_cloudStatus = ENDPOINT_DISCONNECTED;
+    m_cloudStatus = ENDPOINT_DONE;
+
+    if (m_cloudSocket != nullptr)
+    {
+        m_cloudSocket->Close();
+    }
 }
 
 void
@@ -976,10 +1021,12 @@ void
 CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback(Ptr<Socket> sock)
 {
     NS_LOG_FUNCTION(this);
+    NS_ASSERT_MSG(sock, "Socket is null");
+
     Ptr<Packet> pkt;
     while ((pkt = sock->Recv()))
     {
-        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Received packet from cloud with size " << pkt->GetSize());
+        NS_LOG_INFO("[CybertwinFullDuplexStream] Received packet from cloud with size " << pkt->GetSize());
         if (m_cloudBuffer.size() > 100000)
         {
             NS_LOG_ERROR("[CybertwinFullDuplexStream] Cloud buffer is full, drop packet");
@@ -999,9 +1046,22 @@ void
 CybertwinFullDuplexStream::OuputEndBuffer()
 {
     NS_LOG_FUNCTION(this);
+    NS_LOG_DEBUG("[CybertwinFullDuplexStream] End buffer size is " << m_endBuffer.size());
+    if (m_cloudSocket == nullptr)
+    {
+        NS_LOG_ERROR("[CybertwinFullDuplexStream] Cloud socket is null.");
+        return;
+    }
+
     if (m_endBuffer.empty())
     {
         NS_LOG_INFO("[CybertwinFullDuplexStream] End buffer is empty");
+        return;
+    }
+
+    if (m_cloudStatus != ENDPOINT_CONNECTED)
+    {
+        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud is not connected.");
         return;
     }
 
@@ -1011,7 +1071,7 @@ CybertwinFullDuplexStream::OuputEndBuffer()
     // calculate thoughput must less than 10Mbps
     double tryThroughput = (m_sendToCloudBytes + pktSize) * 8 / (Simulator::Now() - m_endStartTime).GetSeconds() / 1000000.0;
     
-    if (tryThroughput > 10.0)
+    if (tryThroughput >= m_cloudRateLimit)
     {
         NS_LOG_INFO("[CybertwinFullDuplexStream] End thoughput is " << tryThroughput << " Mbps, wait to send.");
         m_sendToCloudEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
@@ -1029,41 +1089,57 @@ CybertwinFullDuplexStream::OuputEndBuffer()
         }
         m_sendToCloudEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
     }
+    
 }
 
 void
 CybertwinFullDuplexStream::OuputCloudBuffer()
 {
     NS_LOG_FUNCTION(this);
-    if (m_cloudBuffer.empty())
-    {
-        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is empty");
-        return;
-    }
+    NS_ASSERT_MSG(m_cloudBuffer.size() > 0, "Cloud buffer is empty");
+    NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer size is " << m_cloudBuffer.size());
+    NS_ASSERT_MSG(m_endSocket != nullptr, "End socket is null");
 
     Ptr<Packet> pkt = m_cloudBuffer.front();
     uint32_t pktSize = pkt->GetSize();
 
     // calculate thoughput must less than 10Mbps
-    double tryThroughput = (m_sendToEndBytes + pktSize) * 8 / (Simulator::Now() - m_cloudStartTime).GetSeconds() / 1000000.0;
+    double tryThroughput = (m_sendToEndBytes + pktSize) * 8 /
+                           (Simulator::Now() - m_cloudStartTime).GetSeconds() / 1000000.0;
 
-    if (tryThroughput > 10.0)
+    if (tryThroughput >= m_cloudRateLimit)
     {
-        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud thoughput is " << tryThroughput << " Mbps, wait to send.");
-        m_sendToEndEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
-    }else
+        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud thoughput is " << tryThroughput
+                                                                       << " Mbps, wait to send.");
+    }
+    else
     {
         int32_t sendSize = m_endSocket->Send(pkt);
         if (sendSize <= 0)
         {
             NS_LOG_ERROR("[CybertwinFullDuplexStream] Send to end error");
-        }else
+        }
+        else
         {
-            NS_LOG_DEBUG("[CybertwinFullDuplexStream] Send to end " << sendSize << " bytes at " << Simulator::Now());
-            m_sendToEndBytes += m_endSocket->Send(pkt);
+            NS_LOG_INFO("[CybertwinFullDuplexStream] Send to end " << sendSize << " bytes at "
+                                                                   << Simulator::Now());
+            m_sendToEndBytes += sendSize;
             m_cloudBuffer.pop();
         }
+    }
+
+    if (!m_cloudBuffer.empty())
+    {
+        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is not empty, continue send to end");
         m_sendToEndEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
+    }else
+    {
+        if (m_cloudStatus == ENDPOINT_DONE)
+        {
+            NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud is done, end buffer is empty, stop send to end");
+            m_endSocket->Close();
+            return;
+        }
     }
 }
 
