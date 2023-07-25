@@ -5,6 +5,8 @@ namespace ns3
 NS_LOG_COMPONENT_DEFINE("DownloadClient");
 NS_OBJECT_ENSURE_REGISTERED(DownloadClient);
 
+#define SECURITY_ENABLED 1
+
 //******************************************************************************
 //*                         download client                                    *
 //******************************************************************************
@@ -75,7 +77,11 @@ DownloadClient::StartDownloadStreams()
         stream->SetNode(GetNode());
         stream->SetStreamID(streamID++);
         stream->SetTargetID(tar.first);
+#if SECURITY_ENABLED
+        stream->SetRate(static_cast<uint8_t>(TrustRateMapping(tar.second)*100));
+#else
         stream->SetRate(tar.second);
+#endif
         stream->SetCUID(0);
         stream->SetCybertwin(cybertwinAddress, cybertwinPort);
         stream->SetLogDir(m_endHost->GetLogDir());

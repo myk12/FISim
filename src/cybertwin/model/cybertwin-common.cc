@@ -85,4 +85,19 @@ uint64_t StringToUint64(std::string str)
     return ret;
 }
 
+//k 控制曲线的斜率，斜率越大曲线在中心点的附近变化越快。
+//x0 是函数在斜率最大的点的横坐标位置。
+double TrustRateMapping(double trust)
+{
+    if (trust < 0)
+        trust = 0;
+    if (trust > 100)
+        trust = 100;
+
+    double k = 0.2;
+    double x0 = 60;
+
+    return 1 / (1 + exp(-k * (trust - x0)));
+}
+
 } // namespace ns3

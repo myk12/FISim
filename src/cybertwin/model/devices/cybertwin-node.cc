@@ -264,6 +264,8 @@ CybertwinNode::InstallDownloadServer(nlohmann::json config)
     CYBERTWINID_t cybertwinId = config["cybertwin-id"];
     uint16_t cybertwinPort = config["cybertwin-port"];
     uint32_t startDelay = config["start-delay"];
+    nlohmann::json trafficParams = config["traffic-params"];
+
     CYBERTWIN_INTERFACE_LIST_t interfaces;
     for (auto& ip : m_globalAddrList)
     {
@@ -274,6 +276,10 @@ CybertwinNode::InstallDownloadServer(nlohmann::json config)
     NS_LOG_DEBUG("cybertwinId: " << cybertwinId);
     Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
     this->AddApplication(downloadServer);
+
+    downloadServer->SetAttribute("Pattern", StringValue(trafficParams["pattern"]));
+    downloadServer->SetAttribute("Duration", TimeValue(MilliSeconds(trafficParams["duration"])));
+    downloadServer->SetAttribute("Rate", DoubleValue(trafficParams["rate"]));
     downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 

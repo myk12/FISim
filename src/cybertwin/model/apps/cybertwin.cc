@@ -984,6 +984,11 @@ CybertwinFullDuplexStream::DuplexStreamCloudNormalCloseCallback(Ptr<Socket> sock
     {
         m_cloudSocket->Close();
     }
+
+    if (m_cloudBuffer.empty() && m_endSocket != nullptr)
+    {
+        m_endSocket->Close();
+    }
 }
 
 void
@@ -1096,10 +1101,20 @@ void
 CybertwinFullDuplexStream::OuputCloudBuffer()
 {
     NS_LOG_FUNCTION(this);
-    NS_ASSERT_MSG(m_cloudBuffer.size() > 0, "Cloud buffer is empty");
-    NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer size is " << m_cloudBuffer.size());
-    NS_ASSERT_MSG(m_endSocket != nullptr, "End socket is null");
+    if (m_cloudBuffer.empty())
+    {
+        if (m_cloudStatus == ENDPOINT_DONE)
+        {
+            NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is empty and cloud is done, stop sending.");
+            if (m_endSocket != nullptr)
+            {
+                m_endSocket->Close();
+            }
+        }
+        return ;
+    }
 
+    // send to end
     Ptr<Packet> pkt = m_cloudBuffer.front();
     uint32_t pktSize = pkt->GetSize();
 
@@ -1109,7 +1124,7 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
 
     if (tryThroughput >= m_cloudRateLimit)
     {
-        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud thoughput is " << tryThroughput
+        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud thoughput is " << tryThroughput
                                                                        << " Mbps, wait to send.");
     }
     else
@@ -1128,19 +1143,7 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
         }
     }
 
-    if (!m_cloudBuffer.empty())
-    {
-        NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is not empty, continue send to end");
-        m_sendToEndEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
-    }else
-    {
-        if (m_cloudStatus == ENDPOINT_DONE)
-        {
-            NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud is done, end buffer is empty, stop send to end");
-            m_endSocket->Close();
-            return;
-        }
-    }
+    m_sendToEndEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
 }
 
 void

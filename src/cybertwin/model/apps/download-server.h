@@ -43,6 +43,12 @@ class DownloadServer: public Application
 
     uint32_t m_maxBytes;
     Time m_maxSendTime;
+
+    std::string m_pattern;
+    double m_rate;
+    Time m_duration;
+
+    Ptr<RandomVariableStream> m_rand;
 };
 } // namespace ns3
 

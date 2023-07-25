@@ -8,26 +8,40 @@ NS_OBJECT_ENSURE_REGISTERED(DownloadServer);
 TypeId
 DownloadServer::GetTypeId()
 {
-    static TypeId tid =
-        TypeId("ns3::DownloadServer")
-            .SetParent<Application>()
-            .SetGroupName("Cybertwin")
-            .AddConstructor<DownloadServer>()
-            .AddAttribute("CybertwinID",
-                          "Cybertwin ID of the server.",
-                          UintegerValue(0),
-                          MakeUintegerAccessor(&DownloadServer::m_cybertwinID),
-                          MakeUintegerChecker<uint64_t>())
-            .AddAttribute("MaxBytes",
-                          "Maximum bytes to send.",
-                          UintegerValue(0),
-                          MakeUintegerAccessor(&DownloadServer::m_maxBytes),
-                          MakeUintegerChecker<uint32_t>())
-            .AddAttribute("MaxTime",
-                          "Maximum time to send.",
-                          TimeValue(Seconds(0.5)),
-                          MakeTimeAccessor(&DownloadServer::m_maxSendTime),
-                          MakeTimeChecker());
+    static TypeId tid = TypeId("ns3::DownloadServer")
+                            .SetParent<Application>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<DownloadServer>()
+                            .AddAttribute("CybertwinID",
+                                          "Cybertwin ID of the server.",
+                                          UintegerValue(0),
+                                          MakeUintegerAccessor(&DownloadServer::m_cybertwinID),
+                                          MakeUintegerChecker<uint64_t>())
+                            .AddAttribute("MaxBytes",
+                                          "Maximum bytes to send.",
+                                          UintegerValue(0),
+                                          MakeUintegerAccessor(&DownloadServer::m_maxBytes),
+                                          MakeUintegerChecker<uint32_t>())
+                            .AddAttribute("MaxTime",
+                                          "Maximum time to send.",
+                                          TimeValue(Seconds(0.5)),
+                                          MakeTimeAccessor(&DownloadServer::m_maxSendTime),
+                                          MakeTimeChecker())
+                            .AddAttribute("Pattern",
+                                          "Traffic pattern.",
+                                          StringValue("exponential"),
+                                          MakeStringAccessor(&DownloadServer::m_pattern),
+                                          MakeStringChecker())
+                            .AddAttribute("Rate",
+                                          "Traffic rate.",
+                                          DoubleValue(100.0),
+                                          MakeDoubleAccessor(&DownloadServer::m_rate),
+                                          MakeDoubleChecker<double>())
+                            .AddAttribute("Duration",
+                                          "Traffic duration.",
+                                          TimeValue(MilliSeconds(100)),
+                                          MakeTimeAccessor(&DownloadServer::m_duration),
+                                          MakeTimeChecker());
     return tid;
 }
 
@@ -61,13 +75,33 @@ DownloadServer::StartApplication()
 
     // Start listening
     Init();
-    // CNRS Insertion
 
+    // Calculate mean interval
+    double mapped_rate = TrustRateMapping(m_rate)*100;
+
+    double mean_interval = SYSTEM_PACKET_SIZE*8 / (mapped_rate * 1000000.0);
+
+    // Init Random Variable
+    if (m_pattern == "exponential")
+    {
+        m_rand = CreateObject<ExponentialRandomVariable>();
+        m_rand->SetAttribute("Mean", DoubleValue(mean_interval));
+    }
+    else if (m_pattern == "constant")
+    {
+        m_rand = CreateObject<ConstantRandomVariable>();
+        m_rand->SetAttribute("Constant", DoubleValue(mean_interval));
+    }
+    else
+    {
+        NS_FATAL_ERROR("Unknown traffic pattern.");
+    }
+
+    // CNRS Insertion
     Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(GetNode());
     Ptr<NameResolutionService> cnrs = node->GetCNRSApp();
     NS_LOG_DEBUG("[DownloadServer] Inserting Cybertwin " << m_cybertwinID << " into CNRS.");
     cnrs->InsertCybertwinInterfaceName(1000, m_interfaces);
-
 }
 
 void
@@ -96,9 +130,9 @@ DownloadServer::Init()
     m_dtServer->SetNewConnectCreatedCallback(
         MakeCallback(&Cybertwin::NewMpConnectionCreatedCallback, this));
 #else
-    // init data server and listen for incoming connections  
+    // init data server and listen for incoming connections
     m_dtServer = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
-    //FIXME: attention, the port number is hard-coded here
+    // FIXME: attention, the port number is hard-coded here
     m_dtServer->Bind(InetSocketAddress(Ipv4Address::GetAny(), m_interfaces[0].second));
     m_dtServer->SetAcceptCallback(MakeCallback(&DownloadServer::ConnRequestCallback, this),
                                   MakeCallback(&DownloadServer::ConnCreatedCallback, this));
@@ -113,18 +147,20 @@ DownloadServer::Init()
 }
 
 bool
-DownloadServer::ConnRequestCallback(Ptr<Socket> socket, const Address &from)
+DownloadServer::ConnRequestCallback(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
     return true;
 }
 
 void
-DownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address &from)
+DownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
     // put into the map
-    NS_LOG_DEBUG("[App][DownloadServer] New connection with " << InetSocketAddress::ConvertFrom(from).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(from).GetPort());
+    NS_LOG_DEBUG("[App][DownloadServer] New connection with "
+                 << InetSocketAddress::ConvertFrom(from).GetIpv4() << ":"
+                 << InetSocketAddress::ConvertFrom(from).GetPort());
 
     // set recv callback
     socket->SetRecvCallback(MakeCallback(&DownloadServer::RecvCallback, this));
@@ -146,10 +182,11 @@ DownloadServer::BulkSend(Ptr<Socket> socket)
         return;
     }
 
-    if ((m_startTimes[socket] + m_maxSendTime < Simulator::Now()))
+    if ((m_startTimes[socket] + m_duration < Simulator::Now()))
     //((m_maxBytes != 0) && (m_sendBytes[socket] > m_maxBytes)))
     {
-        //NS_LOG_DEBUG("[App][DownloadServer] Start Time " << m_startTimes[socket] << " Now " << Simulator::Now() << " Max Time " << m_maxSendTime);
+        // NS_LOG_DEBUG("[App][DownloadServer] Start Time " << m_startTimes[socket] << " Now " <<
+        // Simulator::Now() << " Max Time " << m_maxSendTime);
         NS_LOG_DEBUG("[App][DownloadServer] Send "
                      << m_sendBytes[socket] << " bytes"
                      << " during " << Simulator::Now() - m_startTimes[socket] << " seconds.");
@@ -162,7 +199,7 @@ DownloadServer::BulkSend(Ptr<Socket> socket)
     int32_t sendSize = socket->Send(packet);
     if (sendSize <= 0)
     {
-        //NS_LOG_ERROR("[App][DownloadServer] Send error.");
+        // NS_LOG_ERROR("[App][DownloadServer] Send error.");
     }
     else
     {
@@ -170,7 +207,7 @@ DownloadServer::BulkSend(Ptr<Socket> socket)
         m_sendBytes[socket] += sendSize;
     }
 
-    Simulator::Schedule(MicroSeconds(10), &DownloadServer::BulkSend, this, socket);
+    Simulator::Schedule(Seconds(m_rand->GetValue()), &DownloadServer::BulkSend, this, socket);
 }
 
 void
@@ -202,7 +239,9 @@ DownloadServer::NormalCloseCallback(Ptr<Socket> socket)
 
     Address peername;
     socket->GetPeerName(peername);
-    NS_LOG_DEBUG("[App][DownloadServer] Normal Connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
+    NS_LOG_DEBUG("[App][DownloadServer] Normal Connection with "
+                 << InetSocketAddress::ConvertFrom(peername).GetIpv4() << ":"
+                 << InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
 }
 
 void
@@ -211,8 +250,9 @@ DownloadServer::ErrorCloseCallback(Ptr<Socket> socket)
     NS_LOG_FUNCTION(this << socket);
     Address peername;
     socket->GetPeerName(peername);
-    NS_LOG_DEBUG("[App][DownloadServer] Error Connection with " << InetSocketAddress::ConvertFrom(peername).GetIpv4() <<":"<< InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
+    NS_LOG_DEBUG("[App][DownloadServer] Error Connection with "
+                 << InetSocketAddress::ConvertFrom(peername).GetIpv4() << ":"
+                 << InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
 }
-
 
 } // namespace ns3
