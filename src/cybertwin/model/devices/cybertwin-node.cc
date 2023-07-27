@@ -265,6 +265,7 @@ CybertwinNode::InstallDownloadServer(nlohmann::json config)
     uint16_t cybertwinPort = config["cybertwin-port"];
     uint32_t startDelay = config["start-delay"];
     nlohmann::json trafficParams = config["traffic-params"];
+    uint32_t maxBytes = config["file-size-MB"];
 
     CYBERTWIN_INTERFACE_LIST_t interfaces;
     for (auto& ip : m_globalAddrList)
@@ -277,9 +278,11 @@ CybertwinNode::InstallDownloadServer(nlohmann::json config)
     Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
     this->AddApplication(downloadServer);
 
+    downloadServer->SetAttribute("CybertwinID", UintegerValue(cybertwinId));
     downloadServer->SetAttribute("Pattern", StringValue(trafficParams["pattern"]));
     downloadServer->SetAttribute("Duration", TimeValue(MilliSeconds(trafficParams["duration"])));
     downloadServer->SetAttribute("Rate", DoubleValue(trafficParams["rate"]));
+    downloadServer->SetAttribute("MaxBytes", UintegerValue(maxBytes));
     downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 
@@ -296,6 +299,7 @@ CybertwinNode::InstallDownloadClient(nlohmann::json config)
 
     uint32_t startDelay = config["start-delay"];
     nlohmann::json targetLists = config["target-cybertwins"];
+    uint8_t maxOfflineTime = config["max-offline-time"];
 
     Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
     this->AddApplication(downloadClient);
@@ -306,7 +310,8 @@ CybertwinNode::InstallDownloadClient(nlohmann::json config)
         NS_LOG_DEBUG("targetId: " << targetId << " rate: " << rate);
         downloadClient->AddTargetServer(targetId, rate);
     }
-    
+
+    downloadClient->SetAttribute("MaxOfflineTime", UintegerValue(maxOfflineTime));
     downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
 }
 

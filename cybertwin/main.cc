@@ -65,7 +65,7 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
     LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinSim", LOG_LEVEL_INFO);
-    LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
+    LogComponentEnable("NameResolutionService", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
     LogComponentEnable("EndHostInitd", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinManager", LOG_LEVEL_DEBUG);
@@ -75,7 +75,7 @@ main(int argc, char* argv[])
     LogComponentEnable("DownloadServer", LOG_LEVEL_DEBUG);
     LogComponentEnable("DownloadClient", LOG_LEVEL_DEBUG);
     //LogComponentEnable("Socket", LOG_LEVEL_INFO);
-    //LogComponentEnableAll(LOG_LEVEL_DEBUG);
+    LogComponentEnableAll(LOG_LEVEL_DEBUG);
     
 
     CybertwinSim cybertwinSim;

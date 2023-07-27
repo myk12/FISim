@@ -37,6 +37,7 @@ class CybertwinFullDuplexStream: public Object
         ENDPOINT_CONNECTED,
         ENDPOINT_DISCONNECTED,
         ENDPOINT_DONE,
+        ENDPOINT_END_STOP,
     };
     static TypeId GetTypeId();
 

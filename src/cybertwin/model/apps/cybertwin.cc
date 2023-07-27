@@ -1006,6 +1006,30 @@ CybertwinFullDuplexStream::DuplexStreamEndRecvCallback(Ptr<Socket> sock)
     Ptr<Packet> pkt;
     while ((pkt = sock->Recv()))
     {
+        // check if is stop request
+        CybertwinHeader header;
+        if (pkt->RemoveHeader(header))
+        {
+            // recev stop request
+            if (ENDHOST_STOP_STREAM == header.GetCommand())
+            {
+                NS_LOG_INFO("[CybertwinFullDuplexStream] Received stop request from end");
+                m_endStatus = ENDPOINT_END_STOP;
+                // cancel send to end
+                if (m_sendToEndEvent.IsRunning())
+                {
+                    Simulator::Cancel(m_sendToEndEvent);
+                }
+            }else if (ENDHOST_START_STREAM == header.GetCommand())
+            {
+                NS_LOG_INFO("[CybertwinFullDuplexStream] Received start request from end");
+                m_endStatus = ENDPOINT_CONNECTED;
+                m_sendToEndEvent = Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputCloudBuffer, this);
+            }
+
+            continue;
+        }
+
         NS_LOG_DEBUG("[CybertwinFullDuplexStream] Received packet from end with size " << pkt->GetSize());
         if (m_endBuffer.size() > 100000)
         {
@@ -1114,6 +1138,13 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
         return ;
     }
 
+    if (m_endStatus == ENDPOINT_END_STOP)
+    {
+        // end stop to receive, stop sending
+        NS_LOG_INFO("[CybertwinFullDuplexStream] End stop to receive, stop sending.");
+        return;
+    }
+
     // send to end
     Ptr<Packet> pkt = m_cloudBuffer.front();
     uint32_t pktSize = pkt->GetSize();
@@ -1132,7 +1163,7 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
         int32_t sendSize = m_endSocket->Send(pkt);
         if (sendSize <= 0)
         {
-            NS_LOG_ERROR("[CybertwinFullDuplexStream] Send to end error");
+            NS_LOG_LOGIC("[CybertwinFullDuplexStream] Send to end error");
         }
         else
         {

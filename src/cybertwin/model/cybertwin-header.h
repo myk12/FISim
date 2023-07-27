@@ -17,6 +17,8 @@ enum CybertwinCommand_t
     // Data commands
     CYBERTWIN_HEADER_DATA,
     CREATE_STREAM,
+    ENDHOST_STOP_STREAM,
+    ENDHOST_START_STREAM,
 };
 
 class CybertwinHeader : public Header
