@@ -1,11 +1,10 @@
 set(target_prefix cybertwin)
 set(source_files
-    version3.cc
-    cybertwin-topology.cc)
+    main.cc
+    CybertwinSim.cc)
 
 set(header_files
-    cybertwin-topology.h)
-
+    CybertwinSim.h)
 
 build_exec(
     EXECNAME "cybertwin"
@@ -15,3 +14,5 @@ build_exec(
     LIBRARIES_TO_LINK "${ns3-libs}"
     EXECUTABLE_DIRECTORY_PATH "cybertwinexec/"
 )
+
+

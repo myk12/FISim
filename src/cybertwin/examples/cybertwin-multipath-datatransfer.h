@@ -3,10 +3,11 @@
 #include "ns3/internet-module.h"
 #include "ns3/point-to-point-module.h"
 #include "ns3/csma-module.h"
-#include "../model/cybertwin-common.h"
+#include "ns3/cybertwin-common.h"
 #include "ns3/random-variable-stream.h"
 
-#include "../model/cybertwin-multipath-controller.h"
+#include "ns3/multipath-data-transfer-protocol.h"
+#include "ns3/cybertwin-name-resolution-service.h"
 
 namespace ns3
 {

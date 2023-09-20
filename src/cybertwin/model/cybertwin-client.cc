@@ -230,7 +230,7 @@ CybertwinConnClient::Authenticate()
 
     CybertwinHeader ctrlHeader;
     ctrlHeader.SetCommand(HOST_CONNECT);
-    ctrlHeader.SetCybertwin(m_localCuid);
+    ctrlHeader.SetSelfID(m_localCuid);
     authPacket->AddHeader(ctrlHeader);
 
     m_ctrlSocket->Send(authPacket);
@@ -263,7 +263,7 @@ CybertwinConnClient::DisconnectCybertwin()
     NS_LOG_FUNCTION(this);
     CybertwinHeader ctrlHeader;
     ctrlHeader.SetCommand(HOST_DISCONNECT);
-    ctrlHeader.SetCybertwin(m_localCuid);
+    ctrlHeader.SetSelfID(m_localCuid);
 
     Ptr<Packet> connPacket = Create<Packet>(0);
     connPacket->AddHeader(ctrlHeader);
@@ -365,6 +365,7 @@ CybertwinBulkClient::DoDispose()
     NS_LOG_FUNCTION(this->GetTypeId() << Simulator::Now());
     if (m_socket)
     {
+        m_socket->Close();
         m_socket = nullptr;
     }
     CybertwinClient::DoDispose();
@@ -408,10 +409,10 @@ CybertwinBulkClient::SendData()
         else
         {
             CybertwinHeader header;
-            header.SetCybertwin(m_localCuid);
-            header.SetPeer(m_peerCuid);
+            header.SetSelfID(m_localCuid);
+            header.SetPeerID(m_peerCuid);
             header.SetSize(toSend);
-            header.SetCommand(DATA);
+            header.SetCommand(CYBERTWIN_HEADER_DATA);
             NS_ABORT_IF(toSend < header.GetSerializedSize());
             packet = Create<Packet>(toSend - header.GetSerializedSize());
             packet->AddHeader(header);

@@ -34,6 +34,7 @@
 #include <sstream>
 #include <unordered_map>
 #include <vector>
+#include <string>
 
 // Network Topology, Cybertwin: v1.0
 //
@@ -80,7 +81,7 @@ main(int argc, char* argv[])
     Packet::EnablePrinting();
     // Time::SetResolution(Time::NS);
 
-    LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
+    //LogComponentEnable("CybertwinV1", LOG_LEVEL_INFO);
     // LogComponentEnable("V4Ping", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinEdgeServer", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinCoreServer", LOG_LEVEL_DEBUG);
@@ -88,8 +89,8 @@ main(int argc, char* argv[])
     LogComponentEnable("CybertwinClient", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinEdge", LOG_LEVEL_DEBUG);
     LogComponentEnable("Cybertwin", LOG_LEVEL_DEBUG);
+    // LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
     //LogComponentEnable("CybertwinMultipathTransfer", LOG_LEVEL_DEBUG);
-    //LogComponentEnable("NameResolutionService", LOG_LEVEL_DEBUG);
 
     //*************************************************************************************************
     //*                           Building Topology *
@@ -97,6 +98,17 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND(
         "\n\n[1] ************************ Building Topology ****************************\n\n");
     NS_LOG_UNCOND(TOPOLOGY_GRAPH);
+    //read config file
+    std::ifstream conf_file("cybertwin/config.json");
+    NS_ASSERT_MSG(conf_file.is_open(), "Open config file failed.");
+
+    // parse config
+    nlohmann::json json_conf;
+    conf_file>>json_conf;
+    conf_file.close();
+    std::string corelink1 = std::to_string(int(json_conf["topology"]["link_speed"]["core_server1"]));
+    std::string corelink2 = std::to_string(int(json_conf["topology"]["link_speed"]["core_server2"]));
+
     NodeContainer allNodesContainer;
     std::vector<std::vector<Ipv4Address>> allNodesIpv4Addresses;
 
@@ -162,14 +174,14 @@ main(int argc, char* argv[])
                           CORE_SERVER1,
                           coreServer1Neighbors,
                           coreServer1NeighborIPBase,
-                          "10Mbps",
+                          (corelink1 += "Mbps").c_str(),
                           "2ms");
     // core server2
     p2pConnectToNeighbors(allNodesContainer,
                           CORE_SERVER2,
                           coreServer2Neighbors,
                           coreServer2NeighborIPBase,
-                          "10Mbps",
+                          (corelink2 += "Mbps").c_str(),
                           "2ms");
 
     allNodesIpv4Addresses = getNodesIpv4List(allNodesContainer);
@@ -272,11 +284,11 @@ main(int argc, char* argv[])
     endHost1->Connect(
         CybertwinCertTag(allCybertwinId.at(END_HOST1), 1000, 500, true, true, 6000, 1000));
 
-    Ptr<CybertwinEndHost> endHost3 =
-        DynamicCast<CybertwinEndHost>(allNodesContainer.Get(END_HOST3));
-    endHost3->Connect(CybertwinCertTag(allCybertwinId.at(END_HOST3), 500, 1000, false, true));
+    Ptr<CybertwinEndHost> endHost8 =
+        DynamicCast<CybertwinEndHost>(allNodesContainer.Get(END_HOST8));
+    endHost8->Connect(CybertwinCertTag(allCybertwinId.at(END_HOST8), 500, 1000, false, true));
 
-    endHost1->SendTo(allCybertwinId.at(END_HOST3));
+    endHost1->SendTo(allCybertwinId.at(END_HOST8));
 
     //*************************************************************************************************
     //*                           Starting Simulation *
@@ -284,6 +296,7 @@ main(int argc, char* argv[])
     NS_LOG_UNCOND("\n\n[4] ************************ Starting Simulation "
                   "****************************\n\n");
     Simulator::Run();
+    Simulator::Stop(Seconds(10));
     Simulator::Destroy();
     return 0;
 }

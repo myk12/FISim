@@ -1,0 +1,43 @@
+#!/bin/bash
+
+CYBERTWIN_COMMON_FILE="src/cybertwin/model/cybertwin-common.h"
+MDTP_MACRO_NAME="MDTP_ENABLED"
+LOG_FILENAME="mp-test-1000.log"
+
+#########################
+#   TEST MULTI PATH     #
+#########################
+link_arr=(50 100)
+enable_arr=(0 1)
+for speed1 in "${link_arr[@]}"
+do
+    for speed2 in "${link_arr[@]}"
+    do
+        # modify config
+        CONFIG_FILENAME="cybertwin/config.json"
+        config=$(cat $CONFIG_FILENAME)
+        config=$(echo $config | jq .topology.link_speed.core_server1=$speed1)
+        config=$(echo $config | jq .topology.link_speed.core_server2=$speed2)
+        echo $config
+        echo $config > $CONFIG_FILENAME
+
+        for en in "${enable_arr[@]}"; do
+            # multipath enable or not
+            sed -i "s/#define ${MDTP_MACRO_NAME} .*/#define ${MDTP_MACRO_NAME} $en/" "${CYBERTWIN_COMMON_FILE}"
+
+            # compile & execute
+            ./ns3 build
+            ./exec
+
+            # record log file
+            mkdir -p log/multipath/
+            if [ $en -eq 0 ]; then
+                mv $LOG_FILENAME log/multipath/SinglePath_${speed1}_${speed2}.dat
+            else
+                mv $LOG_FILENAME log/multipath/MultiPath_${speed1}_${speed2}.dat
+            fi
+        done
+    done
+done
+
+

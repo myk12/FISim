@@ -75,16 +75,7 @@ CybertwinController::StartApplication()
         if (ifaddr == Ipv4Address::GetAny() ||
             ifaddr == Ipv4Address::GetLoopback() ||
             ifaddr == m_localAddr)
-        Ptr<Ipv4Interface> ipv4If = ipv4->GetInterface(i);
-        Ipv4Address ifaddr = ipv4If->GetAddress(0).GetAddress();
-
-        NS_LOG_UNCOND("Checkt address : "<<ifaddr);
-        if (ifaddr == Ipv4Address::GetAny() ||
-            ifaddr == Ipv4Address::GetLoopback() ||
-            ifaddr == m_localAddr)
         {
-            NS_LOG_UNCOND("Skip this address.");
-            continue;
             NS_LOG_UNCOND("Skip this address.");
             continue;
         }
@@ -210,7 +201,7 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
 
         if (header.GetCommand() == HOST_CONNECT)
         {
-            CYBERTWINID_t cuid = header.GetCybertwin();
+            CYBERTWINID_t cuid = header.GetSelfID();
             if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
             {
                 // assign interfaces for new cybertwin
@@ -227,13 +218,14 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
                     MakeCallback(&CybertwinController::CybertwinReceive, this, cuid));
 
                 cybertwin->SetStartTime(Seconds(0.0));
+                cybertwin->SetStopTime(Seconds(NORMAL_SIM_SECONDS));
                 GetNode()->AddApplication(cybertwin);
                 m_cybertwinTable[cuid] = cybertwin;
             }
         }
         else if (header.GetCommand() == HOST_DISCONNECT)
         {
-            CYBERTWINID_t cuid = header.GetCybertwin();
+            CYBERTWINID_t cuid = header.GetSelfID();
             NS_ASSERT(m_cybertwinTable.find(cuid) != m_cybertwinTable.end());
             m_cybertwinTable[cuid]->SetStopTime(Seconds(0));
             m_cybertwinTable.erase(cuid);
@@ -244,7 +236,7 @@ CybertwinController::ReceiveFromHost(Ptr<Socket> socket)
 void
 CybertwinController::CybertwinInit(Ptr<Socket> socket, const CybertwinHeader& header)
 {
-    NS_LOG_FUNCTION(GetNode()->GetId() << header.GetCybertwin());
+    NS_LOG_FUNCTION(GetNode()->GetId() << header.GetSelfID());
     Ptr<Packet> packet = Create<Packet>(0);
     packet->AddHeader(header);
     // TODO: check if sent successfully
@@ -254,7 +246,11 @@ CybertwinController::CybertwinInit(Ptr<Socket> socket, const CybertwinHeader& he
 int
 CybertwinController::CybertwinSend(CYBERTWINID_t cuid,
                                    CYBERTWINID_t peer,
+                                #if MDTP_ENABLED
                                    MultipathConnection* socket,
+                                #else
+                                   Ptr<Socket> socket,
+                                #endif
                                    Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << cuid << peer);
@@ -447,7 +443,11 @@ CybertwinFirewall::Initialize(const CybertwinCertTag& cert)
 
 int
 CybertwinFirewall::ForwardToGlobal(CYBERTWINID_t peer,
+                                #if MDTP_ENABLED
                                    MultipathConnection* socket,
+                                #else
+                                   Ptr<Socket> socket,
+                                #endif
                                    Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(m_cuid << peer);

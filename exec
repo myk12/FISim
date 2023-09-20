@@ -2,6 +2,8 @@
 
 # I don't know why, there are two cases of the executable file
 # So, try each one of them
+
+rm *.log
 exec_name=ns3.37-cybertwin-debug
 exec_name2=ns3.37-cybertwin-default
 exec_dir="./build/cybertwin/cybertwinexec/"
@@ -21,3 +23,4 @@ else
     exit 1
 fi
 ./${exec_file}
+
