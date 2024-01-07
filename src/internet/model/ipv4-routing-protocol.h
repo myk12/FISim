@@ -27,6 +27,7 @@
 #include "ns3/output-stream-wrapper.h"
 #include "ns3/packet.h"
 #include "ns3/socket.h"
+#include <unordered_map>
 
 namespace ns3
 {
@@ -63,6 +64,10 @@ class Ipv4RoutingProtocol : public Object
      */
     static TypeId GetTypeId();
 
+#ifdef FISIM_NAME_FIRST_ROUTING
+    static std::unordered_map<uint64_t, Ipv4Address> m_name2addr;
+#endif
+
     /// Callback for unicast packets to be forwarded
     typedef Callback<void, Ptr<Ipv4Route>, Ptr<const Packet>, const Ipv4Header&>
         UnicastForwardCallback;
@@ -97,11 +102,17 @@ class Ipv4RoutingProtocol : public Object
      *
      * \returns a code that indicates what happened in the lookup
      */
+#ifdef FISIM_NAME_FIRST_ROUTING
+    virtual Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p,
+                                       Ipv4Header& header,
+                                       Ptr<NetDevice> oif,
+                                       Socket::SocketErrno& sockerr) = 0;
+#else
     virtual Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p,
                                        const Ipv4Header& header,
                                        Ptr<NetDevice> oif,
                                        Socket::SocketErrno& sockerr) = 0;
-
+#endif
     /**
      * \brief Route an input packet (to be forwarded or locally delivered)
      *

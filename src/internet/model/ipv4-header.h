@@ -241,6 +241,15 @@ class Ipv4Header : public Header
     void Serialize(Buffer::Iterator start) const override;
     uint32_t Deserialize(Buffer::Iterator start) override;
 
+#ifdef FISIM_NAME_FIRST_ROUTING
+    void SetFlag(uint8_t flag);
+    uint8_t GetFlag() const;
+    void SetSrcName(uint64_t srcName);
+    void SetDstName(uint64_t dstName);
+    uint64_t GetSrcName() const;
+    uint64_t GetDstName() const;
+#endif
+
   private:
     /// flags related to IP fragmentation
     enum FlagsE
@@ -263,6 +272,12 @@ class Ipv4Header : public Header
     uint16_t m_checksum;       //!< checksum
     bool m_goodChecksum;       //!< true if checksum is correct
     uint16_t m_headerSize;     //!< IP header size
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+    uint8_t  m_flag;      //!< flags indicating packet type
+    uint64_t m_srcName;   //!< source name
+    uint64_t m_dstName;   //!< destinationName;
+#endif
 };
 
 } // namespace ns3

@@ -74,12 +74,15 @@ class Ipv4StaticRouting : public Ipv4RoutingProtocol
 
     Ipv4StaticRouting();
     ~Ipv4StaticRouting() override;
-
+  
     Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p,
+#ifdef FISIM_NAME_FIRST_ROUTING
+                               Ipv4Header& header,
+#else
                                const Ipv4Header& header,
+#endif
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr) override;
-
     bool RouteInput(Ptr<const Packet> p,
                     const Ipv4Header& header,
                     Ptr<const NetDevice> idev,

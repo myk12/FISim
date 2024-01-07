@@ -103,7 +103,11 @@ Ipv4ListRouting::DoInitialize()
 
 Ptr<Ipv4Route>
 Ipv4ListRouting::RouteOutput(Ptr<Packet> p,
+#ifdef FISIM_NAME_FIRST_ROUTING
+                                Ipv4Header& header,
+#else
                              const Ipv4Header& header,
+#endif
                              Ptr<NetDevice> oif,
                              enum Socket::SocketErrno& sockerr)
 {

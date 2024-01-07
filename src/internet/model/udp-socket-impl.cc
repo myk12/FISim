@@ -39,6 +39,7 @@
 #include "ns3/node.h"
 #include "ns3/trace-source-accessor.h"
 #include "ns3/udp-socket-factory.h"
+#include "ns3/ipv4-global-routing.h"
 
 #include <limits>
 

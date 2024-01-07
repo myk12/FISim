@@ -468,7 +468,11 @@ Ipv4StaticRouting::RemoveRoute(uint32_t index)
 
 Ptr<Ipv4Route>
 Ipv4StaticRouting::RouteOutput(Ptr<Packet> p,
+#ifdef FISIM_NAME_FIRST_ROUTING
+                               Ipv4Header& header,
+#else
                                const Ipv4Header& header,
+#endif
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr)
 {

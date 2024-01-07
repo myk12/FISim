@@ -439,7 +439,7 @@ Ipv4GlobalRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream, Time::Unit
 
 Ptr<Ipv4Route>
 Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
-                               const Ipv4Header& header,
+                               Ipv4Header& header,
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr)
 {
@@ -457,6 +457,28 @@ Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
     // See if this is a unicast packet we have a route for.
     //
     NS_LOG_LOGIC("Unicast destination- looking up");
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+    //TODO: parse the header to get the source and destination names
+    // then change the destination address of the packet to the destination address
+    // print the m_name2addr map
+    std::cout << "m_name2addr map:" << std::endl;
+    for (auto it = m_name2addr.begin(); it != m_name2addr.end(); ++it)
+    {
+        std::cout << it->first << " => " << it->second << '\n';
+    }
+
+    // get the destination name from the packet
+    uint64_t destName = header.GetDstName();
+    if (m_name2addr.find(destName) != m_name2addr.end())
+    {
+        NS_LOG_DEBUG("found destName in m_name2addr map");
+        Ipv4Address destAddr = m_name2addr[destName];
+        // change IP addr
+        NS_LOG_UNCOND("change IP addr from " << header.GetDestination() << " to " << destAddr);
+        header.SetDestination(destAddr);
+    }
+#endif
     Ptr<Ipv4Route> rtentry = LookupGlobal(header.GetDestination(), oif);
     if (rtentry)
     {

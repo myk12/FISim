@@ -89,7 +89,7 @@ class Ipv4GlobalRouting : public Ipv4RoutingProtocol
 
     // These methods inherited from base class
     Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p,
-                               const Ipv4Header& header,
+                               Ipv4Header& header,
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr) override;
 

@@ -81,10 +81,13 @@ class Ipv4ListRouting : public Ipv4RoutingProtocol
 
     // Below are from Ipv4RoutingProtocol
     Ptr<Ipv4Route> RouteOutput(Ptr<Packet> p,
+#ifdef FISIM_NAME_FIRST_ROUTING
+                               Ipv4Header& header,
+#else
                                const Ipv4Header& header,
+#endif
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr) override;
-
     bool RouteInput(Ptr<const Packet> p,
                     const Ipv4Header& header,
                     Ptr<const NetDevice> idev,

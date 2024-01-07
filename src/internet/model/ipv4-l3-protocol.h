@@ -178,6 +178,30 @@ class Ipv4L3Protocol : public Ipv4
               Ipv4Address destination,
               uint8_t protocol,
               Ptr<Ipv4Route> route) override;
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+    /**
+     * \param packet packet to send
+     * \param source source address of packet
+     * \param destination address of packet
+     * \param protocol number of packet
+     * \param srcName source name of endpoint
+     * \param dstName destination name of endpoint
+     * \param route route entry
+     * 
+     * Higher-level layers call this method to send a packet using
+     * Name-First Routing protocol down the stack to the MAC and PHY layers.
+     */
+    void SendWithName(Ptr<Packet> packet,
+              Ipv4Address source,
+              Ipv4Address destination,
+              uint8_t protocol,
+              Ptr<Ipv4Route> route,
+              uint8_t flag,
+              uint64_t srcName,
+              uint64_t dstName);
+#endif
+
     /**
      * \param packet packet to send
      * \param ipHeader IP Header
@@ -323,6 +347,32 @@ class Ipv4L3Protocol : public Ipv4
                            uint8_t ttl,
                            uint8_t tos,
                            bool mayFragment);
+#ifdef FISIM_NAME_FIRST_ROUTING
+    /**
+     * \brief Construct an IPv4 header.
+     * \param source source IPv4 address
+     * \param destination destination IPv4 address
+     * \param protocol L4 protocol
+     * \param payloadSize payload size
+     * \param ttl Time to Live
+     * \param tos Type of Service
+     * \param mayFragment true if the packet can be fragmented
+     * \param flag flag for Name-First Routing
+     * \param srcName source name of endpoint
+     * \param dstName destination name of endpoint
+     * \return newly created IPv4 header
+     */
+    Ipv4Header BuildHeader(Ipv4Address source,
+                           Ipv4Address destination,
+                           uint8_t protocol,
+                           uint16_t payloadSize,
+                           uint8_t ttl,
+                           uint8_t tos,
+                           bool mayFragment,
+                           uint8_t flag,
+                           uint64_t srcName,
+                           uint64_t dstName);
+#endif
 
     /**
      * \brief Send packet with route.

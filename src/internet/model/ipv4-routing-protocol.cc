@@ -37,4 +37,8 @@ Ipv4RoutingProtocol::GetTypeId()
     return tid;
 }
 
+#ifdef FISIM_NAME_FIRST_ROUTING
+std::unordered_map<uint64_t, Ipv4Address> Ipv4RoutingProtocol::m_name2addr;
+#endif
+
 } // namespace ns3

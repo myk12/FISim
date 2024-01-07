@@ -69,6 +69,13 @@ class CybertwinSim
     CybertwinSim();
     ~CybertwinSim();
 
+    int32_t SetConfigPath(std::string path);
+
+    int32_t Input();
+    //int32_t Driver();
+    //int32_t Simulate();
+    //int32_t Output();
+
     int32_t Compiler();
     int32_t Run();
 
@@ -76,12 +83,17 @@ class CybertwinSim
     // private methods
     int32_t InitTopology();
     int32_t ParseNodes();
+    int32_t ParseNodeConfig(Ptr<CybertwinNode> node, std::string nodeConfigPath);
 
   private:
+
     // private members
     CybertwinNodeContainer m_nodes;
     NodeContainer m_coreCloudNodes;
     NodeContainer m_edgeCloudNodes;
     NodeContainer m_endHostNodes;
+
+    // config file path
+    std::string m_configFilePath;
 };
 } // namespace ns3

@@ -336,6 +336,8 @@ set(test_sources
     test/udp-test.cc
 )
 
+add_definitions(-DFISIM_NAME_FIRST_ROUGING)
+
 build_lib(
   LIBNAME internet
   SOURCE_FILES ${source_files}

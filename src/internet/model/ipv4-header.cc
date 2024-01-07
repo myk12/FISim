@@ -42,7 +42,14 @@ Ipv4Header::Ipv4Header()
       m_fragmentOffset(0),
       m_checksum(0),
       m_goodChecksum(true),
+#ifdef FISIM_NAME_FIRST_ROUTING
+      m_headerSize(5 * 4 + 1 + 2 * 8),
+      m_flag(0),
+      m_srcName(0),
+      m_dstName(1234567)
+#else
       m_headerSize(5 * 4)
+#endif
 {
 }
 
@@ -378,6 +385,10 @@ Ipv4Header::Print(std::ostream& os) const
        << "offset (bytes) " << m_fragmentOffset << " "
        << "flags [" << flags << "] "
        << "length: " << (m_payloadSize + 5 * 4) << " " << m_source << " > " << m_destination;
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+    os << " flag " << static_cast<uint32_t>(m_flag) << " srcName " << m_srcName << " dstName " << m_dstName << std::endl;
+#endif
 }
 
 uint32_t
@@ -385,7 +396,11 @@ Ipv4Header::GetSerializedSize() const
 {
     NS_LOG_FUNCTION(this);
     // return 5 * 4;
+#ifdef FISIM_NAME_FIRST_ROUTING
+    return 5*4 + 1 + 2*8;
+#else
     return m_headerSize;
+#endif
 }
 
 void
@@ -427,6 +442,13 @@ Ipv4Header::Serialize(Buffer::Iterator start) const
         i.Next(10);
         i.WriteU16(checksum);
     }
+#ifdef FISIM_NAME_FIRST_ROUTING
+    i.WriteU8(m_flag);
+    i.WriteHtonU64(m_srcName);
+    i.WriteHtonU64(m_dstName);
+#endif
+
+    Print(std::cout);
 }
 
 uint32_t
@@ -480,7 +502,52 @@ Ipv4Header::Deserialize(Buffer::Iterator start)
 
         m_goodChecksum = (checksum == 0);
     }
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+    m_flag = i.ReadU8();
+    m_srcName = i.ReadNtohU64();
+    m_dstName = i.ReadNtohU64();
+#endif
+
     return GetSerializedSize();
 }
+
+#ifdef FISIM_NAME_FIRST_ROUTING
+void Ipv4Header::SetFlag(uint8_t flag)
+{
+    NS_LOG_FUNCTION(this << static_cast<uint32_t>(flag));
+    m_flag = flag;
+}
+
+uint8_t Ipv4Header::GetFlag() const
+{
+    NS_LOG_FUNCTION(this);
+    return m_flag;
+}
+
+void Ipv4Header::SetSrcName(uint64_t srcName)
+{
+    NS_LOG_FUNCTION(this << srcName);
+    m_srcName = srcName;
+}
+
+void Ipv4Header::SetDstName(uint64_t dstName)
+{
+    NS_LOG_FUNCTION(this << dstName);
+    m_dstName = dstName;
+}
+
+uint64_t Ipv4Header::GetSrcName() const
+{
+    NS_LOG_FUNCTION(this);
+    return m_srcName;
+}
+
+uint64_t Ipv4Header::GetDstName() const
+{
+    NS_LOG_FUNCTION(this);
+    return m_dstName;
+}
+#endif
 
 } // namespace ns3

@@ -21,9 +21,33 @@ CybertwinSim::~CybertwinSim()
 }
 
 int32_t
+CybertwinSim::SetConfigPath(std::string path)
+{
+    m_configFilePath = path;
+    return 0;
+}
+
+int32_t
+CybertwinSim::Input()
+{
+    NS_LOG_INFO("\n======= INPUT =======\n\n");
+
+    // check config file path
+    if (!fs::exists(m_configFilePath) || !fs::is_directory(m_configFilePath))
+    {
+        NS_LOG_ERROR("Config file path does not exist or is not a directory");
+        return -1;
+    }
+
+    // parse Nodes
+    ParseNodes();
+
+    return 0;
+}
+
+int32_t
 CybertwinSim::Compiler()
 {
-    ParseNodes();
     InitTopology();
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
     return 0;
@@ -238,19 +262,42 @@ CybertwinSim::InitTopology()
 }
 
 int32_t
+CybertwinSim::ParseNodeConfig(Ptr<CybertwinNode> node, std::string nodeConfigPath)
+{
+    // parse node configuration
+    std::string confPath = nodeConfigPath + SYS_CONF_DIR_NAME;
+    for (const auto& entry : fs::directory_iterator(confPath))
+    {
+        std::string fileName = entry.path().filename().string();
+        NS_LOG_INFO("Config file: " << fileName);
+        nlohmann::json conf;
+        std::ifstream confFile(entry.path());
+        confFile >> conf;
+        confFile.close();
+
+        node->AddConfigFile(fileName, conf);
+    }
+    return 0;
+}
+
+int32_t
 CybertwinSim::ParseNodes()
 {
     NS_LOG_INFO("\n======= Cybertwin::ParseNodes() =======\n\n");
 
     // parse nodes
     // ********************************  [1] Core Cloud **********************************************
-    if (!fs::exists(CORE_CLOUD_CONF_PATH) || !fs::is_directory(CORE_CLOUD_CONF_PATH))
+    std::string core_cloud_conf_path = m_configFilePath + "/core_cloud/";
+    std::string edge_cloud_conf_path = m_configFilePath + "/edge_cloud/";
+    std::string access_net_conf_path = m_configFilePath + "/access_net/";
+
+    if (!fs::exists(core_cloud_conf_path) || !fs::is_directory(core_cloud_conf_path))
     {
         NS_LOG_ERROR("Core cloud configuration path does not exist or is not a directory");
         return -1;
     }
 
-    for (const auto& entry : fs::directory_iterator(CORE_CLOUD_CONF_PATH))
+    for (const auto& entry : fs::directory_iterator(core_cloud_conf_path))
     {
         if (fs::is_directory(entry))
         {
@@ -264,18 +311,7 @@ CybertwinSim::ParseNodes()
 
             coreServer->SetName(nodeName);
             // parse node configuration
-            std::string confPath = entry.path().string() + SYS_CONF_DIR_NAME;
-            for (const auto& entry : fs::directory_iterator(confPath))
-            {
-                std::string fileName = entry.path().filename().string();
-                NS_LOG_INFO("Config file: " << fileName);
-                nlohmann::json conf;
-                std::ifstream confFile(entry.path());
-                confFile >> conf;
-                confFile.close();
-
-                coreServer->AddConfigFile(fileName, conf);
-            }
+            ParseNodeConfig(coreServer, entry.path().string());
 
             // get log dir sbsolute path
             std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
@@ -304,18 +340,7 @@ CybertwinSim::ParseNodes()
             edgeServer->SetName(nodeName);
 
             // parse node configuration
-            std::string confPath = entry.path().string() + SYS_CONF_DIR_NAME;
-            for (const auto& entry : fs::directory_iterator(confPath))
-            {
-                std::string fileName = entry.path().filename().string();
-                NS_LOG_INFO("Config file: " << fileName);
-                nlohmann::json conf;
-                std::ifstream confFile(entry.path());
-                confFile >> conf;
-                confFile.close();
-
-                edgeServer->AddConfigFile(fileName, conf);
-            }
+            ParseNodeConfig(edgeServer, entry.path().string());
 
             // get log dir sbsolute path
             std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
@@ -344,18 +369,7 @@ CybertwinSim::ParseNodes()
             endHost->SetName(nodeName);
 
             // parse node configuration
-            std::string confPath = entry.path().string() + SYS_CONF_DIR_NAME;
-            for (const auto& entry : fs::directory_iterator(confPath))
-            {
-                std::string fileName = entry.path().filename().string();
-                NS_LOG_INFO("Config file: " << fileName);
-                nlohmann::json conf;
-                std::ifstream confFile(entry.path());
-                confFile >> conf;
-                confFile.close();
-
-                endHost->AddConfigFile(fileName, conf);
-            }
+            ParseNodeConfig(endHost, entry.path().string());
 
             // get log dir sbsolute path
             std::string logDir = entry.path().string() + SYS_LOG_DIR_NAME;
