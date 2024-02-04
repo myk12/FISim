@@ -28,6 +28,12 @@ set(AppleClang_MinVersion 11.0.0)
 set(Clang_MinVersion 6.0.0)
 set(GNU_MinVersion 8.0.0)
 
+# FISIM options
+option(FISIM_NAME_FIRST_ROUTING "Use FISIM Name First Routing" ON)
+if (FISIM_NAME_FIRST_ROUTING)
+  add_definitions(-DFISIM_NAME_FIRST_ROUTING)
+endif (FISIM_NAME_FIRST_ROUTING)
+
 # common options
 option(NS3_ASSERT "Enable assert on failure" OFF)
 option(NS3_DES_METRICS "Enable DES Metrics event collection" OFF)

@@ -439,7 +439,11 @@ Ipv4GlobalRouting::PrintRoutingTable(Ptr<OutputStreamWrapper> stream, Time::Unit
 
 Ptr<Ipv4Route>
 Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
+#ifdef FISIM_NAME_FIRST_ROUTING
                                Ipv4Header& header,
+#else
+                                const Ipv4Header& header,
+#endif
                                Ptr<NetDevice> oif,
                                Socket::SocketErrno& sockerr)
 {
@@ -462,10 +466,10 @@ Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
     //TODO: parse the header to get the source and destination names
     // then change the destination address of the packet to the destination address
     // print the m_name2addr map
-    std::cout << "m_name2addr map:" << std::endl;
+    NS_LOG_DEBUG("m_name2addr map size: " << m_name2addr.size());
     for (auto it = m_name2addr.begin(); it != m_name2addr.end(); ++it)
     {
-        std::cout << it->first << " => " << it->second << '\n';
+        NS_LOG_DEBUG(it->first << " => " << it->second);
     }
 
     // get the destination name from the packet
@@ -475,7 +479,7 @@ Ipv4GlobalRouting::RouteOutput(Ptr<Packet> p,
         NS_LOG_DEBUG("found destName in m_name2addr map");
         Ipv4Address destAddr = m_name2addr[destName];
         // change IP addr
-        NS_LOG_UNCOND("change IP addr from " << header.GetDestination() << " to " << destAddr);
+        NS_LOG_DEBUG("change IP addr from " << header.GetDestination() << " to " << destAddr);
         header.SetDestination(destAddr);
     }
 #endif

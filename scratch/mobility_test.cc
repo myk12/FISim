@@ -21,23 +21,31 @@
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
 
+#include <iostream>
+#include <string>
+
 // Default Network Topology
 //
 //       10.1.1.0
-// n0 -------------- n1   n2   n3   n4
-//    point-to-point  |    |    |    |
-//                    ================
-//                      LAN 10.1.2.0
+// n0 -------------- n1      n2     n3
+//    point-to-point  |      |      |
+//                    ===============
+//                     LAN 10.1.2.0
 
 #define RECEIVER_ID 7777777
 #define END_SWITCH_INTERVAL_MS 100
-#define PACKET_SIZE 512
-#define SEND_RATE 1000000 // 1Mbps
-#define SYSTEM_MAX_RUNTIME 10 // 10s
+#define PACKET_SIZE (128)
+#define SEND_RATE (1*(1024)*(1024))   // 1Mbps
+#define SYSTEM_MAX_RUNTIME 7 // 10s
+
+#define TEST_UDP_PORT 10000
 
 using namespace ns3;
 
 NS_LOG_COMPONENT_DEFINE("MobilityTest");
+
+std::string outpath = ".";
+uint32_t random_seed = 17;
 
 //******************************************************************************
 //*                                 SenderApp
@@ -56,13 +64,18 @@ class SenderApp : public Application
         // rate defined by SEND_RATE
         // using random time interval
         NS_LOG_FUNCTION(this);
-        NS_LOG_DEBUG("[SenderApp::SendPacket] send packet to " << target_addr << ":"
-                                                               << target_port);
+        NS_LOG_INFO("[SenderApp::SendPacket] send packet to " << target_addr << ":" << target_port);
         Ptr<Packet> packet = Create<Packet>(PACKET_SIZE);
         m_socket->Send(packet);
         // schedule next packet
         double interval = m_exponentialRandomVariable->GetValue();
         m_sendEvent = Simulator::Schedule(Seconds(interval), &SenderApp::SendPacket, this);
+
+        // log packet
+        std::ofstream logFile;
+        logFile.open(outpath + "sender.log", std::ios::app);
+        // format: time, packet_size
+        logFile << Simulator::Now().GetSeconds() << "," << packet->GetSize() << std::endl;
     }
 
     void SetTargetName(uint64_t name)
@@ -83,6 +96,13 @@ class SenderApp : public Application
   private:
     void StartApplication() override;
     void StopApplication() override;
+
+    void DoDispose() override
+    {
+        NS_LOG_FUNCTION(this);
+        m_socket = nullptr;
+        Application::DoDispose();
+    }
 
     Ptr<Socket> m_socket;
     uint64_t target_name;
@@ -113,6 +133,11 @@ SenderApp::SenderApp()
     // packet size / rate = interval between packet
     double interval = PACKET_SIZE * 8.0 / SEND_RATE;
     m_exponentialRandomVariable->SetAttribute("Mean", DoubleValue(interval));
+
+    // get current time as the random seed
+    for (uint32_t i=0; i<random_seed; i++) {
+        NS_LOG_DEBUG("[SenderApp::SenderApp] interval: " << m_exponentialRandomVariable->GetValue());
+    }
 }
 
 SenderApp::~SenderApp()
@@ -123,7 +148,7 @@ SenderApp::~SenderApp()
 void
 SenderApp::StartApplication()
 {
-    NS_LOG_INFO("SenderApp::StartApplication");
+    NS_LOG_DEBUG("[SenderApp::SenderApp] start application");
     NS_LOG_FUNCTION(this);
     // send UDP packet
     if (!m_socket)
@@ -147,8 +172,8 @@ SenderApp::StartApplication()
     {
         NS_FATAL_ERROR("Failed to connect socket");
     }
+    NS_LOG_DEBUG("[SenderApp::SenderApp] connect to " << target_addr << ":" << target_port);
 
-    // send packet every 1 second
     SendPacket();
 }
 
@@ -166,9 +191,9 @@ SenderApp::StopApplication()
         m_socket->Close();
     }
 
-    m_socket = 0;
+    m_socket = nullptr;
 
-    NS_LOG_DEBUG("SenderApp::StopApplication DONE");
+    NS_LOG_INFO("SenderApp::StopApplication DONE");
 }
 
 //******************************************************************************
@@ -182,29 +207,43 @@ class ReceiverApp : public Application
     ReceiverApp();
     ~ReceiverApp() override;
 
-    void HandleRead(Ptr<Socket> socket)
-    {
-        NS_LOG_FUNCTION(this << socket);
-        Ptr<Packet> packet;
-        Address from;
-        while ((packet = socket->RecvFrom(from)))
-        {
-            if (packet->GetSize() > 0)
-            {
-                NS_LOG_DEBUG("[Receiver_"
-                             << m_recvId << "::HandleRead] Received " << packet->GetSize()
-                             << " bytes from " << InetSocketAddress::ConvertFrom(from).GetIpv4()
-                             << " port " << InetSocketAddress::ConvertFrom(from).GetPort() << " at "
-                             << Simulator::Now().GetSeconds() << "s");
-                m_nPackets++;
-            }
+    void HandleRead(Ptr<Socket> socket);
 
-            if (m_nPackets == 3)
+    void Online()
+    {
+        m_isOnline = true;
+#ifdef FISIM_NAME_FIRST_ROUTING
+        // declare name and address
+        Ipv4GlobalRouting::m_name2addr[1234567] = m_nodeAddr;
+        NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                      << "] announce name and address");
+#endif
+    }
+
+    void Offline()
+    {
+        m_isOnline = false;
+    }
+
+    void CloseSocket()
+    {
+        NS_LOG_FUNCTION(this);
+        NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                      << "] close socket");
+        // shutdown receive before close socket
+        m_socket->ShutdownRecv();
+        if (m_socket)
+        {
+            NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                          << "] really close socket");
+            int ret = m_socket->Close();
+            if (ret == -1)
             {
-                // add new route
-                NS_LOG_DEBUG("[Receiver_" << m_recvId << "::HandleRead] add new route");
-                Ipv4RoutingProtocol::m_name2addr[1234567] = Ipv4Address("10.1.2.3");
+                NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                              << "] close socket failed");
             }
+            NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                          << "] close socket done");
         }
     }
 
@@ -232,6 +271,13 @@ class ReceiverApp : public Application
     void StartApplication() override;
     void StopApplication() override;
 
+    void DoDispose() override
+    {
+        NS_LOG_FUNCTION(this);
+        m_socket = nullptr;
+        Application::DoDispose();
+    }
+
     Ptr<Socket> m_socket;
     uint16_t m_port;
     uint32_t m_recvId;
@@ -239,6 +285,11 @@ class ReceiverApp : public Application
     uint32_t m_nPackets;
 
     Ptr<Application> m_testApp;
+    uint32_t m_nodeId;
+    Ipv4Address m_nodeAddr;
+
+    std::string m_logFileName;
+    bool m_isOnline;
 };
 
 TypeId
@@ -262,55 +313,110 @@ ReceiverApp::~ReceiverApp()
 void
 ReceiverApp::StartApplication()
 {
-    NS_LOG_DEBUG("ReceiverApp::StartApplication");
+    NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s]"
+                                  << " ReceiverApp::StartApplication");
+    // get node ID and address
+    m_nodeId = GetNode()->GetId();
+    m_nodeAddr =
+        Ipv4Address::ConvertFrom(GetNode()->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal());
+    NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s]"
+                                  << " node ID: " << m_nodeId << " node address: " << m_nodeAddr);
+
+    // create log file and write header
+    m_logFileName = outpath + "receiver_" + std::to_string(m_nodeId) + ".log";
+    std::ofstream logFile;
+    logFile.open(m_logFileName, std::ios::trunc);
+    logFile << "n_packets,node_id,node_addr,time,packet_size" << std::endl;
+
     // lestin to UDP packet
     if (!m_socket)
     {
-        NS_LOG_DEBUG("[Receiver_" << m_recvId << "::StartApplication] create socket");
+        NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                      << "] create socket");
         TypeId tid = TypeId::LookupByName("ns3::UdpSocketFactory");
         m_socket = Socket::CreateSocket(GetNode(), tid);
     }
 
     // bind to port
-    InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), m_port);
+    InetSocketAddress local = InetSocketAddress(Ipv4Address::GetAny(), TEST_UDP_PORT);
     if (m_socket->Bind(local) == -1)
     {
+        // get error message
+        uint32_t errorno = m_socket->GetErrno();
+        NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                      << "] errorno: " << errorno);
         NS_FATAL_ERROR("Failed to bind socket");
     }
 
     // set recv callback
     m_nPackets = 0;
     m_socket->SetRecvCallback(MakeCallback(&ReceiverApp::HandleRead, this));
-
-    // announce name and address
-    NS_LOG_DEBUG("[Receiver_" << m_recvId << "::StartApplication] announce name and address");
 }
 
 void
 ReceiverApp::StopApplication()
 {
-    NS_LOG_DEBUG("ReceiverApp::StopApplication");
+    NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                  << "] ReceiverApp::StopApplication");
 
     if (m_socket)
     {
+        NS_LOG_DEBUG("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                      << "] close socket");
         m_socket->Close();
     }
 
-    m_socket = 0;
+    m_socket = nullptr;
+}
+
+void
+ReceiverApp::HandleRead(Ptr<Socket> socket)
+{
+    NS_LOG_INFO("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                 << "] ReceiverApp::HandleRead");
+    Ptr<Packet> packet;
+    Address from;
+    while ((packet = socket->RecvFrom(from)))
+    {
+        NS_LOG_INFO("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                     << "] received packet from "
+                                     << InetSocketAddress::ConvertFrom(from).GetIpv4() << ":"
+                                     << InetSocketAddress::ConvertFrom(from).GetPort());
+        if (packet->GetSize() > 0)
+        {
+            m_nPackets++;
+            NS_LOG_INFO("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                         << "] received packet size: " << packet->GetSize());
+            // log packet
+            if (m_isOnline)
+            {
+                // log to file
+                NS_LOG_INFO("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                             << "] online");
+                std::ofstream logFile;
+                logFile.open(m_logFileName, std::ios::app);
+                // format: n_packets, node_id, node_addr, time, packet_size
+                logFile << m_nPackets << "," << m_nodeId << "," << m_nodeAddr << ","
+                        << Simulator::Now().GetSeconds() << "," << packet->GetSize() << std::endl;
+                logFile.close();
+            }
+            else
+            {
+                // Drop packet
+                NS_LOG_INFO("[ReceiverApp][" << Simulator::Now().GetSeconds() << "s][" << m_nodeId
+                                             << "] not online");
+            }
+        }
+    }
 }
 
 void
 EndTransmission(Ptr<Node> fromNode, Ptr<Node> toNode)
 {
-    if (!fromNode || !toNode)
-    {
-        NS_LOG_ERROR("EndTransmission: invalid node");
-        return;
-    }
-
     if (fromNode != nullptr)
     {
-        NS_LOG_DEBUG("[EndTransmission] fromNode: " << fromNode->GetId());
+        NS_LOG_DEBUG("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                          << " end transmission fromNode: " << fromNode->GetId());
         // find and stop old app
         Ptr<Application> app = nullptr;
         for (uint32_t i = 0; i < fromNode->GetNApplications(); i++)
@@ -318,41 +424,68 @@ EndTransmission(Ptr<Node> fromNode, Ptr<Node> toNode)
             app = fromNode->GetApplication(i);
             if (app->GetInstanceTypeId() == TypeId::LookupByName("ns3::ReceiverApp"))
             {
-                NS_LOG_DEBUG("[EndTransmission] found old app");
+                NS_LOG_INFO("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                                 << " found old app");
                 break;
             }
         }
         if (app)
         {
-            NS_LOG_DEBUG("[EndTransmission] stop old app");
-            // stop this app now
-            app->SetStopTime(Seconds(0.0));
+            NS_LOG_DEBUG("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                              << " stop old app");
+            // immediately stop old app
+            DynamicCast<ReceiverApp>(app)->Offline();
         }
     }
 
     if (toNode != nullptr)
     {
-        NS_LOG_DEBUG("[EndTransmission] end transmission toNode: " << toNode->GetId());
-        // create new app
-        Ptr<ReceiverApp> receiverApp = CreateObject<ReceiverApp>();
-        receiverApp->SetPort(10000);
-        receiverApp->SetRecvId(1);
+        NS_LOG_DEBUG("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                          << " start new transmission toNode: " << toNode->GetId());
 
-        // start this app after END_SWITCH_INTERVAL_MS ms
-        NS_LOG_DEBUG("[EndTransmission] new app will start after " << END_SWITCH_INTERVAL_MS
-                                                                   << "ms");
-        receiverApp->SetStartTime(MilliSeconds(END_SWITCH_INTERVAL_MS));
-        receiverApp->SetStopTime(Seconds(SYSTEM_MAX_RUNTIME));
-    
-        // install new app
-        toNode->AddApplication(receiverApp);
+        // find and start new app
+        Ptr<Application> app = nullptr;
+        for (uint32_t i = 0; i < toNode->GetNApplications(); i++)
+        {
+            app = toNode->GetApplication(i);
+            if (app->GetInstanceTypeId() == TypeId::LookupByName("ns3::ReceiverApp"))
+            {
+                NS_LOG_INFO("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                                 << " found new app");
+                break;
+            }
+        }
+        if (app)
+        {
+            NS_LOG_DEBUG("[EndTransmission][" << Simulator::Now().GetSeconds() << "s]"
+                                              << " start new app");
+            // delay 100ms to start new app
+            Simulator::Schedule(MilliSeconds(END_SWITCH_INTERVAL_MS),
+                                &ReceiverApp::Online,
+                                DynamicCast<ReceiverApp>(app));
+        }
     }
+
+    NS_LOG_UNCOND("[EndTransmission] DONE");
 }
 
 int
 main(int argc, char* argv[])
 {
-    NS_LOG_UNCOND("======= ======= MobilityTest ======= =======");
+    NS_LOG_UNCOND("\n======= ======= ======= MobilityTest ======= ======= =======\n");
+    CommandLine cmd(__FILE__);
+    cmd.AddValue("outpath", "Path to output files", outpath);
+    cmd.AddValue("random_seed", "Random seed", random_seed);
+    cmd.Parse(argc, argv);
+
+    NS_LOG_UNCOND("Output path: " << outpath);
+    NS_LOG_UNCOND("Random seed: " << random_seed);
+
+    // set random seed
+    //int seed = time(NULL) % 177;
+    //RngSeedManager::SetSeed(seed);
+    //RngSeedManager::SetRun(seed);
+
     uint32_t nCsma = 2;
     // LogComponentEnable("Ipv4Header", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("Ipv4L3Protocol", LOG_LEVEL_FUNCTION);
@@ -361,11 +494,11 @@ main(int argc, char* argv[])
     // LogComponentEnable("Ipv4GlobalRouting", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("UdpSocketImpl", LOG_LEVEL_FUNCTION);
     // LogComponentEnable("UdpL4Protocol", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("UdpEchoClientApplication", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("Ipv4GlobalRouting", LOG_LEVEL_DEBUG);
+    // LogComponentEnable("Ipv4GlobalRouting", LOG_LEVEL_INFO);
     LogComponentEnable("MobilityTest", LOG_LEVEL_DEBUG);
 
-    NS_LOG_UNCOND("******* Creating nodes *******");
+    NS_LOG_UNCOND("\n******* [1] Constructing Topology *******\n");
+    NS_LOG_UNCOND("- Creating nodes...");
     NodeContainer p2pNodes;
     p2pNodes.Create(2);
 
@@ -373,6 +506,7 @@ main(int argc, char* argv[])
     csmaNodes.Add(p2pNodes.Get(1));
     csmaNodes.Create(nCsma);
 
+    NS_LOG_UNCOND("- Creating channels...");
     PointToPointHelper pointToPoint;
     pointToPoint.SetDeviceAttribute("DataRate", StringValue("5Mbps"));
     pointToPoint.SetChannelAttribute("Delay", StringValue("2ms"));
@@ -381,16 +515,18 @@ main(int argc, char* argv[])
     p2pDevices = pointToPoint.Install(p2pNodes);
 
     CsmaHelper csma;
-    csma.SetChannelAttribute("DataRate", StringValue("100Mbps"));
+    csma.SetChannelAttribute("DataRate", StringValue("10Mbps"));
     csma.SetChannelAttribute("Delay", TimeValue(NanoSeconds(6560)));
 
     NetDeviceContainer csmaDevices;
     csmaDevices = csma.Install(csmaNodes);
 
+    NS_LOG_UNCOND("- Installing internet stack...");
     InternetStackHelper stack;
     stack.Install(p2pNodes.Get(0));
     stack.Install(csmaNodes);
 
+    NS_LOG_UNCOND("- Assigning IP addresses...");
     Ipv4AddressHelper address;
     address.SetBase("10.1.1.0", "255.255.255.0");
     Ipv4InterfaceContainer p2pInterfaces;
@@ -406,43 +542,51 @@ main(int argc, char* argv[])
     Ptr<Node> receiver1 = csmaNodes.Get(1);
     Ptr<Node> receiver2 = csmaNodes.Get(2);
 
-    // create and install apps
-    NS_LOG_UNCOND("******* Creating apps *******");
+    // install sender app
+    NS_LOG_UNCOND("\n******* [2] Installing SenderApp *******\n");
+    NS_LOG_UNCOND("- Creating SenderApp...");
     Ptr<SenderApp> senderApp = CreateObject<SenderApp>();
-    Ptr<ReceiverApp> receiverApp1 = CreateObject<ReceiverApp>();
-    Ptr<ReceiverApp> receiverApp2 = CreateObject<ReceiverApp>();
-
-    // config apps
-    senderApp->SetTargetName(7777777);
+    // start sender appliaction
     senderApp->SetTargetAddress(csmaInterfaces.GetAddress(1));
-    senderApp->SetTargetPort(10000);
+    senderApp->SetTargetPort(TEST_UDP_PORT);
+    senderApp->SetStartTime(Seconds(0.0));
+    senderApp->SetStopTime(Seconds(SYSTEM_MAX_RUNTIME));
 
-    receiverApp1->SetPort(10000);
-    receiverApp1->SetRecvId(1);
-    receiverApp2->SetPort(10000);
-    receiverApp2->SetRecvId(2);
-
-    // install apps
-    NS_LOG_UNCOND("******* Installing apps *******");
+    // install sender app
+    NS_LOG_UNCOND("- Installing SenderApp...");
     sender->AddApplication(senderApp);
+
+    // install receiver app
+    Ptr<ReceiverApp> receiverApp1 = CreateObject<ReceiverApp>();
+    receiverApp1->SetPort(TEST_UDP_PORT);
+    receiverApp1->SetRecvId(1);
+    receiverApp1->SetStartTime(Seconds(0.0));
+    receiverApp1->SetStopTime(Seconds(SYSTEM_MAX_RUNTIME));
     receiver1->AddApplication(receiverApp1);
+
+    Ptr<ReceiverApp> receiverApp2 = CreateObject<ReceiverApp>();
+    receiverApp2->SetPort(TEST_UDP_PORT);
+    receiverApp2->SetRecvId(2);
+    receiverApp2->SetStartTime(Seconds(0.0));
+    receiverApp2->SetStopTime(Seconds(SYSTEM_MAX_RUNTIME));
     receiver2->AddApplication(receiverApp2);
 
-    // set start and stop time
-    NS_LOG_UNCOND("******* Setting start and stop time *******");
-    senderApp->SetStartTime(Seconds(1.0));
-    senderApp->SetStopTime(Seconds(10.0));
-    receiverApp1->SetStartTime(Seconds(1.0));
-    receiverApp1->SetStopTime(Seconds(10.0));
-    receiverApp2->SetStartTime(Seconds(1.0));
-    receiverApp2->SetStopTime(Seconds(10.0));
-
-    NS_LOG_DEBUG("PopulateRoutingTables");
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
-    NS_LOG_DEBUG("DONE PopulateRoutingTables");
+
+    // schedule app transmission
+    NS_LOG_UNCOND("\n******* [3] Scheduling receiver transmission *******\n");
+    Simulator::Schedule(Seconds(0.0), &EndTransmission, nullptr, receiver1);
+    Simulator::Schedule(Seconds(1), &EndTransmission, receiver1, receiver2);
+    Simulator::Schedule(Seconds(2), &EndTransmission, receiver2, receiver1);
+    Simulator::Schedule(Seconds(3), &EndTransmission, receiver1, receiver2);
+    Simulator::Schedule(Seconds(4), &EndTransmission, receiver2, receiver1);
+    Simulator::Schedule(Seconds(5), &EndTransmission, receiver1, nullptr);
+
+    // Simulator::Schedule(Seconds(3), &EndTransmission, receiver1, nullptr);
 
     // pointToPoint.EnablePcapAll("second");
 
+    NS_LOG_UNCOND("\n******* [4] Running Simulation *******\n");
     Simulator::Run();
     Simulator::Destroy();
     return 0;

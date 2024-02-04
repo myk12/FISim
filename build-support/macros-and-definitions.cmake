@@ -18,10 +18,6 @@
 # Export compile time variable setting the directory to the NS3 root folder
 add_definitions(-DPROJECT_SOURCE_PATH="${PROJECT_SOURCE_DIR}")
 
-add_definitions(-DFISIM_NAME_FIRST_ROUTING)
-
-option(FISIM_NAME_FIRST_ROUTING "Enable Fisim Name First Routing" ON)
-
 # Set INT128 as the default option for INT64X64 and register alternative
 # implementations
 set(NS3_INT64X64 "INT128" CACHE STRING "Int64x64 implementation")

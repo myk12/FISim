@@ -447,8 +447,6 @@ Ipv4Header::Serialize(Buffer::Iterator start) const
     i.WriteHtonU64(m_srcName);
     i.WriteHtonU64(m_dstName);
 #endif
-
-    Print(std::cout);
 }
 
 uint32_t
