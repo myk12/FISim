@@ -156,6 +156,9 @@ add_subdirectory(utils)
 # Build Cybertwin Simulation
 add_subdirectory(cybertwin)
 
+# Build FIA Simulation
+add_subdirectory(FIA)
+
 # Build json
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/json/single_include/nlohmann DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/build/include)
 add_subdirectory(json)
