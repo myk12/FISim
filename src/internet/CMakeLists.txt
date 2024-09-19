@@ -127,6 +127,10 @@ set(source_files
     model/udp-socket-factory.cc
     model/udp-socket-impl.cc
     model/udp-socket.cc
+    model/ccn-content-consumer.cc
+    model/ccn-content-producer.cc
+    model/ccn-header.cc
+    model/ccn-l4-protocol.cc
 )
 
 set(header_files
@@ -251,6 +255,10 @@ set(header_files
     model/udp-socket-factory.h
     model/udp-socket.h
     model/windowed-filter.h
+    model/ccn-content-consumer.h
+    model/ccn-content-producer.h
+    model/ccn-header.h
+    model/ccn-l4-protocol.h
 )
 
 set(private_header_files)

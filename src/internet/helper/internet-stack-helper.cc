@@ -47,6 +47,7 @@
 #include "ns3/simulator.h"
 #include "ns3/string.h"
 #include "ns3/traffic-control-layer.h"
+#include "ns3/ccn-l4-protocol.h"
 
 #include <limits>
 #include <map>
@@ -221,6 +222,13 @@ InternetStackHelper::SetIpv6NsRsJitter(bool enable)
     m_ipv6NsRsJitterEnabled = enable;
 }
 
+void
+InternetStackHelper::SetCCNStackInstall(bool enable)
+{
+    NS_LOG_FUNCTION(this << enable);
+    m_ccnEnabled = enable;
+}
+
 int64_t
 InternetStackHelper::AssignStreams(NodeContainer c, int64_t stream)
 {
@@ -356,6 +364,7 @@ InternetStackHelper::Install(Ptr<Node> node) const
     if (m_ipv4Enabled || m_ipv6Enabled)
     {
         CreateAndAggregateObjectFromTypeId(node, "ns3::TrafficControlLayer");
+        CreateAndAggregateObjectFromTypeId(node, "ns3::CCNL4Protocol");
         CreateAndAggregateObjectFromTypeId(node, "ns3::UdpL4Protocol");
         node->AggregateObject(m_tcpFactory.Create<Object>());
         Ptr<PacketSocketFactory> factory = CreateObject<PacketSocketFactory>();
@@ -370,6 +379,24 @@ InternetStackHelper::Install(Ptr<Node> node) const
         NS_ASSERT(tc);
         arp->SetTrafficControl(tc);
     }
+
+/*
+    if (m_ccnEnabled)
+    {
+        NS_LOG_UNCOND("Installing CCN stack on node " << node->GetId());
+        // get CCNL4Protocol
+        if (node->GetObject<CCNL4Protocol>())
+        {
+            NS_FATAL_ERROR("InternetStackHelper::Install (): Aggregating "
+                           "an InternetStack to a node with an existing CCNL4Protocol object");
+            return;
+        }
+
+        Ptr<CCNL4Protocol> ccnl4 = CreateObject<CCNL4Protocol>();
+
+        node->AggregateObject(ccnl4);
+    }
+*/
 }
 
 void

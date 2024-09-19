@@ -226,6 +226,11 @@ class InternetStackHelper : public PcapHelperForIpv4,
      */
     int64_t AssignStreams(NodeContainer c, int64_t stream);
 
+    /**
+     * \brief Enable Content Centric Networking (CCN) stack install.
+     */
+    void SetCCNStackInstall(bool enable);
+
   private:
     /**
      * @brief Enable pcap output the indicated Ipv4 and interface pair.
@@ -359,6 +364,11 @@ class InternetStackHelper : public PcapHelperForIpv4,
      * \brief IPv6 IPv6 NS and RS Jitter state (enabled/disabled) ?
      */
     bool m_ipv6NsRsJitterEnabled;
+
+    /**
+     * \brief Content Centric Networking (CCN) install state (enabled/disabled) ?
+     */
+    bool m_ccnEnabled;
 };
 
 } // namespace ns3
