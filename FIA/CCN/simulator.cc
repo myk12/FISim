@@ -22,11 +22,11 @@ main(int argc, char* argv[])
 {
     // set log level
     LogComponentEnable("CCNSim", LOG_LEVEL_INFO);
-    LogComponentEnable("CCNProducerApp", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("CCNConsumerApp", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("CCNL4Protocol", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("CCNContentProducer", LOG_LEVEL_FUNCTION);
-    LogComponentEnable("CCNContentConsumer", LOG_LEVEL_FUNCTION);
+    LogComponentEnable("CCNProducerApp", LOG_LEVEL_INFO);
+    LogComponentEnable("CCNConsumerApp", LOG_LEVEL_INFO);
+    LogComponentEnable("CCNL4Protocol", LOG_LEVEL_INFO);
+    LogComponentEnable("CCNContentProducer", LOG_LEVEL_INFO);
+    LogComponentEnable("CCNContentConsumer", LOG_LEVEL_INFO);
 
     // construct topology
     NS_LOG_INFO("======= Simulation Content Centric Network =======");
@@ -117,12 +117,12 @@ main(int argc, char* argv[])
     consumer->SetStartTime(Seconds(2.0));
 
     // iterate over all nodes and print their names
-    NodeList::Iterator listEnd = NodeList::End();
-    for (NodeList::Iterator iter = NodeList::Begin(); iter != listEnd; ++iter)
-    {
-        Ptr<Node> node = *iter;
-        NS_LOG_INFO("Node: " << Names::FindName(node));
-    }
+    //NodeList::Iterator listEnd = NodeList::End();
+    //for (NodeList::Iterator iter = NodeList::Begin(); iter != listEnd; ++iter)
+    //{
+    //    Ptr<Node> node = *iter;
+    //    NS_LOG_FUNCTION("Node: " << Names::FindName(node));
+    //}
 
     // print routing tables
     Ptr<OutputStreamWrapper> routingStream =

@@ -52,7 +52,6 @@ CCNL4Protocol::GetTypeId()
 
 CCNL4Protocol::CCNL4Protocol()
 {
-    NS_LOG_UNCOND("Creating CCNL4Protocol");
     NS_LOG_FUNCTION(this);
 }
 
@@ -155,7 +154,7 @@ CCNL4Protocol::Receive(Ptr<Packet> packet, const Ipv4Header& header, Ptr<Ipv4Int
     packet->PeekHeader(ccnheader);
 
     // print the header
-    ccnheader.Print(std::cout);
+    //ccnheader.Print(std::cout);
 
     // determine which kind of header
     if (ccnheader.GetMessageType() == CCNHeader::INTEREST)
