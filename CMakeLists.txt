@@ -1,7 +1,7 @@
 # ##############################################################################
 # Required CMake version            #
 # ##############################################################################
-cmake_minimum_required(VERSION 3.10..3.10)
+cmake_minimum_required(VERSION 3.12)
 
 # Use ccache if available
 mark_as_advanced(CCACHE)
@@ -114,6 +114,7 @@ set(NS3_FILTER_MODULE_EXAMPLES_AND_TESTS
 
 # Include macros used below
 include(build-support/macros-and-definitions.cmake)
+include(FetchContent)
 
 # Scan module libraries
 subdirlist(libs_to_build ${CMAKE_CURRENT_SOURCE_DIR}/src)
@@ -162,6 +163,13 @@ add_subdirectory(FIA)
 # Build json
 file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/json/single_include/nlohmann DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/build/include)
 add_subdirectory(json)
+
+FetchContent_Declare(
+  yaml-cpp
+  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
+  GIT_TAG yaml-cpp-0.7.0 # Can be a tag (yaml-cpp-x.x.x), a commit hash, or a branch name (master)
+)
+FetchContent_MakeAvailable(yaml-cpp)
 
 write_lock()
 write_configtable()
