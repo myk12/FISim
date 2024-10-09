@@ -154,22 +154,19 @@ add_subdirectory(scratch)
 # Build test utils
 add_subdirectory(utils)
 
-# Build Cybertwin Simulation
-add_subdirectory(cybertwin)
+# Build json
+add_subdirectory(thirdparty/json)
+include_directories(thirdparty/json/include)
+# mv thirdyparty/json/single_include/nlohmann to build/include/nlohmann
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/json/single_include/nlohmann DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/build/include)
+install(TARGETS nlohmann_json EXPORT ns3ExportTargets)
+
+# Build yaml-cpp
+add_subdirectory(thirdparty/yaml-cpp)
+install(TARGETS yaml-cpp EXPORT ns3ExportTargets)
 
 # Build FIA Simulation
 add_subdirectory(FIA)
-
-# Build json
-file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/json/single_include/nlohmann DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/build/include)
-add_subdirectory(json)
-
-FetchContent_Declare(
-  yaml-cpp
-  GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  GIT_TAG yaml-cpp-0.7.0 # Can be a tag (yaml-cpp-x.x.x), a commit hash, or a branch name (master)
-)
-FetchContent_MakeAvailable(yaml-cpp)
 
 write_lock()
 write_configtable()
