@@ -8,6 +8,8 @@
 #include "ns3/ipv4-routing-helper.h"
 #include "ns3/network-module.h"
 #include "ns3/point-to-point-module.h"
+// netanim
+#include "ns3/netanim-module.h"
 
 #include <unordered_map>
 #include <vector>
@@ -128,6 +130,9 @@ main(int argc, char* argv[])
     Ptr<OutputStreamWrapper> routingStream =
         Create<OutputStreamWrapper>("routing-tables", std::ios::out);
     Ipv4RoutingHelper::PrintRoutingTableAllAt(Seconds(2.0), routingStream);
+
+    // enable netanim
+    AnimationInterface anim("ccn.xml");
 
     // run simulation
     NS_LOG_INFO("---> Run simulation");

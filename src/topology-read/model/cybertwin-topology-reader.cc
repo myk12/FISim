@@ -8,6 +8,9 @@
 #include "ns3/node-container.h"
 #include "ns3/point-to-point-helper.h"
 
+#include "ns3/cybertwin-manager.h"
+#include "ns3/cybertwin-node.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <sstream>
@@ -119,9 +122,12 @@ CybertwinTopologyReader::CreateEdgeCloud()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("Creating edge cloud...");
+
+    // Construct Edge Layer Topology
+    // For each node in the edge layer, create point-to-point links
+    // to the upper layer nodes (core cloud)
     for (auto nodeInfo : m_edgeNodesList)
     {
-        // get target
         std::string nodeName = nodeInfo->name;
         for (auto link : nodeInfo->links)
         {
@@ -172,6 +178,12 @@ CybertwinTopologyReader::CreateEdgeCloud()
             m_links.insert(target + nodeName);
         }
     }
+
+
+    // Install Basic Cybertwin Building Blocks which includes
+    // 1. CT Manager: Manages the Cybertwins
+    // 2. CT Agent: Manages the communication between the Cybertwins
+
 }
 
 void
@@ -280,8 +292,15 @@ CybertwinTopologyReader::ParseNodes(const YAML::Node& nodes, const std::string& 
             // end_cluster: num_nodes, gateway
             if (type == "host_server")
             {
-                Ptr<Node> n = CreateObject<Node>();
-                m_nodes.Add(n);
+                Ptr<Node> n = nullptr;
+                // create different types of nodes according to the type
+                if (layerName == "Core") {
+                    n = CreateObject<CybertwinCoreServer>();
+                } else if (layerName == "Edge") {
+                    n = CreateObject<CybertwinEdgeServer>();
+                } else if (layerName == "End") {
+                    n = CreateObject<CybertwinEndHost>();
+                }
                 nodeInfo->node = n;
                 nodeInfo->type = HOST_SERVER;
                 YAML::Node connections = node["connections"];
@@ -307,7 +326,7 @@ CybertwinTopologyReader::ParseNodes(const YAML::Node& nodes, const std::string& 
 
                 for (int i = 0; i < nodeInfo->num_nodes; i++)
                 {
-                    Ptr<Node> n = CreateObject<Node>();
+                    Ptr<Node> n = CreateObject<CybertwinEndHost>();
                     nodeInfo->nodes.Add(n);
                     m_nodes.Add(n);
                 }
