@@ -139,7 +139,7 @@ cybertwin_network:
       - name: access_net1
         type: end_cluster
         num_nodes: 4
-        network_type: ethernet
+        network_type: csma
         local_network: 192.168.1.0/24
         gateways:
           - target: edge_node1
@@ -150,7 +150,7 @@ cybertwin_network:
       - name: access_net2
         type: end_cluster
         num_nodes: 4
-        network_type: ethernet
+        network_type: wifi
         local_network: 192.168.2.0/24
         gateways:
           - target: edge_node2
@@ -161,7 +161,7 @@ cybertwin_network:
       - name: access_net3
         type: end_cluster
         num_nodes: 4
-        network_type: ethernet
+        network_type: csma
         local_network: 192.168.3.0/24
         gateways:
           - target: edge_node3
@@ -172,7 +172,7 @@ cybertwin_network:
       - name: access_net4
         type: end_cluster
         num_nodes: 4
-        network_type: ethernet
+        network_type: csma
         local_network: 192.168.4.0/24
         gateways:
           - target: edge_node4

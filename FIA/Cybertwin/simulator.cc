@@ -2,6 +2,7 @@
 #include "ns3/simulator.h"
 #include "ns3/node-container.h"
 #include "ns3/cybertwin-topology-reader.h"
+#include "ns3/netanim-module.h"
 #include "simulator.h"
 
 namespace ns3
@@ -80,6 +81,9 @@ int main(int argc, char *argv[])
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
+
+    // enable netanim
+    AnimationInterface anim("cybertwin.xml");
 
     // create the simulator
     Ptr<ns3::CybertwinNetworkSimulator> simulator = CreateObject<ns3::CybertwinNetworkSimulator>();
