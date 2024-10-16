@@ -18,10 +18,10 @@ public:
     CybertwinNetworkSimulator(const CybertwinNetworkSimulator &) = delete;
     CybertwinNetworkSimulator &operator=(const CybertwinNetworkSimulator &) = delete;
 
-    void InputReadTopology();
-    void InputConfigureNodes();
-    void Boot();
-    void Run();
+    void DriverCompileTopology();
+    void DriverInstallApps();
+    void DriverBootSimulator();
+    void RunSimulator();
     void Output();
 
 private:

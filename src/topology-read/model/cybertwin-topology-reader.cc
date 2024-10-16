@@ -116,6 +116,7 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
         nodeInfo->node = n;
         m_nodes.Add(n);
         m_coreNodes.Add(n);
+        m_nodeName2Ptr[nodeInfo->name] = n;
 
         // configure the Cybertiwn core server
         coreServerSrc = DynamicCast<CybertwinCoreServer>(n);
@@ -201,6 +202,7 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
         nodeInfo->node = n;
         m_nodes.Add(n);
         m_edgeNodes.Add(n);
+        m_nodeName2Ptr[nodeInfo->name] = n;
 
         // configure the Cybertiwn edge server
         edgeServer = DynamicCast<CybertwinEdgeServer>(n);
@@ -381,8 +383,10 @@ CybertwinTopologyReader::CreateCsmaNetwork(NodeInfo* csma, Ptr<Node>& leader)
         m_endNodes.Add(n);
 
         // configure the Cybertiwn end host
+        std::string nodeName = csma->name + "_" + std::to_string(i);
         Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(n);
-        endHost->SetName(csma->name + std::to_string(i));
+        endHost->SetName(nodeName);
+        m_nodeName2Ptr[nodeName] = n;
     }
 
     // Install CSMA devices
@@ -435,8 +439,10 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
         allNodes.Add(n);
 
         // configure the Cybertiwn end host
+        std::string nodeName = wifi->name + "_" + std::to_string(i);
         Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(n);
-        endHost->SetName(wifi->name + std::to_string(i));
+        endHost->SetName(nodeName);
+        m_nodeName2Ptr[nodeName] = n;
     }
 
     // Install WiFi devices
@@ -522,13 +528,64 @@ CybertwinTopologyReader::AssignIPAddresses(const NetDeviceContainer& devices,
 Ptr<Node>
 CybertwinTopologyReader::GetNodeByName(const std::string& nodeName)
 {
-    auto it = m_nodeInfoMap.find(nodeName);
-    if (it == m_nodeInfoMap.end())
+    auto it = m_nodeName2Ptr.find(nodeName);
+    if (it == m_nodeName2Ptr.end())
     {
         NS_LOG_ERROR("Node not found: " << nodeName);
         throw std::runtime_error("Node not found: " + nodeName);
     }
-    return it->second->node;
+    return it->second;
+}
+
+// Show the network topology
+void
+CybertwinTopologyReader::ShowNetworkTopology()
+{
+    NS_LOG_INFO("Network Topology:");
+    NS_LOG_INFO("Core Cloud:");
+    for (auto node : m_coreNodesList)
+    {
+        NS_LOG_INFO("Node: " << node->name);
+        for (auto link : node->links)
+        {
+            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay << " " << link.network);
+        }
+    }
+
+    NS_LOG_INFO("Edge Cloud:");
+    for (auto node : m_edgeNodesList)
+    {
+        NS_LOG_INFO("Node: " << node->name);
+        for (auto link : node->links)
+        {
+            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay << " " << link.network);
+        }
+    }
+
+    NS_LOG_INFO("End Cluster:");
+    for (uint32_t i=0; i<m_endNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(m_endNodes.Get(i));
+        NS_LOG_INFO("Node: " << endHost->GetName());
+    }
+}
+
+NodeContainer
+CybertwinTopologyReader::GetCoreCloudNodes()
+{
+    return m_coreNodes;
+}
+
+NodeContainer
+CybertwinTopologyReader::GetEdgeCloudNodes()
+{
+    return m_edgeNodes;
+}
+
+NodeContainer
+CybertwinTopologyReader::GetEndClusterNodes()
+{
+    return m_endNodes;
 }
 
 // Read the topology configuration file
@@ -550,9 +607,79 @@ CybertwinTopologyReader::Read()
     ParseEdgeCloud(cybertwin_network["edge_layer"]);
     ParseAccessNetwork(cybertwin_network["access_layer"]);
 
+    // Output Nodes
+    ShowNetworkTopology();
+
     // read applications
 
     return m_nodes;
+}
+
+
+// Install applications
+void
+CybertwinTopologyReader::SetAppFiles(const std::string& files)
+{
+    m_appFils = files;
+}
+
+void
+CybertwinTopologyReader::InstallApplications()
+{
+    NS_LOG_FUNCTION(this);
+
+    // Parse the application configuration file
+    // The application configuration file is in YAML format
+    // The file contains the following sections:
+    // 1. applications
+    // The applications section contains all the applications that
+    // need to be install on the nodes
+    //
+    // Each application contains the following information:
+    // 1. name : the name of the application
+    // 2. type : the type of the application
+    // 3. enabled : whether the application is enabled or not
+    // 4. nodes : the list of nodes where the application is installed
+    // 5. parameters : the parameters of the application
+
+    YAML::Node app_yaml = YAML::LoadFile(m_appFils);
+
+    // read applications from the application file
+    NS_ASSERT(app_yaml["applications"]);
+    const YAML::Node& applications = app_yaml["applications"];
+    NS_LOG_INFO("Installing applications...");
+
+    for (const auto& app : applications)
+    {
+        std::string appName = app["name"].as<std::string>();
+        std::string appType = app["type"].as<std::string>();
+        bool enabled = app["enabled"].as<bool>();
+        NS_LOG_INFO("Application: " << appName << " type: " << appType << " enabled: " << enabled);
+        // parse target-nodes
+        // target-nodes:
+        //    - access_net1_0
+        //    - access_net1_1
+        std::vector<std::string> nodes;
+        for (const auto& node : app["target-nodes"])
+        {
+            nodes.push_back(node.as<std::string>());
+        }
+        YAML::Node parameters = app["parameters"];
+
+        NS_LOG_INFO("Installing application: " << appName << " type: " << appType);
+
+        // install the application on the nodes
+        NodeContainer targetNodes;
+        for (const auto& nodeName : nodes)
+        {
+            Ptr<Node> node = GetNodeByName(nodeName);
+            targetNodes.Add(node);
+        }
+
+        // install the application
+        CybertwinAppHelper appHelper;
+        appHelper.InstallApplications(appName, parameters, targetNodes);
+    }
 }
 
 } // namespace ns3

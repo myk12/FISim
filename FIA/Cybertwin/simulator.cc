@@ -26,6 +26,7 @@ CybertwinNetworkSimulator::CybertwinNetworkSimulator()
 {
     NS_LOG_FUNCTION(this);
     m_topologyReader.SetFileName("./FIA/Cybertwin/topology.yaml");
+    m_topologyReader.SetAppFiles("./FIA/Cybertwin/applications.yaml");
 }
 
 CybertwinNetworkSimulator::~CybertwinNetworkSimulator()
@@ -33,15 +34,16 @@ CybertwinNetworkSimulator::~CybertwinNetworkSimulator()
     NS_LOG_FUNCTION(this);
 }
 
-void CybertwinNetworkSimulator::InputReadTopology()
+void CybertwinNetworkSimulator::DriverCompileTopology()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[1] Reading the topology file...");
     m_nodes = m_topologyReader.Read();
+    m_topologyReader.InstallApplications();
     NS_LOG_INFO("[1] Topology file read successfully!");
 }
 
-void CybertwinNetworkSimulator::InputConfigureNodes()
+void CybertwinNetworkSimulator::DriverInstallApps()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[2] Configuring the nodes and applications...");
@@ -50,19 +52,45 @@ void CybertwinNetworkSimulator::InputConfigureNodes()
     NS_LOG_INFO("[2] Nodes and applications configured successfully!");
 }
 
-void CybertwinNetworkSimulator::Boot()
+void CybertwinNetworkSimulator::DriverBootSimulator()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[3] Running the simulation...");
-    //Simulator::Run();
+    // boot the Cybertwin Network
+    // 1. Power on Cloud Nodes
+    // 2. Power on Edge Nodes
+    // 3. Power on End Hosts
+
+    // power on the nodes
+    NodeContainer coreNodes = m_topologyReader.GetCoreCloudNodes();
+    for (uint32_t i = 0; i < coreNodes.GetN(); i++)
+    {
+        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(coreNodes.Get(i));
+        node->PowerOn();
+    }
+
+    NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
+    for (uint32_t i = 0; i < edgeNodes.GetN(); i++)
+    {
+        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(edgeNodes.Get(i));
+        node->PowerOn();
+    }
+
+    NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
+    for (uint32_t i = 0; i < endNodes.GetN(); i++)
+    {
+        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(endNodes.Get(i));
+        node->PowerOn();
+    }
+
     NS_LOG_INFO("[3] Simulation completed!");
 }
 
-void CybertwinNetworkSimulator::Run()
+void CybertwinNetworkSimulator::RunSimulator()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[4] Running the simulation...");
-    //Simulator::Run();
+    Simulator::Run();
     NS_LOG_INFO("[4] Simulation completed!");
 }
 
@@ -80,6 +108,7 @@ int main(int argc, char *argv[])
 {
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
 
     // enable netanim
@@ -89,16 +118,16 @@ int main(int argc, char *argv[])
     Ptr<ns3::CybertwinNetworkSimulator> simulator = CreateObject<ns3::CybertwinNetworkSimulator>();
 
     // read the topology file
-    simulator->InputReadTopology();
+    simulator->DriverCompileTopology();
 
     // configure the nodes and applications
-    simulator->InputConfigureNodes();
+    simulator->DriverInstallApps();
 
     // boot the simulator
-    simulator->Boot();
+    simulator->DriverBootSimulator();
 
     // run the simulator
-    simulator->Run();
+    simulator->RunSimulator();
 
     // output the simulation results
     simulator->Output();

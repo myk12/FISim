@@ -15,6 +15,8 @@
 #include "ns3/cybertwin-manager.h"
 #include "ns3/cybertwin-node.h"
 
+#include "ns3/cybertwin-app-helper.h"
+
 // using yaml-cpp
 #include "yaml-cpp/yaml.h"
 
@@ -28,6 +30,9 @@
 namespace ns3
 {
 
+//----------------------------------------------------------
+//          Node Information
+//----------------------------------------------------------
 // define node type
 typedef enum NodeType
 {
@@ -65,6 +70,15 @@ typedef struct NodeInfo
     std::vector<Gateway_t> gateways;
 } NodeInfo_t;
 
+//----------------------------------------------------------
+//         Application Information
+//----------------------------------------------------------
+typedef struct ApplicationInfo
+{
+    std::string appName;
+    std::vector<std::string> targetNodes;
+} ApplicationInfo_t;
+
 class CybertwinTopologyReader : public TopologyReader
 {
   public:
@@ -76,7 +90,21 @@ class CybertwinTopologyReader : public TopologyReader
     CybertwinTopologyReader(const CybertwinTopologyReader &) = delete;
     CybertwinTopologyReader &operator=(const CybertwinTopologyReader &) = delete;
 
+    //----------------------------------------------------------
+    //          Topology Construction
+    //----------------------------------------------------------
     NodeContainer Read();
+
+    NodeContainer GetCoreCloudNodes();
+    NodeContainer GetEdgeCloudNodes();
+    NodeContainer GetEndClusterNodes();
+
+    //----------------------------------------------------------
+    //          Application Installation
+    //----------------------------------------------------------
+    void SetAppFiles(const std::string &files);
+    void InstallApplications();
+
 
   private:
     NodeType_e GetNodeType(const std::string &type);
@@ -93,6 +121,8 @@ class CybertwinTopologyReader : public TopologyReader
     void ParseEdgeCloud(const YAML::Node &edgeLayer);
     void ParseAccessNetwork(const YAML::Node &accessLayer);
 
+    void ShowNetworkTopology();
+
     std::string MaskNumberToIpv4Address(std::string mask);
 
     std::vector<NodeInfo_t *> m_coreNodesList;
@@ -108,7 +138,13 @@ class CybertwinTopologyReader : public TopologyReader
     NodeContainer m_endNodes;
     NetDeviceContainer m_endDevices;
     std::unordered_map<std::string, NodeInfo_t *> m_nodeInfoMap;
+    std::unordered_map<std::string, Ptr<Node>> m_nodeName2Ptr;
     std::unordered_set<std::string> m_links;
+
+    // applications
+    std::string m_appFils;
+
+
 };
 
 }; // namespace ns3
