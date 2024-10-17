@@ -655,19 +655,24 @@ CybertwinTopologyReader::InstallApplications()
         std::string appType = app["type"].as<std::string>();
         bool enabled = app["enabled"].as<bool>();
         NS_LOG_INFO("Application: " << appName << " type: " << appType << " enabled: " << enabled);
-        // parse target-nodes
-        // target-nodes:
-        //    - access_net1_0
-        //    - access_net1_1
+        // Parse the application configuration like this:
+        //  - name: download-server
+        //    description: Download Server Application
+        //    type: download-server
+        //    enabled: true
+        //    start_delay: 0
+        //    target_nodes:
+        //      - core_node1
+        //    parameters:
+        //      - start-delay: 0
+        //        cybertwin-id: 1000
+        //        cybertwin-port: 1000
         std::vector<std::string> nodes;
-        for (const auto& node : app["target-nodes"])
+        for (const auto& node : app["target_nodes"])
         {
             nodes.push_back(node.as<std::string>());
         }
-        YAML::Node parameters = app["parameters"];
-
-        NS_LOG_INFO("Installing application: " << appName << " type: " << appType);
-
+        
         // install the application on the nodes
         NodeContainer targetNodes;
         for (const auto& nodeName : nodes)
@@ -676,9 +681,19 @@ CybertwinTopologyReader::InstallApplications()
             targetNodes.Add(node);
         }
 
-        // install the application
+        YAML::Node newParams;
+        for (const auto& param : app["parameters"])
+        {
+            for (YAML::const_iterator it = param.begin(); it != param.end(); ++it)
+            {
+                std::string key = it->first.as<std::string>();
+                YAML::Node value = it->second;
+                newParams[key] = value;
+            }
+        }
+
         CybertwinAppHelper appHelper;
-        appHelper.InstallApplications(appName, parameters, targetNodes);
+        appHelper.InstallApplications(appName, newParams, targetNodes);
     }
 }
 

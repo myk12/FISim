@@ -161,16 +161,9 @@ CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList,
     NS_LOG_DEBUG("Installing Cybertwin Manager app.");
     if (!m_upperNodeAddress.IsInitialized())
     {
-        if (m_parents.size() == 0)
-        {
-            NS_LOG_WARN("No parent node found.");
-            return;
-        }
-        else
-        {
-            Ptr<Node> upperNode = m_parents[0];
-            m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
-        }
+        NS_ASSERT_MSG(m_parents.size() > 0, "No parent node found.");
+        Ptr<Node> upperNode = m_parents[0];
+        m_upperNodeAddress = upperNode->GetObject<Ipv4>()->GetAddress(1, 0).GetLocal();
     }
 
     // install Cybertwin Manager application
@@ -192,129 +185,90 @@ CybertwinNode::GetCNRSApp()
     return m_cybertwinCNRSApp;
 }
 
-void
-CybertwinNode::InstallUserApps()
-{
-    NS_LOG_DEBUG("Installing user applications.");
-    nlohmann::json appConfig;
-    if (m_configFiles.find(APP_CONF_FILE_NAME) == m_configFiles.end())
-    {
-        NS_LOG_WARN("No app.json found.");
-        return;
-    }
-
-    appConfig = m_configFiles[APP_CONF_FILE_NAME];
-    NS_LOG_DEBUG("appConfig: " << appConfig.dump(4));
-
-    for (auto& app : appConfig["app-list"])
-    {
-        std::string type = app["type"];
-        if (type == APPTYPE_ENDHOST_BULK_SEND)
-        {
-            InstallEndHostBulkSend(app);
-        }
-        else if (type == APPTYPE_ENDHOST_INITD)
-        {
-            NS_LOG_DEBUG("end-host-initd is not implemented yet.");
-        }
-        else if (type == APPTYPE_DOWNLOAD_SERVER)
-        {
-            InstallDownloadServer(app);
-        }
-        else if (type == APPTYPE_DOWNLOAD_CLIENT)
-        {
-            InstallDownloadClient(app);
-        }
-        else
-        {
-            NS_LOG_WARN("Unknown app type.");
-        }
-    }
-}
-
-void
-CybertwinNode::InstallEndHostBulkSend(nlohmann::json config)
-{
-    NS_LOG_DEBUG(m_name << " - Installing EndHostBulkSend.");
-    int32_t enable = config["enabled"];
-    if (enable == 0)
-    {
-        NS_LOG_DEBUG("EndHostBulkSend is disabled.");
-        return;
-    }
-
-    uint32_t startDelay = config["start-delay"];
-
-    Ptr<EndHostBulkSend> endHostBulkSend = CreateObject<EndHostBulkSend>();
-    this->AddApplication(endHostBulkSend);
-    endHostBulkSend->SetStartTime(Simulator::Now() + Seconds(startDelay));
-}
-
-void
-CybertwinNode::InstallDownloadServer(nlohmann::json config)
-{
-    NS_LOG_DEBUG(m_name <<" - Installing Download Server.");
-    int32_t enable = config["enabled"];
-    if (enable == 0)
-    {
-        NS_LOG_DEBUG("DownloadServer is disabled.");
-        return;
-    }
-
-    CYBERTWINID_t cybertwinId = config["cybertwin-id"];
-    uint16_t cybertwinPort = config["cybertwin-port"];
-    uint32_t startDelay = config["start-delay"];
-    nlohmann::json trafficParams = config["traffic-params"];
-    uint32_t maxBytes = config["file-size-MB"];
-
-    CYBERTWIN_INTERFACE_LIST_t interfaces;
-    for (auto& ip : m_globalAddrList)
-    {
-        interfaces.push_back(std::make_pair(ip, cybertwinPort));
-        NS_LOG_DEBUG("interface: " << ip << ":" << cybertwinPort);
-    }
-
-    NS_LOG_DEBUG("cybertwinId: " << cybertwinId);
-    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
-    this->AddApplication(downloadServer);
-
-    downloadServer->SetAttribute("CybertwinID", UintegerValue(cybertwinId));
-    downloadServer->SetAttribute("Pattern", StringValue(trafficParams["pattern"]));
-    downloadServer->SetAttribute("Duration", TimeValue(MilliSeconds(trafficParams["duration"])));
-    downloadServer->SetAttribute("Rate", DoubleValue(trafficParams["rate"]));
-    downloadServer->SetAttribute("MaxBytes", UintegerValue(maxBytes));
-    downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
-}
-
-void
-CybertwinNode::InstallDownloadClient(nlohmann::json config)
-{
-    NS_LOG_DEBUG(m_name << " - Installing Download Client.");
-    int32_t enable = config["enabled"];
-    if (enable == 0)
-    {
-        NS_LOG_DEBUG("DownloadClient is disabled.");
-        return;
-    }
-
-    uint32_t startDelay = config["start-delay"];
-    nlohmann::json targetLists = config["target-cybertwins"];
-    uint8_t maxOfflineTime = config["max-offline-time"];
-
-    Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
-    this->AddApplication(downloadClient);
-    for (auto& target : targetLists)
-    {
-        CYBERTWINID_t targetId = target["cybertwinID"];
-        int rate = target["recvRate"];
-        NS_LOG_DEBUG("targetId: " << targetId << " rate: " << rate);
-        downloadClient->AddTargetServer(targetId, rate);
-    }
-
-    downloadClient->SetAttribute("MaxOfflineTime", UintegerValue(maxOfflineTime));
-    downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
-}
-
+//
+//void
+//CybertwinNode::InstallEndHostBulkSend(nlohmann::json config)
+//{
+//    NS_LOG_DEBUG(m_name << " - Installing EndHostBulkSend.");
+//    int32_t enable = config["enabled"];
+//    if (enable == 0)
+//    {
+//        NS_LOG_DEBUG("EndHostBulkSend is disabled.");
+//        return;
+//    }
+//
+//    uint32_t startDelay = config["start-delay"];
+//
+//    Ptr<EndHostBulkSend> endHostBulkSend = CreateObject<EndHostBulkSend>();
+//    this->AddApplication(endHostBulkSend);
+//    endHostBulkSend->SetStartTime(Simulator::Now() + Seconds(startDelay));
+//}
+//
+//void
+//CybertwinNode::InstallDownloadServer(nlohmann::json config)
+//{
+//    NS_LOG_DEBUG(m_name << " - Installing Download Server.");
+//    int32_t enable = config["enabled"];
+//    if (enable == 0)
+//    {
+//        NS_LOG_DEBUG("DownloadServer is disabled.");
+//        return;
+//    }
+//
+//    CYBERTWINID_t cybertwinId = config["cybertwin-id"];
+//    uint16_t cybertwinPort = config["cybertwin-port"];
+//    uint32_t startDelay = config["start-delay"];
+//    nlohmann::json trafficParams = config["traffic-params"];
+//    uint32_t maxBytes = config["file-size-MB"];
+//
+//    CYBERTWIN_INTERFACE_LIST_t interfaces;
+//    for (auto& ip : m_globalAddrList)
+//    {
+//        interfaces.push_back(std::make_pair(ip, cybertwinPort));
+//        NS_LOG_DEBUG("interface: " << ip << ":" << cybertwinPort);
+//    }
+//
+//    NS_LOG_DEBUG("cybertwinId: " << cybertwinId);
+//    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
+//    this->AddApplication(downloadServer);
+//
+//    downloadServer->SetAttribute("CybertwinID", UintegerValue(cybertwinId));
+//    downloadServer->SetAttribute("Pattern", StringValue(trafficParams["pattern"]));
+//    downloadServer->SetAttribute("Duration", TimeValue(MilliSeconds(trafficParams["duration"])));
+//    downloadServer->SetAttribute("Rate", DoubleValue(trafficParams["rate"]));
+//    downloadServer->SetAttribute("MaxBytes", UintegerValue(maxBytes));
+//    downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
+//}
+//
+//void
+//CybertwinNode::InstallDownloadClient(nlohmann::json config)
+//{
+//    NS_LOG_DEBUG(m_name << " - Installing Download Client.");
+//    int32_t enable = config["enabled"];
+//    if (enable == 0)
+//    {
+//        NS_LOG_DEBUG("DownloadClient is disabled.");
+//        return;
+//    }
+//
+//    uint32_t startDelay = config["start-delay"];
+//    nlohmann::json targetLists = config["target-cybertwins"];
+//    uint8_t maxOfflineTime = config["max-offline-time"];
+//
+//    Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
+//    this->AddApplication(downloadClient);
+//    for (auto& target : targetLists)
+//    {
+//        CYBERTWINID_t targetId = target["cybertwinID"];
+//        int rate = target["recvRate"];
+//        NS_LOG_DEBUG("targetId: " << targetId << " rate: " << rate);
+//        downloadClient->AddTargetServer(targetId, rate);
+//    }
+//
+//    downloadClient->SetAttribute("MaxOfflineTime", UintegerValue(maxOfflineTime));
+//    downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
+//}
+//
 //***************************************************************
 //*               edge server node                              *
 //***************************************************************
@@ -356,8 +310,6 @@ CybertwinEdgeServer::PowerOn()
 
     // install Cybertwin Controller application
     InstallCybertwinManagerApp(m_localAddrList, m_globalAddrList);
-
-    InstallUserApps();
 }
 
 Ptr<CybertwinManager>
@@ -434,11 +386,9 @@ CybertwinEndHost::PowerOn()
     // Create initd
     Ptr<EndHostInitd> initd = CreateObject<EndHostInitd>();
     initd->SetAttribute("ProxyAddr", Ipv4AddressValue(m_upperNodeAddress));
-    // initd->SetAttribute("ProxyPort", UintegerValue(m_proxyPort));
-    AddApplication(initd);
-    initd->SetStartTime(Seconds(0.0));
-
-    InstallUserApps();
+    initd->SetAttribute("ProxyPort", UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT));
+    this->AddApplication(initd);
+    initd->SetStartTime(Simulator::Now());
 }
 
 void

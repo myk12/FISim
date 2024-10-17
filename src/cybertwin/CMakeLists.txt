@@ -23,6 +23,7 @@ build_lib(
         model/cybertwin-client.cc
         model/cybertwin-packet-tags.cc
         model/cybertwin-app-helper.cc
+        model/cybertwin-app-download-server.cc
         
     HEADER_FILES
         helper/cybertwin-helper.h
@@ -42,6 +43,7 @@ build_lib(
         model/cybertwin-client.h
         model/cybertwin-packet-tags.h
         model/cybertwin-app-helper.h
+        model/cybertwin-app-download-server.h
     LIBRARIES_TO_LINK ${libcore}
                         ${libapplications}
                         ${libinternet}

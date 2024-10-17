@@ -39,7 +39,6 @@ void CybertwinNetworkSimulator::DriverCompileTopology()
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[1] Reading the topology file...");
     m_nodes = m_topologyReader.Read();
-    m_topologyReader.InstallApplications();
     NS_LOG_INFO("[1] Topology file read successfully!");
 }
 
@@ -47,8 +46,7 @@ void CybertwinNetworkSimulator::DriverInstallApps()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[2] Configuring the nodes and applications...");
-    //ApplicationConfigurator appConfigurator;
-    //appConfigurator.Configure(m_nodes);
+    m_topologyReader.InstallApplications();
     NS_LOG_INFO("[2] Nodes and applications configured successfully!");
 }
 
@@ -65,21 +63,21 @@ void CybertwinNetworkSimulator::DriverBootSimulator()
     NodeContainer coreNodes = m_topologyReader.GetCoreCloudNodes();
     for (uint32_t i = 0; i < coreNodes.GetN(); i++)
     {
-        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(coreNodes.Get(i));
+        Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(coreNodes.Get(i));
         node->PowerOn();
     }
 
     NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
     for (uint32_t i = 0; i < edgeNodes.GetN(); i++)
     {
-        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(edgeNodes.Get(i));
+        Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(edgeNodes.Get(i));
         node->PowerOn();
     }
 
     NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
     for (uint32_t i = 0; i < endNodes.GetN(); i++)
     {
-        Ptr<CybertwinNode> node = DynamicCast<CybertwinNode>(endNodes.Get(i));
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endNodes.Get(i));
         node->PowerOn();
     }
 
@@ -109,10 +107,10 @@ int main(int argc, char *argv[])
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
+    LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
+    LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
+    LogComponentEnable("EndHostInitd", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
-
-    // enable netanim
-    AnimationInterface anim("cybertwin.xml");
 
     // create the simulator
     Ptr<ns3::CybertwinNetworkSimulator> simulator = CreateObject<ns3::CybertwinNetworkSimulator>();
@@ -125,6 +123,9 @@ int main(int argc, char *argv[])
 
     // boot the simulator
     simulator->DriverBootSimulator();
+
+    // enable netanim
+    AnimationInterface anim("cybertwin.xml");
 
     // run the simulator
     simulator->RunSimulator();

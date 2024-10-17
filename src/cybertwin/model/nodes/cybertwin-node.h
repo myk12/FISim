@@ -47,10 +47,11 @@ class CybertwinNode : public Node
     //*******************************************************
     //*             App parser and installer                *
     //*******************************************************
-    void InstallUserApps();
-    void InstallDownloadServer(nlohmann::json config);
-    void InstallDownloadClient(nlohmann::json config);
-    void InstallEndHostBulkSend(nlohmann::json config);
+    // TODO : delete these functions
+    //void InstallUserApps();
+    //void InstallDownloadServer(nlohmann::json config);
+    //void InstallDownloadClient(nlohmann::json config);
+    //void InstallEndHostBulkSend(nlohmann::json config);
 
     Ptr<NameResolutionService> GetCNRSApp();
 
