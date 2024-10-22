@@ -3,6 +3,7 @@
 #include "ns3/node-container.h"
 #include "ns3/cybertwin-topology-reader.h"
 #include "ns3/netanim-module.h"
+#include "ns3/ipv4-global-routing-helper.h"
 #include "simulator.h"
 
 namespace ns3
@@ -39,6 +40,10 @@ void CybertwinNetworkSimulator::DriverCompileTopology()
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[1] Reading the topology file...");
     m_nodes = m_topologyReader.Read();
+
+    // populate routing tables
+    Ipv4GlobalRoutingHelper::PopulateRoutingTables();
+
     NS_LOG_INFO("[1] Topology file read successfully!");
 }
 
@@ -47,6 +52,29 @@ void CybertwinNetworkSimulator::DriverInstallApps()
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[2] Configuring the nodes and applications...");
     m_topologyReader.InstallApplications();
+
+    // Start all installed applications
+    NodeContainer coreNodes = m_topologyReader.GetCoreCloudNodes();
+    for (uint32_t i = 0; i < coreNodes.GetN(); i++)
+    {
+        Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(coreNodes.Get(i));
+        node->StartAllAggregatedApps();
+    }
+
+    NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
+    for (uint32_t i = 0; i < edgeNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(edgeNodes.Get(i));
+        node->StartAllAggregatedApps();
+    }
+
+    NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
+    for (uint32_t i = 0; i < endNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endNodes.Get(i));
+        node->StartAllAggregatedApps();
+    }
+
     NS_LOG_INFO("[2] Nodes and applications configured successfully!");
 }
 
@@ -96,6 +124,7 @@ void CybertwinNetworkSimulator::Output()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[5] Output the simulation results...");
+    Simulator::Destroy();
     NS_LOG_INFO("[5] Simulation results outputted successfully!");
 }
     
@@ -107,9 +136,12 @@ int main(int argc, char *argv[])
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
-    LogComponentEnable("DownloadServer", LOG_LEVEL_INFO);
-    LogComponentEnable("DownloadClient", LOG_LEVEL_INFO);
-    LogComponentEnable("EndHostInitd", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinAppDownloadClient", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinAppDownloadServer", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinEndHostDaemon", LOG_LEVEL_INFO);
+    LogComponentEnable("Cybertwin", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinManager", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinHeader", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
 
     // create the simulator
@@ -118,11 +150,11 @@ int main(int argc, char *argv[])
     // read the topology file
     simulator->DriverCompileTopology();
 
-    // configure the nodes and applications
-    simulator->DriverInstallApps();
-
     // boot the simulator
     simulator->DriverBootSimulator();
+
+    // configure the nodes and applications
+    simulator->DriverInstallApps();
 
     // enable netanim
     AnimationInterface anim("cybertwin.xml");

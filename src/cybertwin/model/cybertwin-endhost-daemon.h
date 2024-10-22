@@ -1,5 +1,5 @@
-#ifndef END_HOST_INITD_H
-#define END_HOST_INITD_H
+#ifndef _CYBERTWIN_ENDHOST_DAEMON_H_
+#define _CYBERTWIN_ENDHOST_DAEMON_H_
 
 #include "ns3/cybertwin-common.h"
 #include "ns3/cybertwin-header.h"
@@ -9,20 +9,27 @@
 
 namespace ns3
 {
-class EndHostInitd : public Application
+class CybertwinEndHostDaemon : public Application
 {
   public:
-    EndHostInitd();
-    ~EndHostInitd();
+    CybertwinEndHostDaemon();
+    ~CybertwinEndHostDaemon();
 
     static TypeId GetTypeId();
+
+    Ipv4Address GetManagerAddr();
+    uint16_t GetCybertwinPort();
+
+    bool IsRegisteredToCybertwin();
 
   private:
     void StartApplication();
     void StopApplication();
 
+    // --------------------------------------------------------
+    //        Reigister a cybertiwn to Cybertwin Manager
+    // --------------------------------------------------------
     void RegisterCybertwin();
-
     void ConnectCybertwinManager();
 
     // callbacks
@@ -36,18 +43,19 @@ class EndHostInitd : public Application
     void RegisterFailureHandler(Ptr<Socket>, Ptr<Packet>);
     void Authenticate();
 
-  private:
     //private member variables
-    Ipv4Address m_proxyAddr;
-    uint16_t m_proxyPort;
+    Ipv4Address m_managerAddr;
+    uint16_t m_managerPort;
     Ptr<Socket> m_proxySocket;
     Ptr<Socket> m_cybertwinSocket;
 
     bool m_isConnectedToCybertwinManager;
     bool m_isRegisteredToCybertwin;
     bool m_isConnectedToCybertwin;
+
+    std::string m_nodeName;
 };
     
 } // namespace ns
 
-#endif // END_HOST_INITD_H
+#endif // _CYBERTWIN_ENDHOST_DAEMON_H_

@@ -1,4 +1,4 @@
-#include "cybertwin-manager.h"
+#include "ns3/cybertwin-manager.h"
 
 #include "ns3/callback.h"
 #include "ns3/ipv4-header.h"
@@ -76,6 +76,12 @@ CybertwinManager::StartApplication()
     //{
     //    NS_LOG_DEBUG("Global address: " << addr);
     //}
+    
+    // get node name
+    m_nodeName = GetNode()->GetObject<CybertwinNode>()->GetName();
+
+    // log [time][nodename]: CybertwinManager starts
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: CybertwinManager starts");
 
     StartProxy();
 }
@@ -91,7 +97,7 @@ CybertwinManager::StartProxy()
         InetSocketAddress inetAddr = InetSocketAddress(Ipv4Address::GetAny() , m_proxyPort);
         if (m_proxySocket->Bind(inetAddr) < 0)
         {
-            NS_LOG_ERROR("Failed to bind proxy socket");
+            NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Failed to bind proxy socket");
         }
     }
     m_proxySocket->SetAcceptCallback(MakeCallback(&CybertwinManager::HostConnecting, this),
@@ -105,6 +111,7 @@ void
 CybertwinManager::StopApplication()
 {
     NS_LOG_FUNCTION(GetNode()->GetId());
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: CybertwinManager stops");
     if (m_proxySocket)
     {
         m_proxySocket->Close();
@@ -155,15 +162,12 @@ CybertwinManager::ReceiveFromHost(Ptr<Socket> socket)
         switch (header.GetCommand())
         {
         case CYBERTWIN_REGISTRATION:
-            NS_LOG_INFO("CYBERTWIN_REGISTRATION");
             HandleCybertwinRegistration(socket, packet);
             break;
         case CYBERTWIN_DESTRUCTION:
-            NS_LOG_INFO("CYBERTWIN_DESTRUCTION");
             HandleCybertwinDestruction(socket, packet);
             break;
         case CYBERTWIN_RECONNECT:
-            NS_LOG_INFO("CYBERTWIN_RECONNECT");
             HandleCybertwinReconnect(socket, packet);
             break;
         }
@@ -175,6 +179,7 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
                                               Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: HandleCybertwinRegistration");
     CybertwinManagerHeader header;
     CybertwinManagerHeader replyHeader;
     std::string name;
@@ -184,13 +189,10 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
     name = header.GetCName();
     cuid = StringToUint64(name);
 
-    NS_LOG_DEBUG("Cybertwin name: " << name << ", cuid: " << cuid);
-
     // create a new cybertwin
     if (m_cybertwinTable.find(cuid) != m_cybertwinTable.end())
     {
-        NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin already exists");
-
+        NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: cybertwin already exists");
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_REGISTRATION_ERROR);
         replyHeader.SetCName(name);
@@ -204,24 +206,25 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
         Ipv4Address local_Addr = InetSocketAddress::ConvertFrom(local_addr).GetIpv4();
         CYBERTWIN_INTERFACE_t l_interface = std::make_pair(local_Addr, local_port);
 
-        NS_LOG_INFO("Assign local address: " << local_Addr << ", local port: " << local_port << " to cybertwin " << name);
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "s]: Assign local address: " << local_Addr << ", local port: " << local_port << " to cybertwin " << name);
 
         // assign global interfaces (multiple addr:port) for new cybertwin
         CYBERTWIN_INTERFACE_LIST_t g_interfaces;
         AssignInterfaces(g_interfaces);
 
-        for (auto interface : g_interfaces)
-        {
-            NS_LOG_INFO("Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
-        }
+        //for (auto interface : g_interfaces)
+        //{
+        //    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "][" << m_nodeName << "]: Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
+        //}
 
         // create a new cybertwin
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Create a new cybertwin " << name);
         Ptr<Cybertwin> cybertwin = CreateObject<Cybertwin>(cuid, l_interface, g_interfaces);
         GetNode()->AddApplication(cybertwin);
         m_cybertwinTable[cuid] = cybertwin;
 
         // Not started right away
-        cybertwin->SetStartTime(Seconds(0.0));
+        cybertwin->SetStartTime(Simulator::Now());
 
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_REGISTRATION_ACK);
@@ -231,6 +234,7 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
     }
 
     // send reply
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Send reply to cybertwin " << name);
     Ptr<Packet> replyPacket = Create<Packet>(0);
     replyPacket->AddHeader(replyHeader);
     //replyHeader.Print(std::cout);
@@ -255,14 +259,14 @@ CybertwinManager::HandleCybertwinDestruction(Ptr<Socket> socket,
     // destroy a cybertwin
     if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
     {
-        NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin does not exist");
-
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: cybertwin does not exist");
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_DESTRUCTION_ERROR);
         replyHeader.SetCName(name);
     }
     else
     {
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Destroy cybertwin " << name);
         // destroy a cybertwin
         m_cybertwinTable.erase(cuid);
 
@@ -296,17 +300,14 @@ CybertwinManager::HandleCybertwinReconnect(Ptr<Socket> socket,
     // connect to a cybertwin
     if (m_cybertwinTable.find(cuid) == m_cybertwinTable.end())
     {
-        NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: cybertwin does not exist");
-
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: cybertwin does not exist");
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_RECONNECT_ERROR);
         replyHeader.SetCName(name);
     }
     else
     {
-        // connect to a cybertwin
-        //m_cybertwinTable[cuid]->Connect();
-
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Reconnect to cybertwin " << name);
         // set reply header
         replyHeader.SetCommand(CYBERTWIN_RECONNECT_ACK);
         replyHeader.SetCName(name);
@@ -322,6 +323,7 @@ void
 CybertwinManager::NormalHostClose(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(GetNode()->GetId() << socket);
+    NS_LOG_DEBUG("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Normal Connection closed.");
     if (socket != m_proxySocket)
     {
         socket->ShutdownSend();
@@ -331,8 +333,12 @@ CybertwinManager::NormalHostClose(Ptr<Socket> socket)
 void
 CybertwinManager::ErrorHostClose(Ptr<Socket> socket)
 {
-    NS_LOG_ERROR("--[Ctrl-" << GetNode()->GetId()
-                            << "]: a socket error occurs:" << socket->GetErrno());
+    NS_LOG_FUNCTION(GetNode()->GetId() << socket);
+    NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Error Connection closed.");
+    if (socket != m_proxySocket)
+    {
+        socket->ShutdownSend();
+    }
 }
 
 void
@@ -355,7 +361,7 @@ CybertwinManager::AssignInterfaces(CYBERTWIN_INTERFACE_LIST_t& ifs)
         }
         else if (m_lastAssignedPort == 65535)
         {
-            NS_FATAL_ERROR("--[Ctrl-" << GetNode()->GetId() << "]: no more interfaces available");
+            NS_FATAL_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: No more port available");
         }
     }
 }

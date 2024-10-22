@@ -8,13 +8,12 @@ build_lib(
     SOURCE_FILES
         helper/cybertwin-helper.cc
         model/apps/cybertwin-app.cc
-        model/apps/cybertwin-manager.cc
+        model/cybertwin-manager.cc
         model/apps/cybertwin.cc
-        model/apps/end-host-initd.cc
         model/apps/end-host-bulk-send.cc
         model/apps/download-server.cc
         model/apps/download-client.cc
-        model/nodes/cybertwin-node.cc
+        model/cybertwin-node.cc
         model/networks/cybertwin-name-resolution-service.cc
         model/networks/multipath-data-transfer-protocol.cc
         model/cybertwin-header.cc
@@ -24,17 +23,18 @@ build_lib(
         model/cybertwin-packet-tags.cc
         model/cybertwin-app-helper.cc
         model/cybertwin-app-download-server.cc
+        model/cybertwin-app-download-client.cc
+        model/cybertwin-endhost-daemon.cc
         
     HEADER_FILES
         helper/cybertwin-helper.h
         model/apps/cybertwin-app.h
-        model/apps/cybertwin-manager.h
+        model/cybertwin-manager.h
         model/apps/cybertwin.h
-        model/apps/end-host-initd.h
         model/apps/end-host-bulk-send.h
         model/apps/download-server.h
         model/apps/download-client.h
-        model/nodes/cybertwin-node.h
+        model/cybertwin-node.h
         model/networks/cybertwin-name-resolution-service.h
         model/networks/multipath-data-transfer-protocol.h
         model/cybertwin-header.h
@@ -44,6 +44,8 @@ build_lib(
         model/cybertwin-packet-tags.h
         model/cybertwin-app-helper.h
         model/cybertwin-app-download-server.h
+        model/cybertwin-app-download-client.h
+        model/cybertwin-endhost-daemon.h
     LIBRARIES_TO_LINK ${libcore}
                         ${libapplications}
                         ${libinternet}

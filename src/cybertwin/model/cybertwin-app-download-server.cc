@@ -2,59 +2,59 @@
 
 namespace ns3
 {
-NS_LOG_COMPONENT_DEFINE("CybertwinDownloadServer");
-NS_OBJECT_ENSURE_REGISTERED(CybertwinDownloadServer);
+NS_LOG_COMPONENT_DEFINE("CybertwinAppDownloadServer");
+NS_OBJECT_ENSURE_REGISTERED(CybertwinAppDownloadServer);
 
 TypeId
-CybertwinDownloadServer::GetTypeId()
+CybertwinAppDownloadServer::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CybertwinDownloadServer")
+    static TypeId tid = TypeId("ns3::CybertwinAppDownloadServer")
                             .SetParent<Application>()
                             .SetGroupName("Cybertwin")
-                            .AddConstructor<CybertwinDownloadServer>()
+                            .AddConstructor<CybertwinAppDownloadServer>()
                             .AddAttribute("CybertwinID",
                                           "Cybertwin ID of the server.",
                                           UintegerValue(0),
-                                          MakeUintegerAccessor(&CybertwinDownloadServer::m_cybertwinID),
+                                          MakeUintegerAccessor(&CybertwinAppDownloadServer::m_cybertwinID),
                                           MakeUintegerChecker<uint64_t>())
                             .AddAttribute("ListenPort",
                                           "Port to listen on.",
                                           UintegerValue(80),
-                                          MakeUintegerAccessor(&CybertwinDownloadServer::m_serverPort),
+                                          MakeUintegerAccessor(&CybertwinAppDownloadServer::m_serverPort),
                                           MakeUintegerChecker<uint16_t>())
                             .AddAttribute("MaxBytes",
                                           "Maximum bytes to send.",
                                           UintegerValue(0),
-                                          MakeUintegerAccessor(&CybertwinDownloadServer::m_maxBytes),
+                                          MakeUintegerAccessor(&CybertwinAppDownloadServer::m_maxBytes),
                                           MakeUintegerChecker<uint64_t>());
     return tid;
 }
 
-CybertwinDownloadServer::CybertwinDownloadServer()
+CybertwinAppDownloadServer::CybertwinAppDownloadServer()
 {
-    NS_LOG_DEBUG("[CybertwinDownloadServer] create CybertwinDownloadServer.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] create CybertwinAppDownloadServer.");
 }
 
-CybertwinDownloadServer::CybertwinDownloadServer(CYBERTWINID_t cybertwinID, CYBERTWIN_INTERFACE_LIST_t interfaces)
+CybertwinAppDownloadServer::CybertwinAppDownloadServer(CYBERTWINID_t cybertwinID, CYBERTWIN_INTERFACE_LIST_t interfaces)
 {
-    NS_LOG_DEBUG("[CybertwinDownloadServer] create CybertwinDownloadServer.");
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Cybertwin ID: " << cybertwinID);
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] create CybertwinAppDownloadServer.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Cybertwin ID: " << cybertwinID);
     for (auto it = interfaces.begin(); it != interfaces.end(); ++it)
     {
-        NS_LOG_DEBUG("[CybertwinDownloadServer] Interface: " << it->first << " " << it->second);
+        NS_LOG_DEBUG("[CybertwinAppDownloadServer] Interface: " << it->first << " " << it->second);
     }
 }
 
-CybertwinDownloadServer::~CybertwinDownloadServer()
+CybertwinAppDownloadServer::~CybertwinAppDownloadServer()
 {
-    NS_LOG_DEBUG("[CybertwinDownloadServer] destroy CybertwinDownloadServer.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] destroy CybertwinAppDownloadServer.");
 }
 
 void
-CybertwinDownloadServer::StartApplication()
+CybertwinAppDownloadServer::StartApplication()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Starting CybertwinDownloadServer.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Starting CybertwinAppDownloadServer.");
 
     // Init interface list: self ipv4 address and listening port
     for (auto globalIp : GetNode()->GetObject<CybertwinNode>()->GetGlobalIpList())
@@ -66,26 +66,26 @@ CybertwinDownloadServer::StartApplication()
     Ptr<CybertwinNode> node = GetNode()->GetObject<CybertwinNode>();
     Ptr<NameResolutionService> cnrs = node->GetCNRSApp();
     NS_ASSERT(cnrs);
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Inserting Cybertwin " << m_cybertwinID << " into CNRS.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Inserting Cybertwin " << m_cybertwinID << " into CNRS.");
     cnrs->InsertCybertwinInterfaceName(m_cybertwinID, m_interfaces);
 
     // Init data server and listen for incoming connections
     m_serverSocket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
     m_serverSocket->Bind(InetSocketAddress(Ipv4Address::GetAny(), m_serverPort));
-    m_serverSocket->SetAcceptCallback(MakeCallback(&CybertwinDownloadServer::ConnRequestCallback, this),
-                                      MakeCallback(&CybertwinDownloadServer::ConnCreatedCallback, this));
-    m_serverSocket->SetCloseCallbacks(MakeCallback(&CybertwinDownloadServer::NormalCloseCallback, this),
-                                        MakeCallback(&CybertwinDownloadServer::ErrorCloseCallback, this));
+    m_serverSocket->SetAcceptCallback(MakeCallback(&CybertwinAppDownloadServer::ConnRequestCallback, this),
+                                      MakeCallback(&CybertwinAppDownloadServer::ConnCreatedCallback, this));
+    m_serverSocket->SetCloseCallbacks(MakeCallback(&CybertwinAppDownloadServer::NormalCloseCallback, this),
+                                        MakeCallback(&CybertwinAppDownloadServer::ErrorCloseCallback, this));
     m_serverSocket->Listen();
 
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Server is listening on " << m_serverPort);
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Server is listening on " << m_serverPort);
 }
 
 void
-CybertwinDownloadServer::StopApplication()
+CybertwinAppDownloadServer::StopApplication()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Stopping CybertwinDownloadServer.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Stopping CybertwinAppDownloadServer.");
 
     if (m_serverSocket)
     {
@@ -94,7 +94,7 @@ CybertwinDownloadServer::StopApplication()
 }
 
 bool
-CybertwinDownloadServer::ConnRequestCallback(Ptr<Socket> socket, const Address& from)
+CybertwinAppDownloadServer::ConnRequestCallback(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
     // accept all connections
@@ -102,62 +102,62 @@ CybertwinDownloadServer::ConnRequestCallback(Ptr<Socket> socket, const Address& 
 }
 
 void
-CybertwinDownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address& from)
+CybertwinAppDownloadServer::ConnCreatedCallback(Ptr<Socket> socket, const Address& from)
 {
     NS_LOG_FUNCTION(this << socket << from);
     // put into the map
-    NS_LOG_DEBUG("[CybertwinDownloadServer] New connection with "
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] New connection with "
                  << InetSocketAddress::ConvertFrom(from).GetIpv4() << ":"
                  << InetSocketAddress::ConvertFrom(from).GetPort());
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Send " << m_maxBytes << " bytes to "
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Send " << m_maxBytes << " bytes to "
                                                << InetSocketAddress::ConvertFrom(from).GetIpv4() << ":"
                                                << InetSocketAddress::ConvertFrom(from).GetPort());
-    socket->SetRecvCallback(MakeCallback(&CybertwinDownloadServer::RecvCallback, this));
+    socket->SetRecvCallback(MakeCallback(&CybertwinAppDownloadServer::RecvCallback, this));
     
     // send data
     m_sendBytes[socket] = 0;
-    Simulator::ScheduleNow(&CybertwinDownloadServer::SendData, this, socket);
+    Simulator::ScheduleNow(&CybertwinAppDownloadServer::SendData, this, socket);
 }
 
 void
-CybertwinDownloadServer::RecvCallback(Ptr<Socket> socket)
+CybertwinAppDownloadServer::RecvCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("[CybertwinDownloadServer] RecvCallback");
+    NS_LOG_INFO("[CybertwinAppDownloadServer] RecvCallback");
 }
 
 void
-CybertwinDownloadServer::NormalCloseCallback(Ptr<Socket> socket)
+CybertwinAppDownloadServer::NormalCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
     Address peername;
     socket->GetPeerName(peername);
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Normal Connection with "
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Normal Connection with "
                  << InetSocketAddress::ConvertFrom(peername).GetIpv4() << ":"
                  << InetSocketAddress::ConvertFrom(peername).GetPort() << " closed.");
 }
 
 void
-CybertwinDownloadServer::ErrorCloseCallback(Ptr<Socket> socket)
+CybertwinAppDownloadServer::ErrorCloseCallback(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_DEBUG("[CybertwinDownloadServer] Error Connection closed.");
+    NS_LOG_DEBUG("[CybertwinAppDownloadServer] Error Connection closed.");
 }
 
 void
-CybertwinDownloadServer::SendData(Ptr<Socket> socket)
+CybertwinAppDownloadServer::SendData(Ptr<Socket> socket)
 {
     NS_LOG_FUNCTION(this << socket);
-    NS_LOG_INFO("[CybertwinDownloadServer] SendData");
+    NS_LOG_INFO("[CybertwinAppDownloadServer] SendData");
     if (!socket)
     {
-        NS_LOG_ERROR("[CybertwinDownloadServer] Connection closed.");
+        NS_LOG_ERROR("[CybertwinAppDownloadServer] Connection closed.");
         return;
     }
 
     if (m_sendBytes[socket] >= m_maxBytes)
     {
-        NS_LOG_DEBUG("[CybertwinDownloadServer] Send "
+        NS_LOG_DEBUG("[CybertwinAppDownloadServer] Send "
                      << m_sendBytes[socket] << " bytes");
         socket->Close();
         return;
@@ -168,12 +168,12 @@ CybertwinDownloadServer::SendData(Ptr<Socket> socket)
     int32_t sendSize = socket->Send(packet);
     if (sendSize <= 0)
     {
-        NS_LOG_ERROR("[CybertwinDownloadServer] Send failed.");
+        NS_LOG_ERROR("[CybertwinAppDownloadServer] Send failed.");
         return;
     }
 
     m_sendBytes[socket] += sendSize;
-    Simulator::Schedule(MilliSeconds(1), &CybertwinDownloadServer::SendData, this, socket);
+    Simulator::Schedule(MilliSeconds(1), &CybertwinAppDownloadServer::SendData, this, socket);
 }
 
 } // namespace ns3

@@ -185,90 +185,24 @@ CybertwinNode::GetCNRSApp()
     return m_cybertwinCNRSApp;
 }
 
-//
-//void
-//CybertwinNode::InstallEndHostBulkSend(nlohmann::json config)
-//{
-//    NS_LOG_DEBUG(m_name << " - Installing EndHostBulkSend.");
-//    int32_t enable = config["enabled"];
-//    if (enable == 0)
-//    {
-//        NS_LOG_DEBUG("EndHostBulkSend is disabled.");
-//        return;
-//    }
-//
-//    uint32_t startDelay = config["start-delay"];
-//
-//    Ptr<EndHostBulkSend> endHostBulkSend = CreateObject<EndHostBulkSend>();
-//    this->AddApplication(endHostBulkSend);
-//    endHostBulkSend->SetStartTime(Simulator::Now() + Seconds(startDelay));
-//}
-//
-//void
-//CybertwinNode::InstallDownloadServer(nlohmann::json config)
-//{
-//    NS_LOG_DEBUG(m_name << " - Installing Download Server.");
-//    int32_t enable = config["enabled"];
-//    if (enable == 0)
-//    {
-//        NS_LOG_DEBUG("DownloadServer is disabled.");
-//        return;
-//    }
-//
-//    CYBERTWINID_t cybertwinId = config["cybertwin-id"];
-//    uint16_t cybertwinPort = config["cybertwin-port"];
-//    uint32_t startDelay = config["start-delay"];
-//    nlohmann::json trafficParams = config["traffic-params"];
-//    uint32_t maxBytes = config["file-size-MB"];
-//
-//    CYBERTWIN_INTERFACE_LIST_t interfaces;
-//    for (auto& ip : m_globalAddrList)
-//    {
-//        interfaces.push_back(std::make_pair(ip, cybertwinPort));
-//        NS_LOG_DEBUG("interface: " << ip << ":" << cybertwinPort);
-//    }
-//
-//    NS_LOG_DEBUG("cybertwinId: " << cybertwinId);
-//    Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
-//    this->AddApplication(downloadServer);
-//
-//    downloadServer->SetAttribute("CybertwinID", UintegerValue(cybertwinId));
-//    downloadServer->SetAttribute("Pattern", StringValue(trafficParams["pattern"]));
-//    downloadServer->SetAttribute("Duration", TimeValue(MilliSeconds(trafficParams["duration"])));
-//    downloadServer->SetAttribute("Rate", DoubleValue(trafficParams["rate"]));
-//    downloadServer->SetAttribute("MaxBytes", UintegerValue(maxBytes));
-//    downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
-//}
-//
-//void
-//CybertwinNode::InstallDownloadClient(nlohmann::json config)
-//{
-//    NS_LOG_DEBUG(m_name << " - Installing Download Client.");
-//    int32_t enable = config["enabled"];
-//    if (enable == 0)
-//    {
-//        NS_LOG_DEBUG("DownloadClient is disabled.");
-//        return;
-//    }
-//
-//    uint32_t startDelay = config["start-delay"];
-//    nlohmann::json targetLists = config["target-cybertwins"];
-//    uint8_t maxOfflineTime = config["max-offline-time"];
-//
-//    Ptr<DownloadClient> downloadClient = CreateObject<DownloadClient>();
-//    this->AddApplication(downloadClient);
-//    for (auto& target : targetLists)
-//    {
-//        CYBERTWINID_t targetId = target["cybertwinID"];
-//        int rate = target["recvRate"];
-//        NS_LOG_DEBUG("targetId: " << targetId << " rate: " << rate);
-//        downloadClient->AddTargetServer(targetId, rate);
-//    }
-//
-//    downloadClient->SetAttribute("MaxOfflineTime", UintegerValue(maxOfflineTime));
-//    downloadClient->SetStartTime(Simulator::Now() + Seconds(startDelay));
-//}
-//
+void
+CybertwinNode::AddInstalledApp(Ptr<Application> app, Time startTime)
+{
+    m_installedApps[app] = startTime;
+}
+
+void
+CybertwinNode::StartAllAggregatedApps()
+{
+    NS_LOG_INFO("["<<m_name<<"] Starting all installed applications.");
+    for (auto it = m_installedApps.begin(); it != m_installedApps.end(); ++it)
+    {
+        NS_LOG_INFO("["<<m_name<<"] Starting application at "<<it->second);
+        //TODO: fix me
+        it->first->SetStartTime(it->second);
+    }
+}
+
 //***************************************************************
 //*               edge server node                              *
 //***************************************************************
@@ -307,7 +241,6 @@ CybertwinEdgeServer::PowerOn()
     }
 
     InstallCNRSApp();
-
     // install Cybertwin Controller application
     InstallCybertwinManagerApp(m_localAddrList, m_globalAddrList);
 }
@@ -343,8 +276,7 @@ void
 CybertwinCoreServer::PowerOn()
 {
     NS_LOG_DEBUG("************** Powering on " << m_name);
-
-    InstallCNRSApp();
+    InstallCNRSApp(); 
 }
 
 CybertwinCoreServer::~CybertwinCoreServer()
@@ -370,12 +302,18 @@ CybertwinEndHost::GetTypeId()
 CybertwinEndHost::CybertwinEndHost()
 {
     NS_LOG_DEBUG("[CybertwinEndHost] create CybertwinEndHost.");
-    m_isConnected = false;
+    m_isConnected = false;    
 }
 
 CybertwinEndHost::~CybertwinEndHost()
 {
     NS_LOG_DEBUG("[CybertwinEndHost] destroy CybertwinEndHost.");
+}
+
+Ptr<CybertwinEndHostDaemon>
+CybertwinEndHost::GetEndHostDaemon()
+{
+    return m_cybertwinEndHostDaemon;
 }
 
 void
@@ -384,11 +322,14 @@ CybertwinEndHost::PowerOn()
     NS_LOG_DEBUG("-+-+-+-+-+-+ Powering on " << m_name);
 
     // Create initd
-    Ptr<EndHostInitd> initd = CreateObject<EndHostInitd>();
-    initd->SetAttribute("ProxyAddr", Ipv4AddressValue(m_upperNodeAddress));
-    initd->SetAttribute("ProxyPort", UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT));
-    this->AddApplication(initd);
+    Ptr<CybertwinEndHostDaemon> initd = CreateObject<CybertwinEndHostDaemon>();
+    initd->SetAttribute("ManagerAddr", Ipv4AddressValue(m_upperNodeAddress));
+    initd->SetAttribute("ManagerPort", UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT));
     initd->SetStartTime(Simulator::Now());
+
+    this->AddApplication(initd);
+
+    m_cybertwinEndHostDaemon = initd;
 }
 
 void

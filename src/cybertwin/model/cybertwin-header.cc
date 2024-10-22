@@ -32,7 +32,8 @@ CybertwinHeader::CybertwinHeader()
       m_cybertwin(0),
       m_peer(0),
       m_size(0),
-      m_cybertwinPort(0)
+      m_cybertwinPort(0),
+        m_recvRate(0)
 {
 }
 
@@ -47,6 +48,7 @@ CybertwinHeader::ToString() const
 uint32_t
 CybertwinHeader::GetSerializedSize() const
 {
+     // TODO: the size of the header should be fixed
     return sizeof(m_command)
         + sizeof(m_cybertwin)
         + sizeof(m_peer)

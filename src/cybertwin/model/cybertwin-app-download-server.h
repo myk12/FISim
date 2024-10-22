@@ -7,12 +7,12 @@
 namespace ns3
 {
 
-class CybertwinDownloadServer : public Application
+class CybertwinAppDownloadServer : public Application
 {
 public:
-    CybertwinDownloadServer();
-    CybertwinDownloadServer(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t);
-    ~CybertwinDownloadServer();
+    CybertwinAppDownloadServer();
+    CybertwinAppDownloadServer(CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t);
+    ~CybertwinAppDownloadServer();
 
     static TypeId GetTypeId();
 

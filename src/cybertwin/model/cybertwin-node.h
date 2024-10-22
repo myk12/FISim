@@ -2,12 +2,13 @@
 #define CYBERTWIN_NODE_H
 
 #include "ns3/cybertwin-common.h"
+#include "ns3/cybertwin-endhost-daemon.h"
 #include "ns3/cybertwin-manager.h"
 #include "ns3/cybertwin-name-resolution-service.h"
-#include "ns3/download-server.h"
 #include "ns3/download-client.h"
-#include "ns3/end-host-initd.h"
+#include "ns3/download-server.h"
 #include "ns3/end-host-bulk-send.h"
+#include "ns3/cybertwin-endhost-daemon.h"
 
 #include <unordered_map>
 #include <vector>
@@ -15,6 +16,7 @@
 namespace ns3
 {
 class CybertwinManager;
+class CybertwinEndHostDaemon;
 
 class CybertwinNode : public Node
 {
@@ -25,33 +27,30 @@ class CybertwinNode : public Node
     static TypeId GetTypeId();
     virtual TypeId GetInstanceTypeId() const;
 
-    //setters
+    // setters
     virtual void SetAddressList(std::vector<Ipv4Address> addressList);
     virtual void SetName(std::string name);
     virtual void SetLogDir(std::string logDir);
 
-    //getters
+    // getters
     virtual std::string GetLogDir();
     virtual std::string GetName();
 
     virtual Ipv4Address GetUpperNodeAddress();
 
     virtual void PowerOn();
+    void StartAllAggregatedApps();
 
     void AddParent(Ptr<Node> parent);
     void AddConfigFile(std::string filename, nlohmann::json config);
     void InstallCNRSApp();
     void InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpv4AddrList,
                                     std::vector<Ipv4Address> globalIpv4AddrList);
-    
+
     //*******************************************************
     //*             App parser and installer                *
     //*******************************************************
-    // TODO : delete these functions
-    //void InstallUserApps();
-    //void InstallDownloadServer(nlohmann::json config);
-    //void InstallDownloadClient(nlohmann::json config);
-    //void InstallEndHostBulkSend(nlohmann::json config);
+    void AddInstalledApp(Ptr<Application>, Time);
 
     Ptr<NameResolutionService> GetCNRSApp();
 
@@ -74,6 +73,9 @@ class CybertwinNode : public Node
     std::string m_logDir;
     std::vector<Ptr<Node>> m_parents;
     std::unordered_map<std::string, nlohmann::json> m_configFiles;
+
+    // record installed apps and their start time
+    std::unordered_map<Ptr<Application>, Time> m_installedApps;
 };
 
 //**********************************************************************
@@ -137,6 +139,8 @@ class CybertwinEndHost : public CybertwinNode
     void SetCybertwinStatus(bool);
     bool isCybertwinCreated();
 
+    Ptr<CybertwinEndHostDaemon> GetEndHostDaemon();
+
   private:
     // private member variables
     CYBERTWINID_t m_cybertwinId;
@@ -144,6 +148,7 @@ class CybertwinEndHost : public CybertwinNode
     bool m_isConnected;
 
     Ptr<Socket> m_cybertwinSocket;
+    Ptr<CybertwinEndHostDaemon> m_cybertwinEndHostDaemon;
 };
 
 } // namespace ns3

@@ -125,6 +125,10 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
+
+        // Set constant position for the core cloud nodes
+        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
+        n->AggregateObject(mobility);
     }
 
     // create links between the core cloud nodes
@@ -186,6 +190,8 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
     // Here we go through all the nodes in the edge cloud, create
     // the Cybertwin edge server and connect the edge servers to
     // the core cloud nodes
+    Vector pos(0, 0, 0);
+
     for (const auto& node : edgeCloudConfig["nodes"])
     {
         // Parse node information and create the Cybertwin edge server
@@ -211,6 +217,12 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
+
+        // Set constant position for the edge cloud nodes
+        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
+        pos = pos + Vector(0, 0, 1);
+        mobility->SetPosition(pos);
+        n->AggregateObject(mobility);
 
         // connect to the core cloud nodes
         for (auto link : nodeInfo->links)
@@ -387,6 +399,10 @@ CybertwinTopologyReader::CreateCsmaNetwork(NodeInfo* csma, Ptr<Node>& leader)
         Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(n);
         endHost->SetName(nodeName);
         m_nodeName2Ptr[nodeName] = n;
+
+        // Set constant position for the end cluster nodes
+        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
+        n->AggregateObject(mobility);
     }
 
     // Install CSMA devices
@@ -609,8 +625,6 @@ CybertwinTopologyReader::Read()
 
     // Output Nodes
     ShowNetworkTopology();
-
-    // read applications
 
     return m_nodes;
 }

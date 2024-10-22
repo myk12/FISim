@@ -195,6 +195,8 @@ private:
     std::unordered_map<STREAMID_t, Ptr<Socket>> m_pendingConnections;   //pending connections
     std::unordered_map<Ptr<Socket>, STREAMID_t> m_pendingConnectionsReverse;
 
+    std::string m_nodeName;
+
 private:
     // private member data    
     CYBERTWINID_t m_cybertwinId;
@@ -270,8 +272,6 @@ private:
     Time m_startShapingTime;
     Time m_lastTime;
     Time m_endTime;
-
-    //TODO: delete this
 };
 
 }; // namespace ns3

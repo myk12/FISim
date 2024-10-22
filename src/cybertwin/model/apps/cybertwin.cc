@@ -41,13 +41,16 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
 
 Cybertwin::~Cybertwin()
 {
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Destroy Cybertwin : " << m_cybertwinId);
 }
 
 void
 Cybertwin::StartApplication()
 {
-    NS_LOG_FUNCTION("Cybertwin[" << m_cybertwinId << "] Start up.");
+    // get node name
+    m_nodeName = GetNode()->GetObject<CybertwinNode>()->GetName();
 
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Start Cybertwin : " << m_cybertwinId);
     // start listen at local port
     Simulator::ScheduleNow(&Cybertwin::LocallyListen, this);
 
@@ -70,6 +73,7 @@ void
 Cybertwin::StopApplication()
 {
     NS_LOG_FUNCTION(m_cybertwinId);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Stop Cybertwin : " << m_cybertwinId);
     for (auto it = m_streamBuffer.begin(); it != m_streamBuffer.end(); ++it)
     {
         it->first->Close();
@@ -97,8 +101,7 @@ Cybertwin::DoDispose()
 void
 Cybertwin::LocallyListen()
 {
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: starts listening locally at "
-                              << m_localInterface.first << ":" << m_localInterface.second);
+    NS_LOG_DEBUG("["<< Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Cybertwin starts listening at local port " << m_localInterface.second);
     if (!m_localSocket)
     {
         m_localSocket =
@@ -110,7 +113,7 @@ Cybertwin::LocallyListen()
         InetSocketAddress(m_localInterface.first, m_localInterface.second);
     if (m_localSocket->Bind(localAddr) < 0)
     {
-        NS_LOG_ERROR("Failed to bind local socket to " << localAddr);
+        NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Failed to bind local socket");
         return;
     }
 
@@ -153,9 +156,23 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
 {
     Ptr<Packet> packet;
     Address from;
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Receive packet from local host");
 
     while ((packet = socket->RecvFrom(from)))
     {
+        CybertwinHeader header;
+        packet->RemoveHeader(header);
+
+        // get command
+        CybertwinCommand_t cmd = (CybertwinCommand_t)header.GetCommand();
+        if (cmd == ENDHOST_REQUEST_DOWNLOAD) {
+            // download file
+            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Download file from end host");
+        }else {
+            NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Unknown command");
+        }
+
+#if 0
         if (packet->GetSize() == 0)
         {
             NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: receive empty packet, close socket");
@@ -253,6 +270,7 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
             buffer.pop();
         }
         Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, streamId);
+#endif
     }
 }
 

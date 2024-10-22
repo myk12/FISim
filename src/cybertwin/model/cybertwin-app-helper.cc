@@ -1,8 +1,8 @@
 #include "ns3/cybertwin-app-helper.h"
 
 #include "ns3/cybertwin-node.h"
-#include "ns3/download-client.h"
-#include "ns3/download-server.h"
+#include "ns3/cybertwin-app-download-client.h"
+#include "ns3/cybertwin-app-download-server.h"
 
 namespace ns3
 {
@@ -29,13 +29,13 @@ namespace ns3
         NS_LOG_INFO("Installing download client on node " << node->GetId());
         uint32_t startDelay = parameters["start-delay"].as<uint32_t>();
         CYBERTWINID_t targetId = parameters["target-cybertwin-id"].as<CYBERTWINID_t>();
-    
 
-        Ptr<DownloadClient> downloadclient = CreateObject<DownloadClient>();
-        downloadclient->AddTargetServer(targetId, 100);
+        Ptr<CybertwinAppDownloadClient> downloadClient = CreateObject<CybertwinAppDownloadClient>();
+        downloadClient->SetAttribute("TargetCybertwinId", UintegerValue(targetId));
+        node->AddApplication(downloadClient);
 
-        downloadclient->SetStartTime(Simulator::Now() + Seconds(startDelay));
-        node->AddApplication(downloadclient);
+        Ptr<CybertwinNode> cybertwinNode = DynamicCast<CybertwinNode>(node);
+        cybertwinNode->AddInstalledApp(downloadClient, Seconds(startDelay));
     }
 
     /**
@@ -63,9 +63,8 @@ namespace ns3
             NS_LOG_DEBUG("interface: " << ip << ":" << cybertwinPort);
         }
 
-        Ptr<DownloadServer> downloadServer = CreateObject<DownloadServer>(cybertwinId, interfaces);
+        Ptr<CybertwinAppDownloadServer> downloadServer = CreateObject<CybertwinAppDownloadServer>(cybertwinId, interfaces);
         downloadServer->SetAttribute("CybertwinID", UintegerValue(cybertwinId));
-        downloadServer->SetStartTime(Simulator::Now() + Seconds(startDelay));
         // Convert a human-readable string representation of size into 
         // an integer representing the size in bytes.
         uint32_t maxSizeBytes = 0;
@@ -82,8 +81,8 @@ namespace ns3
             maxSizeBytes = std::stoi(maxSize);
         }
         downloadServer->SetAttribute("MaxBytes", UintegerValue(maxSizeBytes));
-
         node->AddApplication(downloadServer);
+        cybertwinNode->AddInstalledApp(downloadServer, Seconds(startDelay));
     }
 
     /**

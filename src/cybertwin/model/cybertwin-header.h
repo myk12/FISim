@@ -19,6 +19,9 @@ enum CybertwinCommand_t
     CREATE_STREAM,
     ENDHOST_STOP_STREAM,
     ENDHOST_START_STREAM,
+
+    // End Host Request Download
+    ENDHOST_REQUEST_DOWNLOAD,
 };
 
 class CybertwinHeader : public Header
