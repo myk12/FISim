@@ -1,5 +1,6 @@
-#include "cybertwin.h"
+#include "ns3/cybertwin.h"
 
+#include "ns3/cybertwin-header.h"
 #include "ns3/pointer.h"
 #include "ns3/simulator.h"
 #include "ns3/uinteger.h"
@@ -41,7 +42,8 @@ Cybertwin::Cybertwin(CYBERTWINID_t cuid,
 
 Cybertwin::~Cybertwin()
 {
-    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Destroy Cybertwin : " << m_cybertwinId);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Destroy Cybertwin : " << m_cybertwinId);
 }
 
 void
@@ -50,12 +52,13 @@ Cybertwin::StartApplication()
     // get node name
     m_nodeName = GetNode()->GetObject<CybertwinNode>()->GetName();
 
-    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Start Cybertwin : " << m_cybertwinId);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Start Cybertwin : " << m_cybertwinId);
     // start listen at local port
     Simulator::ScheduleNow(&Cybertwin::LocallyListen, this);
 
     // start forwarding local packets
-    //Simulator::ScheduleNow(&Cybertwin::LocallyForward, this);
+    // Simulator::ScheduleNow(&Cybertwin::LocallyForward, this);
 
     // start listen at global ports
     Simulator::ScheduleNow(&Cybertwin::GloballyListen, this);
@@ -73,7 +76,8 @@ void
 Cybertwin::StopApplication()
 {
     NS_LOG_FUNCTION(m_cybertwinId);
-    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Stop Cybertwin : " << m_cybertwinId);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Stop Cybertwin : " << m_cybertwinId);
     for (auto it = m_streamBuffer.begin(); it != m_streamBuffer.end(); ++it)
     {
         it->first->Close();
@@ -101,7 +105,8 @@ Cybertwin::DoDispose()
 void
 Cybertwin::LocallyListen()
 {
-    NS_LOG_DEBUG("["<< Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Cybertwin starts listening at local port " << m_localInterface.second);
+    NS_LOG_DEBUG("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                     << "]: Cybertwin starts listening at local port " << m_localInterface.second);
     if (!m_localSocket)
     {
         m_localSocket =
@@ -113,7 +118,8 @@ Cybertwin::LocallyListen()
         InetSocketAddress(m_localInterface.first, m_localInterface.second);
     if (m_localSocket->Bind(localAddr) < 0)
     {
-        NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Failed to bind local socket");
+        NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                         << "]: Failed to bind local socket");
         return;
     }
 
@@ -156,20 +162,25 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
 {
     Ptr<Packet> packet;
     Address from;
-    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Receive packet from local host");
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Receive packet from local host");
 
     while ((packet = socket->RecvFrom(from)))
     {
-        CybertwinHeader header;
+        EndHostHeader header;
         packet->RemoveHeader(header);
 
-        // get command
-        CybertwinCommand_t cmd = (CybertwinCommand_t)header.GetCommand();
-        if (cmd == ENDHOST_REQUEST_DOWNLOAD) {
-            // download file
-            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Download file from end host");
-        }else {
-            NS_LOG_ERROR("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Unknown command");
+        EndHostCommand_t cmd = (EndHostCommand_t)header.GetCommand();
+        if (cmd == DOWNLOAD_REQUEST)
+        {
+            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                            << "]: Receive download request from local host");
+            // send download response
+        }
+        else
+        {
+            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                            << "]: Receive unknown command from local host");
         }
 
 #if 0
@@ -315,7 +326,7 @@ Cybertwin::LocallyForward()
                              << streamIdx << " at " << Simulator::Now());
     STREAMID_t streamId = m_txStreamBufferOrder[streamIdx];
     Simulator::ScheduleNow(&Cybertwin::SendPendingPackets, this, streamId);
-    //Simulator::Schedule(MilliSeconds(10), &Cybertwin::LocallyForward, this);
+    // Simulator::Schedule(MilliSeconds(10), &Cybertwin::LocallyForward, this);
 }
 
 void
@@ -369,9 +380,10 @@ Cybertwin::SendPendingPackets(STREAMID_t streamId)
 #else
         conn = Socket::CreateSocket(GetNode(), TcpSocketFactory::GetTypeId());
         conn->Bind();
-        m_cnrs->GetCybertwinInterfaceByName(GET_PEERID_FROM_STREAMID(streamId),
-                                            MakeCallback(&Cybertwin::SocketConnectWithResolvedCybertwinName, this, conn));
-        
+        m_cnrs->GetCybertwinInterfaceByName(
+            GET_PEERID_FROM_STREAMID(streamId),
+            MakeCallback(&Cybertwin::SocketConnectWithResolvedCybertwinName, this, conn));
+
         m_pendingConnectionsReverse[conn] = streamId;
 #endif
 
@@ -394,13 +406,15 @@ Cybertwin::SocketConnectWithResolvedCybertwinName(Ptr<Socket> socket,
 
     // TODO: a reasonable way to select an interface
     InetSocketAddress peeraddr = InetSocketAddress(ifs.at(0).first, ifs.at(0).second);
-    NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: connecting to " << ifs.at(0).first << ":" << ifs.at(0).second);
+    NS_LOG_DEBUG("--[Edge-#" << m_cybertwinId << "]: connecting to " << ifs.at(0).first << ":"
+                             << ifs.at(0).second);
     socket->SetConnectCallback(MakeCallback(&Cybertwin::NewSpConnectionCreatedCallback, this),
-                                MakeCallback(&Cybertwin::NewSpConnectionErrorCallback, this));
+                               MakeCallback(&Cybertwin::NewSpConnectionErrorCallback, this));
     socket->SetRecvCallback(MakeCallback(&Cybertwin::SpConnectionRecvCallback, this));
-    if(socket->Connect(peeraddr) < 0)
+    if (socket->Connect(peeraddr) < 0)
     {
-        NS_LOG_ERROR("[Cybertwin] Failed to connect to " << peeraddr << " with error " << socket->GetErrno());
+        NS_LOG_ERROR("[Cybertwin] Failed to connect to " << peeraddr << " with error "
+                                                         << socket->GetErrno());
     }
 }
 
@@ -427,13 +441,17 @@ Cybertwin::CybertwinCommModelStatistical()
     double speed = intervalBytes * 8.0 / interval.GetSeconds() / 1000000.0; // Mbps
 
     // report thoughput
-    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
-                << " ms, throughput = " << speed << " Mbps" << std::endl;
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at "
+                << (now - m_startShapingTime).GetMilliSeconds() << " ms, throughput = " << speed
+                << " Mbps" << std::endl;
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at "
+                              << (now - m_startShapingTime).GetMilliSeconds()
                               << " ms, throughput = " << speed << " Mbps");
 
     // schedule next report
-    Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS), &Cybertwin::CybertwinCommModelStatistical, this);
+    Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS),
+                        &Cybertwin::CybertwinCommModelStatistical,
+                        this);
 }
 
 #if MDTP_ENABLED
@@ -582,7 +600,7 @@ Cybertwin::NewSpConnectionCreatedCallback(Ptr<Socket> sock)
         m_rxConnectionsReverse[sock] = peeraddr;
         m_rxSizePerSecond[sock] = 0;
 
-        //Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, sock);
+        // Simulator::ScheduleNow(&Cybertwin::CybertwinServerBulkSend, this, sock);
     }
 
     sock->SetRecvCallback(MakeCallback(&Cybertwin::SpConnectionRecvCallback, this));
@@ -601,8 +619,6 @@ Cybertwin::SpConnectionRecvCallback(Ptr<Socket> sock)
                               << " with size " << packet->GetSize() << " bytes");
         // TODO: what to do next? Send to client or save to buffer.
         m_rxSizePerSecond[sock] += packet->GetSize();
-
-
     }
 }
 
@@ -663,7 +679,7 @@ Cybertwin::GloballyListen()
 }
 
 //***************************************************************************************
-//*                    Cybertwin Comm model Traffic Shaping                             *  
+//*                    Cybertwin Comm model Traffic Shaping                             *
 //***************************************************************************************
 
 /**
@@ -674,17 +690,22 @@ void
 Cybertwin::CybertwinCommModelTrafficShaping()
 {
     double thoughput = TRAFFIC_SHAPING_LIMIT_THROUGHPUT;
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: traffic shaping with speed " << thoughput << " Mbps");
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: traffic shaping with speed " << thoughput
+                              << " Mbps");
     // schedule a timer to generate token
-    double interval_millisecond = (1 / ((thoughput * 1000000.0) / (515.0 * 8))) * 1000000.0; // 计算token生成间隔
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: token generate interval is " << interval_millisecond << " us");
+    double interval_millisecond =
+        (1 / ((thoughput * 1000000.0) / (515.0 * 8))) * 1000000.0; // 计算token生成间隔
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: token generate interval is "
+                              << interval_millisecond << " us");
     Simulator::ScheduleNow(&Cybertwin::GenerateToken, this, interval_millisecond);
 
     // schedule a timer to consume token
     Simulator::ScheduleNow(&Cybertwin::ConsumeToken, this);
 
     // schedule a statistic timer
-    Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS), &Cybertwin::TrafficShapingStatistical, this);
+    Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS),
+                        &Cybertwin::TrafficShapingStatistical,
+                        this);
 }
 
 void
@@ -692,7 +713,8 @@ Cybertwin::GenerateToken(double interval)
 {
     m_tokenBucket++;
     NS_LOG_LOGIC("Cybertwin[" << m_cybertwinId << "]: token bucket size is " << m_tokenBucket);
-    m_tokenGeneratorEvent = Simulator::Schedule(MicroSeconds(interval), &Cybertwin::GenerateToken, this, interval);
+    m_tokenGeneratorEvent =
+        Simulator::Schedule(MicroSeconds(interval), &Cybertwin::GenerateToken, this, interval);
 }
 
 void
@@ -701,19 +723,20 @@ Cybertwin::ConsumeToken()
     if (m_statisticalEnd && m_tsPktQueue.empty())
     {
         StopTrafficShaping();
-        return ;
+        return;
     }
     if (m_tokenBucket > 0 && !m_tsPktQueue.empty())
     {
         m_tokenBucket--;
         NS_LOG_LOGIC("Cybertwin[" << m_cybertwinId << "]: token bucket size is " << m_tokenBucket);
         Ptr<Packet> pkt = m_tsPktQueue.front();
-        m_consumeBytes +=  pkt->GetSize();
+        m_consumeBytes += pkt->GetSize();
         m_tsPktQueue.pop();
-    }else
+    }
+    else
     {
         NS_LOG_LOGIC("Cybertwin[" << m_cybertwinId << "]: token bucket size is " << m_tokenBucket
-                                   << ", pkt queue size is " << m_tsPktQueue.size());
+                                  << ", pkt queue size is " << m_tsPktQueue.size());
     }
 
     // try to consume every 1us
@@ -728,12 +751,16 @@ Cybertwin::TrafficShapingStatistical()
     m_lastShapingTime = now;
 
     double thoughput = m_consumeBytes * 8 / interval.GetSeconds() / 1000000.0; // Mbps
-    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at "
+                << (now - m_startShapingTime).GetMilliSeconds()
                 << " ms, traffic shaping thoughput is " << thoughput << " Mbps" << std::endl;
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startShapingTime).GetMilliSeconds()
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at "
+                              << (now - m_startShapingTime).GetMilliSeconds()
                               << " ms, traffic shaping thoughput is " << thoughput << " Mbps");
     m_consumeBytes = 0;
-    m_statisticalEvent = Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS), &Cybertwin::TrafficShapingStatistical, this);
+    m_statisticalEvent = Simulator::Schedule(MilliSeconds(STATISTIC_INTERVAL_MILLISECONDS),
+                                             &Cybertwin::TrafficShapingStatistical,
+                                             this);
 }
 
 void
@@ -771,14 +798,18 @@ Cybertwin::CCMTrafficPolicingConsumePacket()
         m_lastTpStartTime = currTime;
         m_intervalTpBytes = 0;
 
-        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10),
+                                               &Cybertwin::CCMTrafficPolicingConsumePacket,
+                                               this);
         return;
     }
 
     // calculate current average thoughput
     if (m_tpPktQueue.empty())
     {
-        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+        m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10),
+                                               &Cybertwin::CCMTrafficPolicingConsumePacket,
+                                               this);
         return;
     }
 
@@ -787,20 +818,23 @@ Cybertwin::CCMTrafficPolicingConsumePacket()
     uint32_t pktSize = pkt->GetSize();
     Time interval = Simulator::Now() - m_lastTpStartTime;
 
-    double intervalThroughput = ((m_intervalTpBytes + pktSize) * 8) / (interval.GetSeconds()) / 1000000.0; // Mbps
+    double intervalThroughput =
+        ((m_intervalTpBytes + pktSize) * 8) / (interval.GetSeconds()) / 1000000.0; // Mbps
     if (intervalThroughput < TRAFFIC_POLICING_LIMIT_THROUGHPUT)
     {
         // consume
         m_tpTotalConsumeBytes += pktSize;
         m_intervalTpBytes += pktSize;
-    }else
+    }
+    else
     {
         // drop pkt
         m_tpTotalDropedBytes += pktSize;
     }
 
     // Schedule next consume
-    m_tpConsumeEvent = Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
+    m_tpConsumeEvent =
+        Simulator::Schedule(MicroSeconds(10), &Cybertwin::CCMTrafficPolicingConsumePacket, this);
 }
 
 void
@@ -814,16 +848,22 @@ Cybertwin::CCMTrafficPolicingStatistical()
         return;
     }
 
-    double throughput = (m_tpTotalConsumeBytes * 8) / ((now - m_lastTpStaticTime).GetSeconds()) / 1000000.0; // Mbps
-    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startPolicingTime).GetMilliSeconds()
+    double throughput =
+        (m_tpTotalConsumeBytes * 8) / ((now - m_lastTpStaticTime).GetSeconds()) / 1000000.0; // Mbps
+    NS_LOG_DEBUG("Cybertwin[" << m_cybertwinId << "]: at "
+                              << (now - m_startPolicingTime).GetMilliSeconds()
                               << " ms, traffic policing thoughput is " << throughput << " Mbps");
-    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at " << (now - m_startPolicingTime).GetMilliSeconds()
+    m_logStream << "Cybertwin[" << m_cybertwinId << "]: at "
+                << (now - m_startPolicingTime).GetMilliSeconds()
                 << " ms, traffic policing thoughput is " << throughput << " Mbps" << std::endl;
     m_lastTpStaticTime = now;
     m_tpTotalConsumeBytes = 0;
-    
+
     // schedule next
-    m_tpStatisticEvent = Simulator::Schedule(MilliSeconds(CYBERTWIN_COMM_MODEL_STAT_INTERVAL_MILLISECONDS), &Cybertwin::CCMTrafficPolicingStatistical, this);
+    m_tpStatisticEvent =
+        Simulator::Schedule(MilliSeconds(CYBERTWIN_COMM_MODEL_STAT_INTERVAL_MILLISECONDS),
+                            &Cybertwin::CCMTrafficPolicingStatistical,
+                            this);
 }
 
 void
@@ -857,10 +897,10 @@ CybertwinFullDuplexStream::GetTypeId(void)
                           MakeDoubleAccessor(&CybertwinFullDuplexStream::m_cloudRateLimit),
                           MakeDoubleChecker<double>())
             .AddAttribute("EndRateLimit",
-                            "The rate limit of end to cloud",
-                            DoubleValue(100),
-                            MakeDoubleAccessor(&CybertwinFullDuplexStream::m_endRateLimit),
-                            MakeDoubleChecker<double>());
+                          "The rate limit of end to cloud",
+                          DoubleValue(100),
+                          MakeDoubleAccessor(&CybertwinFullDuplexStream::m_endRateLimit),
+                          MakeDoubleChecker<double>());
     return tid;
 }
 
@@ -870,9 +910,9 @@ CybertwinFullDuplexStream::CybertwinFullDuplexStream()
 }
 
 CybertwinFullDuplexStream::CybertwinFullDuplexStream(Ptr<Node> node,
-                                                    Ptr<NameResolutionService> cnrs,
-                                                    CYBERTWINID_t end,
-                                                    CYBERTWINID_t cloud)
+                                                     Ptr<NameResolutionService> cnrs,
+                                                     CYBERTWINID_t end,
+                                                     CYBERTWINID_t cloud)
 {
     NS_LOG_FUNCTION(this);
     m_node = node;
@@ -888,7 +928,7 @@ CybertwinFullDuplexStream::~CybertwinFullDuplexStream()
     NS_LOG_FUNCTION(this);
 }
 
-void 
+void
 CybertwinFullDuplexStream::Activate()
 {
     NS_LOG_FUNCTION(this);
@@ -905,25 +945,33 @@ CybertwinFullDuplexStream::Activate()
     {
         m_endStatus = ENDPOINT_DISCONNECTED;
         NS_LOG_ERROR("[CybertwinFullDuplexStream] End socket is null");
-        //TODO: connect to end
+        // TODO: connect to end
         return;
-    }else
+    }
+    else
     {
         m_endStatus = ENDPOINT_CONNECTED;
-        m_endSocket->SetRecvCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndRecvCallback, this));
-        m_endSocket->SetCloseCallbacks(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndNormalCloseCallback, this),
-                                       MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndErrorCloseCallback, this));
+        m_endSocket->SetRecvCallback(
+            MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndRecvCallback, this));
+        m_endSocket->SetCloseCallbacks(
+            MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndNormalCloseCallback, this),
+            MakeCallback(&CybertwinFullDuplexStream::DuplexStreamEndErrorCloseCallback, this));
     }
 
     if (m_cloudSocket == nullptr)
     {
         m_cloudStatus = ENDPOINT_CONNECTING;
-        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud socket is null, try to resolve " << m_cloudID);
-        m_cnrs->GetCybertwinInterfaceByName(m_cloudID, MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnect, this));
-    }else
+        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud socket is null, try to resolve "
+                     << m_cloudID);
+        m_cnrs->GetCybertwinInterfaceByName(
+            m_cloudID,
+            MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnect, this));
+    }
+    else
     {
         m_cloudStatus = ENDPOINT_CONNECTED;
-        m_cloudSocket->SetRecvCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback, this));
+        m_cloudSocket->SetRecvCallback(
+            MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback, this));
     }
 }
 
@@ -950,11 +998,13 @@ CybertwinFullDuplexStream::DuplexStreamEndErrorCloseCallback(Ptr<Socket> sock)
 }
 
 void
-CybertwinFullDuplexStream::DuplexStreamCloudConnect(CYBERTWINID_t cuid, CYBERTWIN_INTERFACE_LIST_t itfs)
+CybertwinFullDuplexStream::DuplexStreamCloudConnect(CYBERTWINID_t cuid,
+                                                    CYBERTWIN_INTERFACE_LIST_t itfs)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_DEBUG("[CybertwinFullDuplexStream] Resolve " << cuid << " to " << itfs.size() << " interfaces");
-    //now choose the first interface
+    NS_LOG_DEBUG("[CybertwinFullDuplexStream] Resolve " << cuid << " to " << itfs.size()
+                                                        << " interfaces");
+    // now choose the first interface
     if (itfs.size() == 0)
     {
         NS_LOG_ERROR("[CybertwinFullDuplexStream] No interface found for " << cuid);
@@ -967,8 +1017,9 @@ CybertwinFullDuplexStream::DuplexStreamCloudConnect(CYBERTWINID_t cuid, CYBERTWI
         m_cloudSocket = Socket::CreateSocket(m_node, TypeId::LookupByName("ns3::TcpSocketFactory"));
     }
     m_cloudSocket->Bind();
-    m_cloudSocket->SetConnectCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnectCallback, this),
-                                      MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnectErrorCallback, this));
+    m_cloudSocket->SetConnectCallback(
+        MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnectCallback, this),
+        MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudConnectErrorCallback, this));
     m_cloudSocket->Connect(InetSocketAddress(cloudIf.first, cloudIf.second));
 }
 
@@ -978,9 +1029,11 @@ CybertwinFullDuplexStream::DuplexStreamCloudConnectCallback(Ptr<Socket> sock)
     NS_LOG_FUNCTION(this);
     NS_LOG_DEBUG("[CybertwinFullDuplexStream] Cloud connected");
     m_cloudStatus = ENDPOINT_CONNECTED;
-    m_cloudSocket->SetRecvCallback(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback, this));
-    m_cloudSocket->SetCloseCallbacks(MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudNormalCloseCallback, this),
-                                     MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudErrorCloseCallback, this));
+    m_cloudSocket->SetRecvCallback(
+        MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback, this));
+    m_cloudSocket->SetCloseCallbacks(
+        MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudNormalCloseCallback, this),
+        MakeCallback(&CybertwinFullDuplexStream::DuplexStreamCloudErrorCloseCallback, this));
 }
 
 void
@@ -1038,17 +1091,20 @@ CybertwinFullDuplexStream::DuplexStreamEndRecvCallback(Ptr<Socket> sock)
                 {
                     Simulator::Cancel(m_sendToEndEvent);
                 }
-            }else if (ENDHOST_START_STREAM == header.GetCommand())
+            }
+            else if (ENDHOST_START_STREAM == header.GetCommand())
             {
                 NS_LOG_INFO("[CybertwinFullDuplexStream] Received start request from end");
                 m_endStatus = ENDPOINT_CONNECTED;
-                m_sendToEndEvent = Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputCloudBuffer, this);
+                m_sendToEndEvent =
+                    Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputCloudBuffer, this);
             }
 
             continue;
         }
 
-        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Received packet from end with size " << pkt->GetSize());
+        NS_LOG_DEBUG("[CybertwinFullDuplexStream] Received packet from end with size "
+                     << pkt->GetSize());
         if (m_endBuffer.size() > 100000)
         {
             NS_LOG_ERROR("[CybertwinFullDuplexStream] End buffer is full, drop packet");
@@ -1060,7 +1116,8 @@ CybertwinFullDuplexStream::DuplexStreamEndRecvCallback(Ptr<Socket> sock)
     // send to cloud
     if (!m_sendToCloudEvent.IsRunning())
     {
-        m_sendToCloudEvent = Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputEndBuffer, this);
+        m_sendToCloudEvent =
+            Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputEndBuffer, this);
     }
 }
 
@@ -1073,7 +1130,8 @@ CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback(Ptr<Socket> sock)
     Ptr<Packet> pkt;
     while ((pkt = sock->Recv()))
     {
-        NS_LOG_INFO("[CybertwinFullDuplexStream] Received packet from cloud with size " << pkt->GetSize());
+        NS_LOG_INFO("[CybertwinFullDuplexStream] Received packet from cloud with size "
+                    << pkt->GetSize());
         if (m_cloudBuffer.size() > 100000)
         {
             NS_LOG_ERROR("[CybertwinFullDuplexStream] Cloud buffer is full, drop packet");
@@ -1085,7 +1143,8 @@ CybertwinFullDuplexStream::DuplexStreamCloudRecvCallback(Ptr<Socket> sock)
     // send to end
     if (!m_sendToEndEvent.IsRunning())
     {
-        m_sendToEndEvent = Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputCloudBuffer, this);
+        m_sendToEndEvent =
+            Simulator::ScheduleNow(&CybertwinFullDuplexStream::OuputCloudBuffer, this);
     }
 }
 
@@ -1114,29 +1173,35 @@ CybertwinFullDuplexStream::OuputEndBuffer()
 
     Ptr<Packet> pkt = m_endBuffer.front();
     uint32_t pktSize = pkt->GetSize();
-    
+
     // calculate thoughput must less than 10Mbps
-    double tryThroughput = (m_sendToCloudBytes + pktSize) * 8 / (Simulator::Now() - m_endStartTime).GetSeconds() / 1000000.0;
-    
+    double tryThroughput = (m_sendToCloudBytes + pktSize) * 8 /
+                           (Simulator::Now() - m_endStartTime).GetSeconds() / 1000000.0;
+
     if (tryThroughput >= m_cloudRateLimit)
     {
-        NS_LOG_INFO("[CybertwinFullDuplexStream] End thoughput is " << tryThroughput << " Mbps, wait to send.");
-        m_sendToCloudEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
-    }else
+        NS_LOG_INFO("[CybertwinFullDuplexStream] End thoughput is " << tryThroughput
+                                                                    << " Mbps, wait to send.");
+        m_sendToCloudEvent =
+            Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
+    }
+    else
     {
         int32_t sendSize = m_cloudSocket->Send(pkt);
         if (sendSize <= 0)
         {
             NS_LOG_ERROR("[CybertwinFullDuplexStream] Send to cloud error");
-        }else
+        }
+        else
         {
-            NS_LOG_INFO("[CybertwinFullDuplexStream] Send to cloud " << sendSize << " bytes at " << Simulator::Now());
+            NS_LOG_INFO("[CybertwinFullDuplexStream] Send to cloud " << sendSize << " bytes at "
+                                                                     << Simulator::Now());
             m_sendToCloudBytes += m_cloudSocket->Send(pkt);
             m_endBuffer.pop();
         }
-        m_sendToCloudEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
+        m_sendToCloudEvent =
+            Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputEndBuffer, this);
     }
-    
 }
 
 void
@@ -1147,13 +1212,14 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
     {
         if (m_cloudStatus == ENDPOINT_DONE)
         {
-            NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is empty and cloud is done, stop sending.");
+            NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud buffer is empty and cloud is done, stop "
+                        "sending.");
             if (m_endSocket != nullptr)
             {
                 m_endSocket->Close();
             }
         }
-        return ;
+        return;
     }
 
     if (m_endStatus == ENDPOINT_END_STOP)
@@ -1174,7 +1240,7 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
     if (tryThroughput >= m_cloudRateLimit)
     {
         NS_LOG_INFO("[CybertwinFullDuplexStream] Cloud thoughput is " << tryThroughput
-                                                                       << " Mbps, wait to send.");
+                                                                      << " Mbps, wait to send.");
     }
     else
     {
@@ -1192,7 +1258,8 @@ CybertwinFullDuplexStream::OuputCloudBuffer()
         }
     }
 
-    m_sendToEndEvent = Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
+    m_sendToEndEvent =
+        Simulator::Schedule(MicroSeconds(10), &CybertwinFullDuplexStream::OuputCloudBuffer, this);
 }
 
 void

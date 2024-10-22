@@ -125,10 +125,6 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
-
-        // Set constant position for the core cloud nodes
-        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
-        n->AggregateObject(mobility);
     }
 
     // create links between the core cloud nodes
@@ -217,12 +213,6 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
-
-        // Set constant position for the edge cloud nodes
-        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
-        pos = pos + Vector(0, 0, 1);
-        mobility->SetPosition(pos);
-        n->AggregateObject(mobility);
 
         // connect to the core cloud nodes
         for (auto link : nodeInfo->links)
@@ -478,7 +468,9 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
     NetDeviceContainer apDevices;
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
     apDevices = wifiHelper.Install(phy, mac, apNode);
-    NS_LOG_INFO("Ssid " << ssid << "\n" << "AP devices: " << apDevices.GetN() << "\n" << "STA devices: " << staDevices.GetN());
+    NS_LOG_INFO("Ssid " << ssid << "\n"
+                        << "AP devices: " << apDevices.GetN() << "\n"
+                        << "STA devices: " << staDevices.GetN());
 
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
@@ -499,7 +491,6 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
                               "Bounds",
                               RectangleValue(Rectangle(-50, 50, -50, 50)));
     mobility.Install(staNodes);
-
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(apNode);
 
@@ -564,7 +555,8 @@ CybertwinTopologyReader::ShowNetworkTopology()
         NS_LOG_INFO("Node: " << node->name);
         for (auto link : node->links)
         {
-            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay << " " << link.network);
+            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay
+                                   << " " << link.network);
         }
     }
 
@@ -574,12 +566,13 @@ CybertwinTopologyReader::ShowNetworkTopology()
         NS_LOG_INFO("Node: " << node->name);
         for (auto link : node->links)
         {
-            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay << " " << link.network);
+            NS_LOG_INFO("  Link: " << link.target << " " << link.data_rate << " " << link.delay
+                                   << " " << link.network);
         }
     }
 
     NS_LOG_INFO("End Cluster:");
-    for (uint32_t i=0; i<m_endNodes.GetN(); i++)
+    for (uint32_t i = 0; i < m_endNodes.GetN(); i++)
     {
         Ptr<CybertwinEndHost> endHost = DynamicCast<CybertwinEndHost>(m_endNodes.Get(i));
         NS_LOG_INFO("Node: " << endHost->GetName());
@@ -628,7 +621,6 @@ CybertwinTopologyReader::Read()
 
     return m_nodes;
 }
-
 
 // Install applications
 void
@@ -686,7 +678,7 @@ CybertwinTopologyReader::InstallApplications()
         {
             nodes.push_back(node.as<std::string>());
         }
-        
+
         // install the application on the nodes
         NodeContainer targetNodes;
         for (const auto& nodeName : nodes)

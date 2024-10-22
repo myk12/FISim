@@ -10,7 +10,7 @@ namespace ns3
 
 enum CybertwinCommand_t
 {
-    HOST_CONNECT = 96,
+    HOST_CONNECT,
     HOST_DISCONNECT,
     CYBERTWIN_CONNECT_SUCCESS,
     CYBERTWIN_CONNECT_ERROR,
@@ -70,6 +70,39 @@ class CybertwinHeader : public Header
 
     // QoS
     uint8_t m_recvRate; //Mbps
+};
+
+
+//************************************************************************
+//*                     End Host Header
+//************************************************************************
+typedef enum
+{
+    ENDHOST_HEARTBEAT = 0,
+    DOWNLOAD_REQUEST,
+}EndHostCommand_t;
+
+class EndHostHeader : public Header
+{
+  public:
+    EndHostHeader();
+    static TypeId GetTypeId();
+    TypeId GetInstanceTypeId() const override;
+
+    void Print(std::ostream&) const override;
+    uint32_t GetSerializedSize() const override;
+    void Serialize(Buffer::Iterator) const override;
+    uint32_t Deserialize(Buffer::Iterator) override;
+
+    void SetCommand(EndHostCommand_t command);
+    EndHostCommand_t GetCommand() const;
+
+    void SetTargetID(CYBERTWINID_t targetID);
+    CYBERTWINID_t GetTargetID() const;
+
+  private:
+    uint8_t m_command;
+    CYBERTWINID_t m_targetID;
 };
 
 //************************************************************************

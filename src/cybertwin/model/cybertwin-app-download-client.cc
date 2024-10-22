@@ -60,8 +60,8 @@ CybertwinAppDownloadClient::StartApplication()
 
     NS_LOG_INFO("[" << m_nodeName << "][download-client] Endhost daemon is ready.");
 
-    // Get the manager address
-    m_managerAddr = endHostDaemon->GetManagerAddr();
+    // Get Cybertwin address
+    m_cybertwinAddr = endHostDaemon->GetManagerAddr();
     m_cybertwinPort = endHostDaemon->GetCybertwinPort();
 
     // Create socket and connect to cybertwin
@@ -76,9 +76,9 @@ CybertwinAppDownloadClient::StartApplication()
         MakeCallback(&CybertwinAppDownloadClient::NormalCloseCallback, this),
         MakeCallback(&CybertwinAppDownloadClient::ErrorCloseCallback, this));
     
-    InetSocketAddress managerAddr = InetSocketAddress(m_managerAddr, m_cybertwinPort);
+    InetSocketAddress managerAddr = InetSocketAddress(m_cybertwinAddr, m_cybertwinPort);
  
-    NS_LOG_INFO("[" << m_nodeName << "][download-client] Connecting to CybertwinManager at " << m_managerAddr << ":" << m_cybertwinPort);
+    NS_LOG_INFO("[" << m_nodeName << "][download-client] connecting to " << m_cybertwinAddr << ":" << m_cybertwinPort);
     m_socket->Connect(managerAddr);
 }
 
@@ -148,15 +148,12 @@ CybertwinAppDownloadClient::SendDownloadRequest(Ptr<Socket> socket)
 
     // Create a packet
     Ptr<Packet> packet = Create<Packet>();
+    EndHostHeader endHostHeader;
+    endHostHeader.SetCommand(DOWNLOAD_REQUEST);
+    endHostHeader.SetTargetID(m_targetCybertwinId);
+    packet->AddHeader(endHostHeader);
 
-    CybertwinHeader header;
-    header.SetSelfID(m_selfCybertwinId);
-    header.SetPeerID(m_targetCybertwinId);
-    header.SetCommand(ENDHOST_REQUEST_DOWNLOAD);
-
-    // Add the header to the packet
-    packet->AddHeader(header);
-    packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - header.GetSerializedSize());
+    packet->AddPaddingAtEnd(SYSTEM_PACKET_SIZE - endHostHeader.GetSerializedSize());
 
     // Send the packet
     socket->Send(packet);

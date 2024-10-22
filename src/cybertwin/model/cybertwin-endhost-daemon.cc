@@ -23,20 +23,21 @@ CybertwinEndHostDaemon::~CybertwinEndHostDaemon()
 TypeId
 CybertwinEndHostDaemon::GetTypeId()
 {
-    static TypeId tid = TypeId("ns3::CybertwinEndHostDaemon")
-                            .SetParent<Application>()
-                            .SetGroupName("Cybertwin")
-                            .AddConstructor<CybertwinEndHostDaemon>()
-                            .AddAttribute("ManagerAddr",
-                                          "Cybertwin Manager address.",
-                                          Ipv4AddressValue(),
-                                          MakeIpv4AddressAccessor(&CybertwinEndHostDaemon::m_managerAddr),
-                                          MakeIpv4AddressChecker())
-                            .AddAttribute("ManagerPort",
-                                          "Manager port.",
-                                          UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT),
-                                          MakeUintegerAccessor(&CybertwinEndHostDaemon::m_managerPort),
-                                          MakeUintegerChecker<uint16_t>());
+    static TypeId tid =
+        TypeId("ns3::CybertwinEndHostDaemon")
+            .SetParent<Application>()
+            .SetGroupName("Cybertwin")
+            .AddConstructor<CybertwinEndHostDaemon>()
+            .AddAttribute("ManagerAddr",
+                          "Cybertwin Manager address.",
+                          Ipv4AddressValue(),
+                          MakeIpv4AddressAccessor(&CybertwinEndHostDaemon::m_managerAddr),
+                          MakeIpv4AddressChecker())
+            .AddAttribute("ManagerPort",
+                          "Manager port.",
+                          UintegerValue(CYBERTWIN_MANAGER_PROXY_PORT),
+                          MakeUintegerAccessor(&CybertwinEndHostDaemon::m_managerPort),
+                          MakeUintegerChecker<uint16_t>());
     return tid;
 }
 
@@ -101,8 +102,9 @@ CybertwinEndHostDaemon::ConnectCybertwinManager()
     m_proxySocket->SetConnectCallback(
         MakeCallback(&CybertwinEndHostDaemon::ConnectCybertwinManangerSucceededCallback, this),
         MakeCallback(&CybertwinEndHostDaemon::ConnectCybertwinManangerFailedCallback, this));
-    
-    NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Connecting to CybertwinManager at " << m_managerAddr << ":" << m_managerPort);
+
+    NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Connecting to CybertwinManager at "
+                    << m_managerAddr << ":" << m_managerPort);
     InetSocketAddress proxyAddr = InetSocketAddress(m_managerAddr, m_managerPort);
     m_proxySocket->Connect(proxyAddr);
 }
@@ -114,7 +116,8 @@ CybertwinEndHostDaemon::ConnectCybertwinManangerSucceededCallback(Ptr<Socket> so
     NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Connect to CybertwinManager succeeded.");
 
     m_isConnectedToCybertwinManager = true;
-    socket->SetRecvCallback(MakeCallback(&CybertwinEndHostDaemon::RecvFromCybertwinManangerCallback, this));
+    socket->SetRecvCallback(
+        MakeCallback(&CybertwinEndHostDaemon::RecvFromCybertwinManangerCallback, this));
     Simulator::ScheduleNow(&CybertwinEndHostDaemon::Authenticate, this);
 }
 
@@ -183,7 +186,9 @@ CybertwinEndHostDaemon::RecvFromCybertwinManangerCallback(Ptr<Socket> socket)
             break;
         }
         default: {
-            NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Received packet from " << InetSocketAddress::ConvertFrom(from).GetIpv4() << " : " << InetSocketAddress::ConvertFrom(from).GetPort());
+            NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Received packet from "
+                            << InetSocketAddress::ConvertFrom(from).GetIpv4() << " : "
+                            << InetSocketAddress::ConvertFrom(from).GetPort());
             break;
         }
         }
@@ -194,8 +199,6 @@ void
 CybertwinEndHostDaemon::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> packet)
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[" << m_nodeName << "][EndHostDaemon] Registration Success.");
-
     CybertwinManagerHeader header;
     packet->RemoveHeader(header);
 
@@ -210,10 +213,14 @@ CybertwinEndHostDaemon::RegisterSuccessHandler(Ptr<Socket> socket, Ptr<Packet> p
     }
 
     // set cybertwin info
-    header.Print(std::cout);
     endHost->SetCybertwinId(header.GetCUID());
     endHost->SetCybertwinPort(header.GetPort());
     endHost->SetCybertwinStatus(true);
+    m_cybertwinId = header.GetCUID();
+    m_cybertwinPort = header.GetPort();
+    m_isRegisteredToCybertwin = true;
+
+    NS_LOG_DEBUG("[" << m_nodeName << "][EndHostDaemon] Registered to Cybertwin : " << header.GetCUID() << " at " << header.GetPort());
 }
 
 void
@@ -230,9 +237,15 @@ CybertwinEndHostDaemon::GetManagerAddr()
 }
 
 uint16_t
-CybertwinEndHostDaemon::GetCybertwinPort()
+CybertwinEndHostDaemon::GetManagerPort()
 {
     return m_managerPort;
+}
+
+uint16_t
+CybertwinEndHostDaemon::GetCybertwinPort()
+{
+    return m_cybertwinPort;
 }
 
 bool

@@ -347,7 +347,7 @@ CybertwinEndHost::GetCybertwinId()
 void
 CybertwinEndHost::SetCybertwinPort(uint16_t port)
 {
-    NS_LOG_DEBUG("[CybertwinEndHost] SetCybertwinPort: " << port);
+    NS_LOG_INFO("[CybertwinEndHost] SetCybertwinPort: " << port);
     m_cybertwinPort = port;
 }
 

@@ -34,7 +34,7 @@ class CybertwinAppDownloadClient : public Application
     void SendDownloadRequest(Ptr<Socket>);
 
     Ptr<CybertwinEndHost> m_endHost;
-    Ipv4Address m_managerAddr;
+    Ipv4Address m_cybertwinAddr;
     uint16_t m_cybertwinPort;
 
     Ptr<Socket> m_socket;

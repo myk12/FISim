@@ -212,11 +212,6 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
         CYBERTWIN_INTERFACE_LIST_t g_interfaces;
         AssignInterfaces(g_interfaces);
 
-        //for (auto interface : g_interfaces)
-        //{
-        //    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "][" << m_nodeName << "]: Assign global address: " << interface.first << ", global port: " << interface.second << " to cybertwin " << name);
-        //}
-
         // create a new cybertwin
         NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Create a new cybertwin " << name);
         Ptr<Cybertwin> cybertwin = CreateObject<Cybertwin>(cuid, l_interface, g_interfaces);
@@ -237,7 +232,6 @@ CybertwinManager::HandleCybertwinRegistration(Ptr<Socket> socket,
     NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "]: Send reply to cybertwin " << name);
     Ptr<Packet> replyPacket = Create<Packet>(0);
     replyPacket->AddHeader(replyHeader);
-    //replyHeader.Print(std::cout);
     socket->Send(replyPacket);
 }
 

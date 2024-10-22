@@ -9,7 +9,7 @@ build_lib(
         helper/cybertwin-helper.cc
         model/apps/cybertwin-app.cc
         model/cybertwin-manager.cc
-        model/apps/cybertwin.cc
+        model/cybertwin.cc
         model/apps/end-host-bulk-send.cc
         model/apps/download-server.cc
         model/apps/download-client.cc
@@ -30,7 +30,7 @@ build_lib(
         helper/cybertwin-helper.h
         model/apps/cybertwin-app.h
         model/cybertwin-manager.h
-        model/apps/cybertwin.h
+        model/cybertwin.h
         model/apps/end-host-bulk-send.h
         model/apps/download-server.h
         model/apps/download-client.h

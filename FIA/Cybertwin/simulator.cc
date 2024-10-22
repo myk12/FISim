@@ -116,6 +116,7 @@ void CybertwinNetworkSimulator::RunSimulator()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[4] Running the simulation...");
+    Simulator::Stop(Seconds(10));
     Simulator::Run();
     NS_LOG_INFO("[4] Simulation completed!");
 }
@@ -135,12 +136,12 @@ int main(int argc, char *argv[])
 {
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
-    LogComponentEnable("CybertwinNode", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinNode", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinAppDownloadClient", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinAppDownloadServer", LOG_LEVEL_INFO);
-    LogComponentEnable("CybertwinEndHostDaemon", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinEndHostDaemon", LOG_LEVEL_DEBUG);
     LogComponentEnable("Cybertwin", LOG_LEVEL_INFO);
-    LogComponentEnable("CybertwinManager", LOG_LEVEL_INFO);
+    LogComponentEnable("CybertwinManager", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinHeader", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
 
@@ -158,6 +159,9 @@ int main(int argc, char *argv[])
 
     // enable netanim
     AnimationInterface anim("cybertwin.xml");
+    //set node images
+    anim.AddResource("/home/ubuntu/FISim/doc/mobile-wifi-icon.png");
+    anim.UpdateNodeImage(0, 0);
 
     // run the simulator
     simulator->RunSimulator();

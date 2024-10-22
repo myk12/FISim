@@ -18,6 +18,7 @@ class CybertwinEndHostDaemon : public Application
     static TypeId GetTypeId();
 
     Ipv4Address GetManagerAddr();
+    uint16_t GetManagerPort();
     uint16_t GetCybertwinPort();
 
     bool IsRegisteredToCybertwin();
@@ -54,6 +55,9 @@ class CybertwinEndHostDaemon : public Application
     bool m_isConnectedToCybertwin;
 
     std::string m_nodeName;
+
+    CYBERTWINID_t m_cybertwinId;
+    uint16_t m_cybertwinPort;
 };
     
 } // namespace ns
