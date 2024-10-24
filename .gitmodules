@@ -4,3 +4,6 @@
 [submodule "thirdparty/yaml-cpp"]
 	path = thirdparty/yaml-cpp
 	url = https://github.com/jbeder/yaml-cpp.git
+[submodule "netanim"]
+	path = netanim
+	url = https://gitlab.com/nsnam/netanim.git
