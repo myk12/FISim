@@ -158,11 +158,98 @@ Cybertwin::LocalErrorCloseCallback(Ptr<Socket> socket)
 }
 
 void
+Cybertwin::StartCybertwinDownloadProcess(Ptr<Socket> socket, CYBERTWINID_t targetID)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Start download process for target " << targetID);
+    // resolve target address
+    m_cnrs->GetCybertwinInterfaceByName(targetID, MakeCallback(&Cybertwin::StartDownloadProcess, this, socket));
+}
+
+void
+Cybertwin::StartDownloadProcess(Ptr<Socket> endHostSock, CYBERTWINID_t targetID, CYBERTWIN_INTERFACE_LIST_t targetInterfaces)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Get Cybertwin resolved address for target " << targetID);
+    
+    // create a new connection
+    Ptr<Socket> socket = Socket::CreateSocket(GetNode(), TypeId::LookupByName("ns3::TcpSocketFactory"));
+    NS_ASSERT(socket != nullptr);
+    m_socketList.push_back(socket);
+
+    InetSocketAddress targetAddr = InetSocketAddress(targetInterfaces[0].first, targetInterfaces[0].second);
+    socket->Connect(targetAddr);
+
+    // Set callbacks
+    socket->SetAcceptCallback(MakeCallback(&Cybertwin::DownloadSocketAcceptCallback, this),
+                                MakeCallback(&Cybertwin::DownloadSocketCreatedCallback, this));
+    socket->SetCloseCallbacks(MakeCallback(&Cybertwin::DownloadSocketNormalCloseCallback, this),
+                              MakeCallback(&Cybertwin::DownloadSocketErrorCloseCallback, this));
+    socket->SetRecvCallback(MakeCallback(&Cybertwin::DownloadSocketRecvCallback, this));
+
+    // Insert to maps
+    m_cloud2endSockMap[socket] = endHostSock;
+    m_end2cloudSockMap[endHostSock] = socket;
+}
+
+void
+Cybertwin::DownloadSocketAcceptCallback(Ptr<Socket> socket, const Address& address)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Accept download connection from " << address);
+}
+
+void
+Cybertwin::DownloadSocketCreatedCallback(Ptr<Socket> socket, const Address& address)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Download connection created with " << address);
+}
+
+void
+Cybertwin::DownloadSocketNormalCloseCallback(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Download connection closed normally");
+}
+
+void
+Cybertwin::DownloadSocketErrorCloseCallback(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Download connection closed with error");
+}
+
+void
+Cybertwin::DownloadSocketRecvCallback(Ptr<Socket> socket)
+{
+    NS_LOG_FUNCTION(this);
+    Ptr<Packet> packet;
+    Address from;
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                    << "]: Receive packet from target host");
+    while ((packet = socket->RecvFrom(from)))
+    {
+        // Get packet and redirect to end host
+        NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+                        << "]: Redirect packet to end host");
+        Ptr<Socket> endHostSock = m_cloud2endSockMap[socket];
+        endHostSock->Send(packet);
+    }
+}
+
+void
 Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
 {
     Ptr<Packet> packet;
     Address from;
-    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+    NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "][Cybertwin" << m_cybertwinId
                     << "]: Receive packet from local host");
 
     while ((packet = socket->RecvFrom(from)))
@@ -173,16 +260,17 @@ Cybertwin::LocalRecvCallback(Ptr<Socket> socket)
         EndHostCommand_t cmd = (EndHostCommand_t)header.GetCommand();
         if (cmd == DOWNLOAD_REQUEST)
         {
-            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
+            NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName << "][" << m_cybertwinId
                             << "]: Receive download request from local host");
             // send download response
+            CYBERTWINID_t targetID = header.GetTargetID();
+            Simulator::ScheduleNow(&Cybertwin::StartCybertwinDownloadProcess, this, socket, targetID);            
         }
         else
         {
             NS_LOG_INFO("[" << Simulator::Now().GetSeconds() << "(s)][" << m_nodeName
                             << "]: Receive unknown command from local host");
         }
-
 #if 0
         if (packet->GetSize() == 0)
         {

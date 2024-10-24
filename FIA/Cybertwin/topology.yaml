@@ -10,6 +10,7 @@ cybertwin_network:
     nodes:
       - name: core_node1
         type: host_server
+        position: [20, 5, 0]
         connections:
           - target: core_node2
             network: 10.0.0.0/8
@@ -23,6 +24,7 @@ cybertwin_network:
     
       - name: core_node2
         type: host_server
+        position: [40, 15, 0]
         connections:
           - target: core_node3
             network: 20.0.0.0/8
@@ -36,6 +38,7 @@ cybertwin_network:
 
       - name: core_node3
         type: host_server
+        position: [60, 5, 0]
         connections:
           - target: core_node4
             network: 30.0.0.0/8
@@ -49,6 +52,7 @@ cybertwin_network:
       
       - name: core_node4
         type: host_server
+        position: [80, 15, 0]
         connections:
           - target: core_node1
             network: 40.0.0.0/8
@@ -68,6 +72,7 @@ cybertwin_network:
     nodes:
       - name: edge_node1
         type: host_server
+        position: [15, 30, 0]
         connections:
           - target: core_node1
             network: 100.10.0.0/16
@@ -76,6 +81,7 @@ cybertwin_network:
 
       - name: edge_node2
         type: host_server
+        position: [25, 30, 0]
         connections:
           - target: core_node1
             network: 100.11.0.0/16
@@ -84,6 +90,7 @@ cybertwin_network:
       
       - name: edge_node3
         type: host_server
+        position: [35, 30, 0]
         connections:
           - target: core_node2
             network: 100.12.0.0/16
@@ -92,6 +99,7 @@ cybertwin_network:
 
       - name: edge_node4
         type: host_server
+        position: [45, 30, 0]
         connections:
           - target: core_node2
             network: 100.13.0.0/16
@@ -100,6 +108,7 @@ cybertwin_network:
       
       - name: edge_node5
         type: host_server
+        position: [55, 30, 0]
         connections:
           - target: core_node3
             network: 100.14.0.0/16
@@ -108,6 +117,7 @@ cybertwin_network:
       
       - name: edge_node6
         type: host_server
+        position: [65, 30, 0]
         connections:
           - target: core_node3
             network: 100.15.0.0/16
@@ -116,6 +126,7 @@ cybertwin_network:
       
       - name: edge_node7
         type: host_server
+        position: [75, 30, 0]
         connections:
           - target: core_node4
             network: 100.16.0.0/16
@@ -124,6 +135,7 @@ cybertwin_network:
 
       - name: edge_node8
         type: host_server
+        position: [85, 30, 0]
         connections:
           - target: core_node4
             network: 100.17.0.0/16
@@ -138,6 +150,7 @@ cybertwin_network:
     nodes:
       - name: access_net1
         type: end_cluster
+        position: [10, 50, 0]
         num_nodes: 4
         network_type: csma
         local_network: 192.168.1.0/24
@@ -149,33 +162,36 @@ cybertwin_network:
       
       - name: access_net2
         type: end_cluster
+        position: [30, 50, 0]
         num_nodes: 4
         network_type: wifi
         local_network: 192.168.2.0/24
         gateways:
-          - target: edge_node2
+          - target: edge_node1
             network: 200.2.0.0/16
             data_rate: 100Mbps
             delay: 20ms
       
       - name: access_net3
         type: end_cluster
+        position: [50, 50, 0]
         num_nodes: 4
         network_type: csma
         local_network: 192.168.3.0/24
         gateways:
-          - target: edge_node3
+          - target: edge_node5
             network: 200.3.0.0/16
             data_rate: 100Mbps
             delay: 20ms
       
       - name: access_net4
         type: end_cluster
+        position: [70, 50, 0]
         num_nodes: 4
         network_type: csma
         local_network: 192.168.4.0/24
         gateways:
-          - target: edge_node4
+          - target: edge_node7
             network: 200.4.0.0/16
             data_rate: 100Mbps
             delay: 20ms

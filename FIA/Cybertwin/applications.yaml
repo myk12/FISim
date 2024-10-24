@@ -10,7 +10,7 @@ applications:
     start_delay: 1
     target_nodes:
       - access_net1_0
-      - access_net1_1
+      - access_net2_0
     parameters:
       - start-delay: 1
         target-cybertwin-id: 1000
@@ -38,4 +38,4 @@ applications:
       - start-delay: 0
         cybertwin-id: 1000
         cybertwin-port: 1000
-        max-size: 100MB
+        max-size: 100KB

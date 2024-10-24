@@ -1,9 +1,3 @@
-#include "ns3/log.h"
-#include "ns3/simulator.h"
-#include "ns3/node-container.h"
-#include "ns3/cybertwin-topology-reader.h"
-#include "ns3/netanim-module.h"
-#include "ns3/ipv4-global-routing-helper.h"
 #include "simulator.h"
 
 namespace ns3
@@ -26,8 +20,10 @@ CybertwinNetworkSimulator::GetTypeId()
 CybertwinNetworkSimulator::CybertwinNetworkSimulator()
 {
     NS_LOG_FUNCTION(this);
-    m_topologyReader.SetFileName("./FIA/Cybertwin/topology.yaml");
-    m_topologyReader.SetAppFiles("./FIA/Cybertwin/applications.yaml");
+    std::string topologyFile = "/home/ubuntu/FISim/FIA/Cybertwin/topology.yaml";
+    std::string appFiles = "/home/ubuntu/FISim/FIA/Cybertwin/applications.yaml";
+    m_topologyReader.SetFileName(topologyFile);
+    m_topologyReader.SetAppFiles(appFiles);
 }
 
 CybertwinNetworkSimulator::~CybertwinNetworkSimulator()
@@ -143,6 +139,7 @@ int main(int argc, char *argv[])
     LogComponentEnable("Cybertwin", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinManager", LOG_LEVEL_DEBUG);
     LogComponentEnable("CybertwinHeader", LOG_LEVEL_INFO);
+    LogComponentEnable("NameResolutionService", LOG_LEVEL_INFO);
     NS_LOG_INFO("-*-*-*-*-*-*- Starting Cybertwin Network Simulator -*-*-*-*-*-*-");
 
     // create the simulator
@@ -158,10 +155,8 @@ int main(int argc, char *argv[])
     simulator->DriverInstallApps();
 
     // enable netanim
-    AnimationInterface anim("cybertwin.xml");
     //set node images
-    anim.AddResource("/home/ubuntu/FISim/doc/mobile-wifi-icon.png");
-    anim.UpdateNodeImage(0, 0);
+    AnimationInterface anim("cybertwin.xml");
 
     // run the simulator
     simulator->RunSimulator();
@@ -172,5 +167,4 @@ int main(int argc, char *argv[])
     return 0;
 
 }; // namespace ns3
-
 

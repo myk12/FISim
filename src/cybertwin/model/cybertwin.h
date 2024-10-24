@@ -127,6 +127,10 @@ class Cybertwin : public CybertwinApp
     void StartApplication() override;
     void StopApplication() override;
 
+    // Cybertwin v2.0
+    void StartCybertwinDownloadProcess(Ptr<Socket> sock, CYBERTWINID_t id);
+    void StartDownloadProcess(Ptr<Socket> sock, CYBERTWINID_t id, CYBERTWIN_INTERFACE_LIST_t interfaces);
+
     // locally
     void LocallyListen();
     bool LocalConnRequestCallback(Ptr<Socket>, const Address&);
@@ -272,6 +276,17 @@ private:
     Time m_startShapingTime;
     Time m_lastTime;
     Time m_endTime;
+
+    // CybertwinV2 download request
+    std::unordered_map<Ptr<Socket>, Ptr<Socket>> m_cloud2endSockMap;
+    std::unordered_map<Ptr<Socket>, Ptr<Socket>> m_end2cloudSockMap;
+    void DownloadSocketAcceptCallback(Ptr<Socket>, const Address&);
+    void DownloadSocketCreatedCallback(Ptr<Socket>, const Address&);
+    void DownloadSocketRecvCallback(Ptr<Socket>);
+    void DownloadSocketNormalCloseCallback(Ptr<Socket>);
+    void DownloadSocketErrorCloseCallback(Ptr<Socket>);
+
+    std::vector<Ptr<Socket>> m_socketList;
 };
 
 }; // namespace ns3

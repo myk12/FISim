@@ -11,6 +11,7 @@
 #include "ns3/ssid.h"
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/topology-read-module.h"
+#include "ns3/netanim-module.h"
 
 #include "ns3/cybertwin-manager.h"
 #include "ns3/cybertwin-node.h"
@@ -63,6 +64,7 @@ typedef struct NodeInfo
     NodeContainer nodes;
     std::string name;
     NodeType_e type;
+    Vector position;
     int32_t num_nodes;  // number of nodes in the cluster
     std::string network_type;
     std::string local_network; // only for end cluster
@@ -95,6 +97,8 @@ class CybertwinTopologyReader : public TopologyReader
     //----------------------------------------------------------
     NodeContainer Read();
 
+    NodeInfo_t* CreateCloudNodeInfo(const YAML::Node &node);
+    NodeInfo_t* CreateEndClusterNodeInfo(const YAML::Node &node);
     NodeContainer GetCoreCloudNodes();
     NodeContainer GetEdgeCloudNodes();
     NodeContainer GetEndClusterNodes();
@@ -105,6 +109,9 @@ class CybertwinTopologyReader : public TopologyReader
     void SetAppFiles(const std::string &files);
     void InstallApplications();
 
+    //----------------------------------------------------------
+    //          Animation
+    //----------------------------------------------------------
 
   private:
     NodeType_e GetNodeType(const std::string &type);
@@ -143,12 +150,8 @@ class CybertwinTopologyReader : public TopologyReader
 
     // applications
     std::string m_appFils;
-
-
 };
 
 }; // namespace ns3
-
-
 
 #endif /* CYBERTWIN_TOPOLOGY_READER_H */

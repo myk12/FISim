@@ -59,6 +59,41 @@ CybertwinTopologyReader::GetNodeType(const std::string& type)
     }
 }
 
+NodeInfo_t*
+CybertwinTopologyReader::CreateCloudNodeInfo(const YAML::Node& node)
+{
+    NodeInfo_t* nodeInfo = new NodeInfo_t();
+    nodeInfo->name = node["name"].as<std::string>();
+    nodeInfo->type = GetNodeType(node["type"].as<std::string>());
+    nodeInfo->links = ParseLinks(node["connections"]);
+    nodeInfo->position = Vector(node["position"][0].as<double>(),
+                                node["position"][1].as<double>(),
+                                node["position"][2].as<double>());
+
+    // insert to the node info map
+    m_nodeInfoMap[nodeInfo->name] = nodeInfo;
+    return nodeInfo;
+}
+
+NodeInfo_t*
+CybertwinTopologyReader::CreateEndClusterNodeInfo(const YAML::Node& node)
+{
+    NodeInfo_t* nodeInfo = new NodeInfo_t();
+    nodeInfo->name = node["name"].as<std::string>();
+    nodeInfo->type = GetNodeType(node["type"].as<std::string>());
+    nodeInfo->num_nodes = node["num_nodes"].as<int>();
+    nodeInfo->local_network = node["local_network"].as<std::string>();
+    nodeInfo->network_type = node["network_type"].as<std::string>();
+    nodeInfo->gateways = ParseGateways(node["gateways"]);
+    nodeInfo->position = Vector(node["position"][0].as<double>(),
+                                node["position"][1].as<double>(),
+                                node["position"][2].as<double>());
+
+    // insert to the node info map
+    m_nodeInfoMap[nodeInfo->name] = nodeInfo;
+    return nodeInfo;
+}
+
 //-----------------------------------------------------------------------------
 //
 //        Parse the topology configuration file
@@ -103,13 +138,9 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
 
     for (const auto& node : coreCloudConfig["nodes"])
     {
-        NodeInfo_t* nodeInfo = new NodeInfo_t();
-        nodeInfo->name = node["name"].as<std::string>();
-        nodeInfo->type = GetNodeType(node["type"].as<std::string>());
-        nodeInfo->links = ParseLinks(node["connections"]);
-
+        // Parse node information and create the Cybertwin core server
+        NodeInfo_t* nodeInfo = CreateCloudNodeInfo(node);
         m_coreNodesList.push_back(nodeInfo);
-        m_nodeInfoMap[nodeInfo->name] = nodeInfo;
 
         // create nodes
         Ptr<Node> n = CreateObject<CybertwinCoreServer>();
@@ -125,6 +156,10 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
+
+        // Set constant position for the core cloud nodes
+        Vector pos = nodeInfo->position;
+        AnimationInterface::SetConstantPosition(n, pos.x, pos.y, pos.z);
     }
 
     // create links between the core cloud nodes
@@ -186,18 +221,12 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
     // Here we go through all the nodes in the edge cloud, create
     // the Cybertwin edge server and connect the edge servers to
     // the core cloud nodes
-    Vector pos(0, 0, 0);
 
     for (const auto& node : edgeCloudConfig["nodes"])
     {
         // Parse node information and create the Cybertwin edge server
-        NodeInfo_t* nodeInfo = new NodeInfo_t();
-        nodeInfo->name = node["name"].as<std::string>();
-        nodeInfo->type = GetNodeType(node["type"].as<std::string>());
-        nodeInfo->links = ParseLinks(node["connections"]);
-
+        NodeInfo_t* nodeInfo = CreateCloudNodeInfo(node);
         m_edgeNodesList.push_back(nodeInfo);
-        m_nodeInfoMap[nodeInfo->name] = nodeInfo;
 
         // create nodes
         Ptr<Node> n = CreateObject<CybertwinEdgeServer>();
@@ -213,6 +242,10 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
         // Install Internet stack on the node
         InternetStackHelper stack;
         stack.Install(n);
+
+        // Set constant position for the edge cloud nodes
+        Vector pos = nodeInfo->position;
+        AnimationInterface::SetConstantPosition(n, pos.x, pos.y, pos.z);
 
         // connect to the core cloud nodes
         for (auto link : nodeInfo->links)
@@ -254,15 +287,7 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
     for (const auto& node : accessLayerConfig["nodes"])
     {
         // print node
-        NodeInfo_t* nodeInfo = new NodeInfo_t();
-        nodeInfo->name = node["name"].as<std::string>();
-        nodeInfo->type = GetNodeType(node["type"].as<std::string>());
-        nodeInfo->num_nodes = node["num_nodes"].as<int>();
-        nodeInfo->local_network = node["local_network"].as<std::string>();
-        nodeInfo->network_type = node["network_type"].as<std::string>();
-        nodeInfo->gateways = ParseGateways(node["gateways"]);
-
-        m_endNodesList.push_back(nodeInfo);
+        NodeInfo_t* nodeInfo = CreateEndClusterNodeInfo(node);
         m_nodeInfoMap[nodeInfo->name] = nodeInfo;
 
         // Create different access network according to the network type
@@ -291,7 +316,6 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
         // connect end cluster to the edge cloud
         // currently we only support one gateway
         NS_ASSERT(nodeInfo->gateways.size() > 0);
-        NS_LOG_INFO("Connecting end cluster to the edge cloud...");
         gateway = m_nodeInfoMap[nodeInfo->gateways[0].name]->node;
         Ipv4InterfaceContainer interfaces = CreateP2PLink(leader,
                                                           gateway,
@@ -390,9 +414,13 @@ CybertwinTopologyReader::CreateCsmaNetwork(NodeInfo* csma, Ptr<Node>& leader)
         endHost->SetName(nodeName);
         m_nodeName2Ptr[nodeName] = n;
 
-        // Set constant position for the end cluster nodes
-        Ptr<MobilityModel> mobility = CreateObject<ConstantPositionMobilityModel>();
-        n->AggregateObject(mobility);
+        // Set constant position for the ethernet nodes
+        Vector pos = csma->position;
+        // generate random position
+        double x = pos.x + (rand() % 10);
+        double y = pos.y + (rand() % 10);
+        double z = pos.z;
+        AnimationInterface::SetConstantPosition(n, x, y, z);
     }
 
     // Install CSMA devices
@@ -472,24 +500,27 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
                         << "AP devices: " << apDevices.GetN() << "\n"
                         << "STA devices: " << staDevices.GetN());
 
+    // Set random mobility model for the nodes
+    // and position
+    Vector pos = wifi->position;
     MobilityHelper mobility;
     mobility.SetPositionAllocator("ns3::GridPositionAllocator",
                                   "MinX",
-                                  DoubleValue(0.0),
+                                  DoubleValue(pos.x - 10),
                                   "MinY",
-                                  DoubleValue(0.0),
+                                  DoubleValue(pos.y - 10),
                                   "DeltaX",
                                   DoubleValue(5.0),
                                   "DeltaY",
-                                  DoubleValue(10.0),
+                                  DoubleValue(5.0),
                                   "GridWidth",
                                   UintegerValue(3),
                                   "LayoutType",
                                   StringValue("RowFirst"));
-
-    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
-                              "Bounds",
-                              RectangleValue(Rectangle(-50, 50, -50, 50)));
+    mobility.SetMobilityModel(
+        "ns3::RandomWalk2dMobilityModel",
+        "Bounds",
+        RectangleValue(Rectangle(pos.x - 10, pos.x + 10, pos.y - 10, pos.y + 10)));
     mobility.Install(staNodes);
     mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
     mobility.Install(apNode);

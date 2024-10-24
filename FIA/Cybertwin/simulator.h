@@ -4,7 +4,12 @@
 #include "ns3/core-module.h"
 #include "ns3/node-container.h"
 #include "ns3/cybertwin-topology-reader.h"
-
+#include "ns3/netanim-module.h"
+#include "ns3/log.h"
+#include "ns3/simulator.h"
+#include "ns3/node-container.h"
+#include "ns3/cybertwin-topology-reader.h"
+#include "ns3/ipv4-global-routing-helper.h"
 namespace ns3
 {
 class CybertwinNetworkSimulator : public Object
