@@ -36,12 +36,18 @@ class CybertwinNode : public Node
     virtual std::string GetLogDir();
     virtual std::string GetName();
 
+    void SetUpperNodeAddress(Ipv4Address);
     virtual Ipv4Address GetUpperNodeAddress();
+  
+    // cybertwin name resolution service
+    void SetCNRSRoot();
+    bool isCNRSRoot();
 
     virtual void PowerOn();
     void StartAllAggregatedApps();
 
     void AddParent(Ptr<Node> parent);
+    std::vector<Ptr<Node>> GetParents();
     void AddConfigFile(std::string filename, nlohmann::json config);
     void InstallCNRSApp();
     void InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpv4AddrList,
@@ -76,6 +82,9 @@ class CybertwinNode : public Node
 
     // record installed apps and their start time
     std::unordered_map<Ptr<Application>, Time> m_installedApps;
+
+    // cybertwin name resolution service
+    bool m_isCRNSRoot;
 };
 
 //**********************************************************************
@@ -109,10 +118,11 @@ class CybertwinCoreServer : public CybertwinNode
 
     static TypeId GetTypeId();
 
+
     void PowerOn() override;
 
   private:
-    Ipv4Address CNRSUpNodeAddress;
+    Ipv4Address m_CNRSUpNodeAddress;
     Ptr<Application> cybertwinCNRSApp;
 };
 

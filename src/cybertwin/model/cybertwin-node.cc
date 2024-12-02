@@ -84,6 +84,13 @@ CybertwinNode::GetName()
     return m_name;
 }
 
+// Get parent
+std::vector<Ptr<Node>>
+CybertwinNode::GetParents()
+{
+    return m_parents;
+}
+
 void
 CybertwinNode::AddParent(Ptr<Node> parent)
 {
@@ -97,10 +104,28 @@ CybertwinNode::AddParent(Ptr<Node> parent)
     m_parents.push_back(parent);
 }
 
+void
+CybertwinNode::SetUpperNodeAddress(Ipv4Address addr)
+{
+    m_upperNodeAddress = addr;
+}
+
 Ipv4Address
 CybertwinNode::GetUpperNodeAddress()
 {
     return m_upperNodeAddress;
+}
+
+bool
+CybertwinNode::isCNRSRoot()
+{
+    return m_isCRNSRoot;
+}
+
+void
+CybertwinNode::SetCNRSRoot()
+{
+    m_isCRNSRoot = true;
 }
 
 void
@@ -112,6 +137,7 @@ CybertwinNode::AddLocalIp(Ipv4Address localIp)
 void
 CybertwinNode::AddGlobalIp(Ipv4Address globalIp)
 {
+    NS_LOG_UNCOND("\n\n\nnode " << m_name << " add global ip " << globalIp);
     m_globalAddrList.push_back(globalIp);
 }
 
@@ -130,11 +156,11 @@ CybertwinNode::GetGlobalIpList()
 void
 CybertwinNode::InstallCNRSApp()
 {
-    NS_LOG_DEBUG("[Load][InstallCNRSApp] Installing CNRS app to " << m_name << ".");
+    NS_LOG_INFO("["<<m_name<<"][InstallCNRSApp] Installing CNRS application.");
     Ptr<NameResolutionService> cybertwinCNRSApp = nullptr;
     if (!m_upperNodeAddress.IsInitialized() && m_parents.size() == 0)
     {
-        NS_LOG_DEBUG("[Load][InstallCNRSApp] CNRS Root node " << m_name << ".");
+        NS_LOG_INFO("["<<m_name<<"][InstallCNRSApp] CNRS Root node " << m_name << ".");
         cybertwinCNRSApp = CreateObject<NameResolutionService>();
     }
     else
@@ -145,7 +171,7 @@ CybertwinNode::InstallCNRSApp()
         }
 
         // install CNRS application
-        NS_LOG_DEBUG("[Load][InstallCNRSApp] CNRS Child node " << m_name << ".");
+        NS_LOG_INFO("["<<m_name<<"][InstallCNRSApp] CNRS node " << m_name << " with upper node " << m_upperNodeAddress);
         cybertwinCNRSApp = CreateObject<NameResolutionService>(m_upperNodeAddress);
     }
 
@@ -158,7 +184,7 @@ void
 CybertwinNode::InstallCybertwinManagerApp(std::vector<Ipv4Address> localIpList,
                                           std::vector<Ipv4Address> globalIpList)
 {
-    NS_LOG_DEBUG("Installing Cybertwin Manager app.");
+    NS_LOG_INFO("["<<m_name<<"] Installing Cybertwin Manager application.");
     if (!m_upperNodeAddress.IsInitialized())
     {
         NS_ASSERT_MSG(m_parents.size() > 0, "No parent node found.");
@@ -204,6 +230,41 @@ CybertwinNode::StartAllAggregatedApps()
 }
 
 //***************************************************************
+//*               core server node                              *
+//***************************************************************
+NS_OBJECT_ENSURE_REGISTERED(CybertwinCoreServer);
+
+TypeId
+CybertwinCoreServer::GetTypeId()
+{
+    static TypeId tid = TypeId("ns3::CybertwinCoreServer")
+                            .SetParent<Node>()
+                            .SetGroupName("Cybertwin")
+                            .AddConstructor<CybertwinCoreServer>();
+    return tid;
+}
+
+CybertwinCoreServer::CybertwinCoreServer()
+    : cybertwinCNRSApp(nullptr)
+{
+    NS_LOG_FUNCTION(this);
+}
+
+void
+CybertwinCoreServer::PowerOn()
+{
+    NS_LOG_INFO("["<<m_name<<"] Powering on CybertwinCoreServer.");
+    InstallCNRSApp();
+}
+
+CybertwinCoreServer::~CybertwinCoreServer()
+{
+    NS_LOG_INFO("["<<m_name<<"] Destroying CybertwinCoreServer.");
+}
+
+
+
+//***************************************************************
 //*               edge server node                              *
 //***************************************************************
 
@@ -224,19 +285,21 @@ CybertwinEdgeServer::CybertwinEdgeServer()
     : m_cybertwinCNRSApp(nullptr),
       m_CybertwinManagerApp(nullptr)
 {
+    NS_LOG_FUNCTION(this);
 }
 
 CybertwinEdgeServer::~CybertwinEdgeServer()
 {
+    NS_LOG_FUNCTION(this);
 }
 
 void
 CybertwinEdgeServer::PowerOn()
 {
-    NS_LOG_DEBUG("-------------- Powering on " << m_name);
+    NS_LOG_INFO("["<<m_name<<"] Powering on CybertwinEdgeServer.");
     if (m_parents.size() == 0)
     {
-        NS_LOG_ERROR("Edge server should have parents.");
+        NS_LOG_ERROR("["<<m_name<<"] No parent node found.");
         return;
     }
 
@@ -249,39 +312,6 @@ Ptr<CybertwinManager>
 CybertwinEdgeServer::GetCtrlApp()
 {
     return m_CybertwinManagerApp;
-}
-
-//***************************************************************
-//*               core server node                              *
-//***************************************************************
-NS_OBJECT_ENSURE_REGISTERED(CybertwinCoreServer);
-
-TypeId
-CybertwinCoreServer::GetTypeId()
-{
-    static TypeId tid = TypeId("ns3::CybertwinCoreServer")
-                            .SetParent<Node>()
-                            .SetGroupName("Cybertwin")
-                            .AddConstructor<CybertwinCoreServer>();
-    return tid;
-}
-
-CybertwinCoreServer::CybertwinCoreServer()
-    : cybertwinCNRSApp(nullptr)
-{
-    NS_LOG_DEBUG("Creating a CybertwinCoreServer.");
-}
-
-void
-CybertwinCoreServer::PowerOn()
-{
-    NS_LOG_DEBUG("************** Powering on " << m_name);
-    InstallCNRSApp(); 
-}
-
-CybertwinCoreServer::~CybertwinCoreServer()
-{
-    NS_LOG_DEBUG("[CybertwinCoreServer] destroy CybertwinCoreServer.");
 }
 
 //***************************************************************
@@ -301,13 +331,13 @@ CybertwinEndHost::GetTypeId()
 
 CybertwinEndHost::CybertwinEndHost()
 {
-    NS_LOG_DEBUG("[CybertwinEndHost] create CybertwinEndHost.");
+    NS_LOG_FUNCTION(this);
     m_isConnected = false;    
 }
 
 CybertwinEndHost::~CybertwinEndHost()
 {
-    NS_LOG_DEBUG("[CybertwinEndHost] destroy CybertwinEndHost.");
+    NS_LOG_FUNCTION(this);
 }
 
 Ptr<CybertwinEndHostDaemon>
@@ -319,7 +349,7 @@ CybertwinEndHost::GetEndHostDaemon()
 void
 CybertwinEndHost::PowerOn()
 {
-    NS_LOG_DEBUG("-+-+-+-+-+-+ Powering on " << m_name);
+    NS_LOG_INFO("["<<m_name<<"] Powering on CybertwinEndHost.");
 
     // Create initd
     Ptr<CybertwinEndHostDaemon> initd = CreateObject<CybertwinEndHostDaemon>();
@@ -347,7 +377,7 @@ CybertwinEndHost::GetCybertwinId()
 void
 CybertwinEndHost::SetCybertwinPort(uint16_t port)
 {
-    NS_LOG_INFO("[CybertwinEndHost] SetCybertwinPort: " << port);
+    NS_LOG_INFO("["<<m_name<<"] SetCybertwinPort: " << port);
     m_cybertwinPort = port;
 }
 

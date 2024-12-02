@@ -7,6 +7,8 @@ NS_LOG_COMPONENT_DEFINE("CybertwinNetworkSimulator");
 
 NS_OBJECT_ENSURE_REGISTERED(CybertwinNetworkSimulator);
 
+AnimationInterface globalAnim("cybertwin-network.xml");
+
 TypeId
 CybertwinNetworkSimulator::GetTypeId()
 {
@@ -31,6 +33,24 @@ CybertwinNetworkSimulator::~CybertwinNetworkSimulator()
     NS_LOG_FUNCTION(this);
 }
 
+void CybertwinNetworkSimulator::InputInit()
+{
+    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[0] Initializing the simulator...");
+    // Initialize the simulator
+    // create netanim object
+    m_anim = CreateObject<AnimationInterface>("cybertwin-network.xml");
+    m_anim->SetMobilityPollInterval(Seconds(0.25)); // set mobility poll interval
+    m_anim->EnableIpv4RouteTracking("cybertwin-routing.xml", Seconds(0), Seconds(10), m_nodes, Seconds(5));
+
+    // add netanim node resources
+    m_anim->AddResource("doc/netanim_icon/core_server.png");
+    m_anim->AddResource("doc/netanim_icon/edge_server.png");
+    m_anim->AddResource("doc/netanim_icon/endhost_station.png");
+    m_anim->AddResource("doc/netanim_icon/wireless_ap.png");
+    m_anim->AddResource("doc/netanim_icon/wireless_sta.png");
+}
+
 void CybertwinNetworkSimulator::DriverCompileTopology()
 {
     NS_LOG_FUNCTION(this);
@@ -41,6 +61,33 @@ void CybertwinNetworkSimulator::DriverCompileTopology()
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     NS_LOG_INFO("[1] Topology file read successfully!");
+
+    // add nodes to netanim
+    NodeContainer coreNodes = m_topologyReader.GetCoreCloudNodes();
+    for (uint32_t i = 0; i < coreNodes.GetN(); i++)
+    {
+        Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(coreNodes.Get(i));
+        m_anim->UpdateNodeDescription(node->GetId(), "Core Cloud Server");
+        // set icon
+        m_anim->UpdateNodeImage(node->GetId(), 0);
+    }
+    NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
+    for (uint32_t i = 0; i < edgeNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(edgeNodes.Get(i));
+        m_anim->UpdateNodeDescription(node->GetId(), "Edge Cloud Server");
+        // set icon
+        m_anim->UpdateNodeImage(node->GetId(), 1);
+    }
+
+    NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
+    for (uint32_t i = 0; i < endNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endNodes.Get(i));
+        m_anim->UpdateNodeDescription(node->GetId(), "End Host");
+        // set icon
+        m_anim->UpdateNodeImage(node->GetId(), 2);
+    }
 }
 
 void CybertwinNetworkSimulator::DriverInstallApps()
@@ -144,6 +191,9 @@ int main(int argc, char *argv[])
 
     // create the simulator
     Ptr<ns3::CybertwinNetworkSimulator> simulator = CreateObject<ns3::CybertwinNetworkSimulator>();
+    
+    // initiliaze the simulator
+    simulator->InputInit();
 
     // read the topology file
     simulator->DriverCompileTopology();
@@ -153,10 +203,6 @@ int main(int argc, char *argv[])
 
     // configure the nodes and applications
     simulator->DriverInstallApps();
-
-    // enable netanim
-    //set node images
-    AnimationInterface anim("cybertwin.xml");
 
     // run the simulator
     simulator->RunSimulator();

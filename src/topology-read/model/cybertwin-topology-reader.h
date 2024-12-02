@@ -60,16 +60,18 @@ typedef struct Gateway
 // define node info
 typedef struct NodeInfo
 {
-    Ptr<Node> node;
-    NodeContainer nodes;
-    std::string name;
-    NodeType_e type;
-    Vector position;
-    int32_t num_nodes;  // number of nodes in the cluster
-    std::string network_type;
-    std::string local_network; // only for end cluster
-    std::vector<Link_t> links;
-    std::vector<Gateway_t> gateways;
+    Ptr<Node> node;     // main node pointer
+    std::string name;   // main node name
+    Vector position;    // position in NetAnim
+    NodeType_e type;    // indicating whether the node is a host server or an end cluster
+    std::vector<Link_t> links;  // p2p links
+
+    // for CSMA or Wifi network
+    NodeContainer nodes;    // cluster nodes
+    int32_t num_nodes;      // number of nodes in the cluster
+    std::string network_type;   // indicating the network type: csma or wifi
+    std::vector<Gateway_t> gateways;    // gateways
+    std::string local_network;      // end cluster local area network
 } NodeInfo_t;
 
 //----------------------------------------------------------
@@ -95,13 +97,16 @@ class CybertwinTopologyReader : public TopologyReader
     //----------------------------------------------------------
     //          Topology Construction
     //----------------------------------------------------------
-    NodeContainer Read();
+    NodeContainer Read() override;
 
     NodeInfo_t* CreateCloudNodeInfo(const YAML::Node &node);
     NodeInfo_t* CreateEndClusterNodeInfo(const YAML::Node &node);
     NodeContainer GetCoreCloudNodes();
     NodeContainer GetEdgeCloudNodes();
     NodeContainer GetEndClusterNodes();
+    NodeContainer GetEndHostNodes();
+    NodeContainer GetApNodes();
+    NodeContainer GetStaNodes();
 
     //----------------------------------------------------------
     //          Application Installation
@@ -127,6 +132,7 @@ class CybertwinTopologyReader : public TopologyReader
     void ParseCoreCloud(const YAML::Node &coreLayer);
     void ParseEdgeCloud(const YAML::Node &edgeLayer);
     void ParseAccessNetwork(const YAML::Node &accessLayer);
+    void ConfigCNRS(const YAML::Node &cnrsConfig);
 
     void ShowNetworkTopology();
 
@@ -144,12 +150,18 @@ class CybertwinTopologyReader : public TopologyReader
     NetDeviceContainer m_edgeDevices;
     NodeContainer m_endNodes;
     NetDeviceContainer m_endDevices;
+    NodeContainer m_apNodes;
+    NodeContainer m_staNodes;
+    NodeContainer m_endhostNodes;
     std::unordered_map<std::string, NodeInfo_t *> m_nodeInfoMap;
     std::unordered_map<std::string, Ptr<Node>> m_nodeName2Ptr;
     std::unordered_set<std::string> m_links;
 
     // applications
     std::string m_appFils;
+
+    // Cybertwin Name Resolution Service
+    std::string m_cnrsNodeName;
 };
 
 }; // namespace ns3

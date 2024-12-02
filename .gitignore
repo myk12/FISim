@@ -5,6 +5,8 @@
 *.rej
 
 .vscode
+.DS_Store
+*.DS_Store
 
 *.o
 *.pyc

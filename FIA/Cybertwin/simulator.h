@@ -23,6 +23,7 @@ public:
     CybertwinNetworkSimulator(const CybertwinNetworkSimulator &) = delete;
     CybertwinNetworkSimulator &operator=(const CybertwinNetworkSimulator &) = delete;
 
+    void InputInit();
     void DriverCompileTopology();
     void DriverInstallApps();
     void DriverBootSimulator();
@@ -32,6 +33,7 @@ public:
 private:
     NodeContainer m_nodes;
     CybertwinTopologyReader m_topologyReader;
+    Ptr<AnimationInterface> m_anim;
 };
 
 }; // namespace ns3

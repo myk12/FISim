@@ -131,11 +131,13 @@ void
 CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
 {
     // parse core cloud
-    NS_LOG_INFO("Parsing core cloud...");
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Parsing core cloud...");
     NS_ASSERT(coreCloudConfig["nodes"]);
     Ptr<CybertwinCoreServer> coreServerSrc = nullptr;
     Ptr<CybertwinCoreServer> coreServerDst = nullptr;
 
+    // Here we go through all the nodes in the core cloud, create
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating core cloud nodes...");
     for (const auto& node : coreCloudConfig["nodes"])
     {
         // Parse node information and create the Cybertwin core server
@@ -165,6 +167,8 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
     // create links between the core cloud nodes
     // Here we go through all the nodes and create point-to-point links
     // between the core cloud nodes
+    // We set the first core cloud node as the Central Name Resolution Service (CNRS)
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating links between core cloud nodes...");
     for (auto nodeInfo : m_coreNodesList)
     {
         // get target
@@ -178,18 +182,19 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
             std::string data_rate = link.data_rate;
             std::string delay = link.delay;
 
+            coreServerSrc = DynamicCast<CybertwinCoreServer>(nodeInfo->node);
             coreServerDst = DynamicCast<CybertwinCoreServer>(m_nodeInfoMap[target]->node);
 
             if (m_nodeInfoMap.find(target) == m_nodeInfoMap.end())
             {
-                NS_LOG_ERROR("Node not found: " << target);
+                NS_LOG_ERROR("[CybertwinTopologyReader][" << __func__ << "] Node not found: " << target);
                 continue;
             }
 
             if (m_links.find(nodeName + target) != m_links.end() ||
                 m_links.find(target + nodeName) != m_links.end())
             {
-                NS_LOG_INFO("Link already exists: " << nodeName << " <-> " << target);
+                NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Link already exists: " << nodeName << " " << target);
                 continue;
             }
 
@@ -201,7 +206,6 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
             // creating duplicate links and loops
             coreServerSrc->AddGlobalIp(interfaces.GetAddress(0));
             coreServerDst->AddGlobalIp(interfaces.GetAddress(1));
-            coreServerSrc->AddParent(coreServerDst->GetObject<Node>());
 
             m_links.insert(nodeName + target);
             m_links.insert(target + nodeName);
@@ -215,13 +219,13 @@ CybertwinTopologyReader::ParseCoreCloud(const YAML::Node& coreCloudConfig)
 void
 CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
 {
-    NS_LOG_INFO("Parsing edge cloud...");
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Parsing edge cloud...");
     Ptr<CybertwinEdgeServer> edgeServer = nullptr;
 
     // Here we go through all the nodes in the edge cloud, create
     // the Cybertwin edge server and connect the edge servers to
     // the core cloud nodes
-
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating edge cloud nodes...");
     for (const auto& node : edgeCloudConfig["nodes"])
     {
         // Parse node information and create the Cybertwin edge server
@@ -283,7 +287,7 @@ CybertwinTopologyReader::ParseEdgeCloud(const YAML::Node& edgeCloudConfig)
 void
 CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
 {
-    NS_LOG_INFO("Parsing access network...");
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Parsing access network...");
     for (const auto& node : accessLayerConfig["nodes"])
     {
         // print node
@@ -299,12 +303,12 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
         NodeContainer endNodes;
         if (node["network_type"].as<std::string>() == "csma")
         {
-            NS_LOG_INFO("Creating CSMA network...");
+            NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating CSMA network...");
             endNodes = CreateCsmaNetwork(nodeInfo, leader);
         }
         else if (node["network_type"].as<std::string>() == "wifi")
         {
-            NS_LOG_INFO("Creating WiFi network...");
+            NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating WiFi network...");
             endNodes = CreateWifiNetwork(nodeInfo, leader);
         }
         else
@@ -316,6 +320,8 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
         // connect end cluster to the edge cloud
         // currently we only support one gateway
         NS_ASSERT(nodeInfo->gateways.size() > 0);
+        NS_LOG_WARN("[CybertwinTopologyReader][" << __func__ << "] Multiple gateways are not supported yet...");
+        NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Connecting end cluster to the edge cloud...");
         gateway = m_nodeInfoMap[nodeInfo->gateways[0].name]->node;
         Ipv4InterfaceContainer interfaces = CreateP2PLink(leader,
                                                           gateway,
@@ -423,6 +429,9 @@ CybertwinTopologyReader::CreateCsmaNetwork(NodeInfo* csma, Ptr<Node>& leader)
         AnimationInterface::SetConstantPosition(n, x, y, z);
     }
 
+    // Add endhost to endhostNodes Container
+    m_endhostNodes.Add(nodes);
+
     // Install CSMA devices
     CsmaHelper csmaHelper;
     NetDeviceContainer devices;
@@ -479,6 +488,10 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
         m_nodeName2Ptr[nodeName] = n;
     }
 
+    // Add nodes to the container
+    m_apNodes.Add(apNode);
+    m_staNodes.Add(staNodes);
+
     // Install WiFi devices
     YansWifiChannelHelper channel = YansWifiChannelHelper::Default();
     YansWifiPhyHelper phy;
@@ -487,7 +500,7 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
     WifiMacHelper mac;
     Ssid ssid = Ssid(wifi->name);
 
-    NS_LOG_INFO("Access network node: " << wifi->name);
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating WiFi network: " << wifi->name);
     WifiHelper wifiHelper;
     NetDeviceContainer staDevices;
     mac.SetType("ns3::StaWifiMac", "Ssid", SsidValue(ssid), "ActiveProbing", BooleanValue(false));
@@ -496,9 +509,6 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
     NetDeviceContainer apDevices;
     mac.SetType("ns3::ApWifiMac", "Ssid", SsidValue(ssid));
     apDevices = wifiHelper.Install(phy, mac, apNode);
-    NS_LOG_INFO("Ssid " << ssid << "\n"
-                        << "AP devices: " << apDevices.GetN() << "\n"
-                        << "STA devices: " << staDevices.GetN());
 
     // Set random mobility model for the nodes
     // and position
@@ -557,7 +567,6 @@ CybertwinTopologyReader::AssignIPAddresses(const NetDeviceContainer& devices,
     std::string networkMask = MaskNumberToIpv4Address(network.substr(network.find('/') + 1));
 
     ipv4.SetBase(networkPrefix.c_str(), networkMask.c_str());
-    NS_LOG_INFO("Assigned IP addresses for network " << networkPrefix);
     Ipv4InterfaceContainer interfaces = ipv4.Assign(devices);
 
     return interfaces;
@@ -579,8 +588,6 @@ CybertwinTopologyReader::GetNodeByName(const std::string& nodeName)
 void
 CybertwinTopologyReader::ShowNetworkTopology()
 {
-    NS_LOG_INFO("Network Topology:");
-    NS_LOG_INFO("Core Cloud:");
     for (auto node : m_coreNodesList)
     {
         NS_LOG_INFO("Node: " << node->name);
@@ -628,13 +635,61 @@ CybertwinTopologyReader::GetEndClusterNodes()
     return m_endNodes;
 }
 
+NodeContainer
+CybertwinTopologyReader::GetEndHostNodes()
+{
+    return m_endhostNodes;
+}
+
+NodeContainer
+CybertwinTopologyReader::GetApNodes()
+{
+    return m_apNodes;
+}
+
+NodeContainer
+CybertwinTopologyReader::GetStaNodes()
+{
+    return m_staNodes;
+}
+
+// Configure the Central Name Resolution Service (CNRS)
+// Currently we need to manually set the centralized 
+// node at the core cloud
+void
+CybertwinTopologyReader::ConfigCNRS(const YAML::Node& cnrsConfig)
+{
+    NS_LOG_FUNCTION(this);
+    NS_ASSERT(cnrsConfig["central_node"]);
+    std::string centralNode = cnrsConfig["central_node"].as<std::string>();
+    Ptr<Node> node = GetNodeByName(centralNode);
+    Ptr<CybertwinCoreServer> coreServer = DynamicCast<CybertwinCoreServer>(node);
+    // Set this node as the root of CNRS
+    coreServer->SetCNRSRoot();
+
+    NS_ASSERT(coreServer->GetGlobalIpList().size() > 0);
+    Ipv4Address centralNodeAddress = coreServer->GetGlobalIpList().at(0);
+
+    // for each other node, set the parent node
+    for (const auto& node : m_coreNodesList)
+    {
+        if (node->name != centralNode)
+        {
+            Ptr<Node> n = GetNodeByName(node->name);
+            Ptr<CybertwinCoreServer> coreServer = DynamicCast<CybertwinCoreServer>(n);
+            coreServer->SetUpperNodeAddress(centralNodeAddress);
+        }
+    }
+}
+
+
 // Read the topology configuration file
 NodeContainer
 CybertwinTopologyReader::Read()
 {
     NS_LOG_FUNCTION(this);
-
     YAML::Node topology_yaml = YAML::LoadFile(GetFileName());
+    NS_LOG_INFO("[CybertwinTopologyReader][Read] Reading topology configuration file " << GetFileName());
 
     // read nodes from the topology file
     NS_ASSERT(topology_yaml["cybertwin_network"]);
@@ -647,8 +702,12 @@ CybertwinTopologyReader::Read()
     ParseEdgeCloud(cybertwin_network["edge_layer"]);
     ParseAccessNetwork(cybertwin_network["access_layer"]);
 
+    // config CNRS
+    NS_ASSERT(cybertwin_network["cnrs"]);
+    ConfigCNRS(cybertwin_network["cnrs"]);
+
     // Output Nodes
-    ShowNetworkTopology();
+    //ShowNetworkTopology();
 
     return m_nodes;
 }
@@ -684,14 +743,20 @@ CybertwinTopologyReader::InstallApplications()
     // read applications from the application file
     NS_ASSERT(app_yaml["applications"]);
     const YAML::Node& applications = app_yaml["applications"];
-    NS_LOG_INFO("Installing applications...");
+    NS_LOG_INFO("[CybertwinTopologyReader][InstallApplications] Installing applications...");
 
     for (const auto& app : applications)
     {
         std::string appName = app["name"].as<std::string>();
         std::string appType = app["type"].as<std::string>();
         bool enabled = app["enabled"].as<bool>();
-        NS_LOG_INFO("Application: " << appName << " type: " << appType << " enabled: " << enabled);
+
+        if (!enabled)
+        {
+            NS_LOG_INFO("[CybertwinTopologyReader][InstallApplications] Application " << appName << " is disabled");
+            continue;
+        }
+
         // Parse the application configuration like this:
         //  - name: download-server
         //    description: Download Server Application

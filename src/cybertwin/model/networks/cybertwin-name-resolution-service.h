@@ -40,6 +40,7 @@ class NameResolutionService : public Application
 
     void LoadDatabase();
     void InitNameResolutionServer();
+    void InitSuperior();
     int32_t InitClientUDPSocket();
 
     void ServiceRecvHandler(Ptr<Socket> socket);
@@ -70,7 +71,7 @@ class NameResolutionService : public Application
     Ptr<Socket> serviceSocket;
     Ptr<Socket> clientSocket;
     uint16_t m_port;
-    Ipv4Address superior;
+    Ipv4Address m_superior;
     std::string databaseName;
     std::unordered_map<CYBERTWINID_t, CYBERTWIN_INTERFACE_LIST_t> itemCache;
 
@@ -78,6 +79,10 @@ class NameResolutionService : public Application
         m_queryCache;
     std::unordered_map<QUERY_ID_t, PeerInfo_t> m_queryClientCache;
     Ptr<UniformRandomVariable> m_rand;
+
+    std::string m_nodeName;
+    
+    bool m_isCNRSRoot;
 };
 } // namespace ns3
 

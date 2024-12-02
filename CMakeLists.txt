@@ -145,14 +145,11 @@ process_options()
 # Build NS3 library core
 add_subdirectory(src)
 
-# Build NS library examples
-add_subdirectory(examples)
-
-# Build scratch/simulation scripts
-add_subdirectory(scratch)
-
 # Build test utils
 add_subdirectory(utils)
+
+# Add cybertwin
+add_subdirectory(cybertwin)
 
 # Build json
 add_subdirectory(thirdparty/json)
@@ -163,10 +160,8 @@ install(TARGETS nlohmann_json EXPORT ns3ExportTargets)
 
 # Build yaml-cpp
 add_subdirectory(thirdparty/yaml-cpp)
+file(COPY ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/yaml-cpp/include/yaml-cpp DESTINATION ${CMAKE_CURRENT_SOURCE_DIR}/build/include)
 install(TARGETS yaml-cpp EXPORT ns3ExportTargets)
-
-# Build FIA Simulation
-add_subdirectory(FIA)
 
 write_lock()
 write_configtable()
