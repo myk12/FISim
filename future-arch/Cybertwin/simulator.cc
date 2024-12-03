@@ -7,8 +7,6 @@ NS_LOG_COMPONENT_DEFINE("CybertwinNetworkSimulator");
 
 NS_OBJECT_ENSURE_REGISTERED(CybertwinNetworkSimulator);
 
-AnimationInterface globalAnim("cybertwin-network.xml");
-
 TypeId
 CybertwinNetworkSimulator::GetTypeId()
 {
@@ -22,8 +20,8 @@ CybertwinNetworkSimulator::GetTypeId()
 CybertwinNetworkSimulator::CybertwinNetworkSimulator()
 {
     NS_LOG_FUNCTION(this);
-    std::string topologyFile = "/home/ubuntu/FISim/FIA/Cybertwin/topology.yaml";
-    std::string appFiles = "/home/ubuntu/FISim/FIA/Cybertwin/applications.yaml";
+    std::string topologyFile = "cybertwin/topology.yaml";
+    std::string appFiles = "cybertwin/applications.yaml";
     m_topologyReader.SetFileName(topologyFile);
     m_topologyReader.SetAppFiles(appFiles);
 }
@@ -33,25 +31,17 @@ CybertwinNetworkSimulator::~CybertwinNetworkSimulator()
     NS_LOG_FUNCTION(this);
 }
 
-void CybertwinNetworkSimulator::InputInit()
+void
+CybertwinNetworkSimulator::InputInit()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[0] Initializing the simulator...");
     // Initialize the simulator
     // create netanim object
-    m_anim = CreateObject<AnimationInterface>("cybertwin-network.xml");
-    m_anim->SetMobilityPollInterval(Seconds(0.25)); // set mobility poll interval
-    m_anim->EnableIpv4RouteTracking("cybertwin-routing.xml", Seconds(0), Seconds(10), m_nodes, Seconds(5));
-
-    // add netanim node resources
-    m_anim->AddResource("doc/netanim_icon/core_server.png");
-    m_anim->AddResource("doc/netanim_icon/edge_server.png");
-    m_anim->AddResource("doc/netanim_icon/endhost_station.png");
-    m_anim->AddResource("doc/netanim_icon/wireless_ap.png");
-    m_anim->AddResource("doc/netanim_icon/wireless_sta.png");
 }
 
-void CybertwinNetworkSimulator::DriverCompileTopology()
+void
+CybertwinNetworkSimulator::DriverCompileTopology()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[1] Reading the topology file...");
@@ -61,36 +51,10 @@ void CybertwinNetworkSimulator::DriverCompileTopology()
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
     NS_LOG_INFO("[1] Topology file read successfully!");
-
-    // add nodes to netanim
-    NodeContainer coreNodes = m_topologyReader.GetCoreCloudNodes();
-    for (uint32_t i = 0; i < coreNodes.GetN(); i++)
-    {
-        Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(coreNodes.Get(i));
-        m_anim->UpdateNodeDescription(node->GetId(), "Core Cloud Server");
-        // set icon
-        m_anim->UpdateNodeImage(node->GetId(), 0);
-    }
-    NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
-    for (uint32_t i = 0; i < edgeNodes.GetN(); i++)
-    {
-        Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(edgeNodes.Get(i));
-        m_anim->UpdateNodeDescription(node->GetId(), "Edge Cloud Server");
-        // set icon
-        m_anim->UpdateNodeImage(node->GetId(), 1);
-    }
-
-    NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
-    for (uint32_t i = 0; i < endNodes.GetN(); i++)
-    {
-        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endNodes.Get(i));
-        m_anim->UpdateNodeDescription(node->GetId(), "End Host");
-        // set icon
-        m_anim->UpdateNodeImage(node->GetId(), 2);
-    }
 }
 
-void CybertwinNetworkSimulator::DriverInstallApps()
+void
+CybertwinNetworkSimulator::DriverInstallApps()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[2] Configuring the nodes and applications...");
@@ -121,7 +85,8 @@ void CybertwinNetworkSimulator::DriverInstallApps()
     NS_LOG_INFO("[2] Nodes and applications configured successfully!");
 }
 
-void CybertwinNetworkSimulator::DriverBootSimulator()
+void
+CybertwinNetworkSimulator::DriverBootSimulator()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[3] Running the simulation...");
@@ -136,6 +101,8 @@ void CybertwinNetworkSimulator::DriverBootSimulator()
     {
         Ptr<CybertwinCoreServer> node = DynamicCast<CybertwinCoreServer>(coreNodes.Get(i));
         node->PowerOn();
+        m_animInterface->UpdateNodeSize(node->GetId(), CORE_CLOUD_NODE_SIZE, CORE_CLOUD_NODE_SIZE);
+        m_animInterface->UpdateNodeImage(node->GetId(), 0);
     }
 
     NodeContainer edgeNodes = m_topologyReader.GetEdgeCloudNodes();
@@ -143,19 +110,43 @@ void CybertwinNetworkSimulator::DriverBootSimulator()
     {
         Ptr<CybertwinEdgeServer> node = DynamicCast<CybertwinEdgeServer>(edgeNodes.Get(i));
         node->PowerOn();
+        m_animInterface->UpdateNodeSize(node->GetId(), EDGE_CLOUD_NODE_SIZE, EDGE_CLOUD_NODE_SIZE);
+        m_animInterface->UpdateNodeImage(node->GetId(), 1);
     }
 
-    NodeContainer endNodes = m_topologyReader.GetEndClusterNodes();
-    for (uint32_t i = 0; i < endNodes.GetN(); i++)
+    NodeContainer endhostNodes = m_topologyReader.GetEndHostNodes();
+    for (uint32_t i = 0; i < endhostNodes.GetN(); i++)
     {
-        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endNodes.Get(i));
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(endhostNodes.Get(i));
         node->PowerOn();
+        m_animInterface->UpdateNodeSize(node->GetId(), END_HOST_NODE_SIZE, END_HOST_NODE_SIZE);
+        m_animInterface->UpdateNodeImage(node->GetId(), 2);
     }
+
+    NodeContainer apNodes = m_topologyReader.GetApNodes();
+    for (uint32_t i = 0; i < apNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(apNodes.Get(i));
+        node->PowerOn();
+        m_animInterface->UpdateNodeSize(node->GetId(), AP_NODE_SIZE, AP_NODE_SIZE);
+        m_animInterface->UpdateNodeImage(node->GetId(), 3);
+    }
+
+    NodeContainer staNodes = m_topologyReader.GetStaNodes();
+    for (uint32_t i = 0; i < staNodes.GetN(); i++)
+    {
+        Ptr<CybertwinEndHost> node = DynamicCast<CybertwinEndHost>(staNodes.Get(i));
+        node->PowerOn();
+        m_animInterface->UpdateNodeSize(node->GetId(), STA_NODE_SIZE, STA_NODE_SIZE);
+        m_animInterface->UpdateNodeImage(node->GetId(), 4);
+    }
+
 
     NS_LOG_INFO("[3] Simulation completed!");
 }
 
-void CybertwinNetworkSimulator::RunSimulator()
+void
+CybertwinNetworkSimulator::RunSimulator()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[4] Running the simulation...");
@@ -164,18 +155,29 @@ void CybertwinNetworkSimulator::RunSimulator()
     NS_LOG_INFO("[4] Simulation completed!");
 }
 
-void CybertwinNetworkSimulator::Output()
+void
+CybertwinNetworkSimulator::Output()
 {
     NS_LOG_FUNCTION(this);
     NS_LOG_INFO("[5] Output the simulation results...");
     Simulator::Destroy();
     NS_LOG_INFO("[5] Simulation results outputted successfully!");
 }
-    
-} // namespace ns3
+
+void
+CybertwinNetworkSimulator::SetAnimationInterface(AnimationInterface* animInterface)
+{
+    NS_LOG_FUNCTION(this);
+    m_animInterface = animInterface;
+
+}
+
+}; // namespace ns3
 
 using namespace ns3;
-int main(int argc, char *argv[])
+
+int
+main(int argc, char* argv[])
 {
     LogComponentEnable("CybertwinNetworkSimulator", LOG_LEVEL_INFO);
     LogComponentEnable("CybertwinTopologyReader", LOG_LEVEL_INFO);
@@ -191,12 +193,21 @@ int main(int argc, char *argv[])
 
     // create the simulator
     Ptr<ns3::CybertwinNetworkSimulator> simulator = CreateObject<ns3::CybertwinNetworkSimulator>();
-    
-    // initiliaze the simulator
+
+    // init the simulator
     simulator->InputInit();
 
     // read the topology file
     simulator->DriverCompileTopology();
+
+    // the animation interface must define after the topology is read
+    AnimationInterface anim("cybertwin.xml");
+    anim.AddResource("doc/netanim_icon/core_server.png");
+    anim.AddResource("doc/netanim_icon/edge_server.png");
+    anim.AddResource("doc/netanim_icon/endhost_station.png");
+    anim.AddResource("doc/netanim_icon/wireless_ap.png");
+    anim.AddResource("doc/netanim_icon/wireless_sta.png");
+    simulator->SetAnimationInterface(&anim);
 
     // boot the simulator
     simulator->DriverBootSimulator();
@@ -213,4 +224,3 @@ int main(int argc, char *argv[])
     return 0;
 
 }; // namespace ns3
-

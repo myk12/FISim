@@ -148,8 +148,8 @@ add_subdirectory(src)
 # Build test utils
 add_subdirectory(utils)
 
-# Add cybertwin
-add_subdirectory(cybertwin)
+# Build Future architecture
+add_subdirectory(future-arch)
 
 # Build json
 add_subdirectory(thirdparty/json)

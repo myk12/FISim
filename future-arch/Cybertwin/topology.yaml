@@ -26,7 +26,7 @@ cybertwin_network:
         type: host_server
         position: [40, 15, 0]
         connections:
-          - target: core_node3
+          - target: core_node1
             network: 20.0.0.0/8
             data_rate: 10Gbps
             delay: 10ms
@@ -40,12 +40,12 @@ cybertwin_network:
         type: host_server
         position: [60, 5, 0]
         connections:
-          - target: core_node4
+          - target: core_node1
             network: 30.0.0.0/8
             data_rate: 10Gbps
             delay: 10ms
           
-          - target: core_node1
+          - target: core_node4
             network: 31.0.0.0/8
             data_rate: 10Gbps
             delay: 10ms
@@ -54,12 +54,12 @@ cybertwin_network:
         type: host_server
         position: [80, 15, 0]
         connections:
-          - target: core_node1
+          - target: core_node2
             network: 40.0.0.0/8
             data_rate: 10Gbps
             delay: 10ms
 
-          - target: core_node2
+          - target: core_node3
             network: 41.0.0.0/8
             data_rate: 10Gbps
             delay: 10ms
@@ -195,3 +195,7 @@ cybertwin_network:
             network: 200.4.0.0/16
             data_rate: 100Mbps
             delay: 20ms
+
+  cnrs:
+    description : Cybertwin Name Resolution Service
+    central_node: core_node1
