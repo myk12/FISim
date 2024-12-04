@@ -12,3 +12,12 @@ build_exec(
     LIBRARIES_TO_LINK "${ns3-libs}"
     EXECUTABLE_DIRECTORY_PATH "lte-test/"
 )
+
+# Test UAN
+build_exec(
+    EXECNAME "uan-test"
+    EXECNAME_PREFIX "uan"
+    SOURCE_FILES "uan-test.cc"
+    LIBRARIES_TO_LINK "${ns3-libs}"
+    EXECUTABLE_DIRECTORY_PATH "uan-test/"
+)

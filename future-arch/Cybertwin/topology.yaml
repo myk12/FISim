@@ -176,7 +176,7 @@ cybertwin_network:
         type: end_cluster
         position: [50, 50, 0]
         num_nodes: 4
-        network_type: csma
+        network_type: lte
         local_network: 192.168.3.0/24
         gateways:
           - target: edge_node5
@@ -188,7 +188,7 @@ cybertwin_network:
         type: end_cluster
         position: [70, 50, 0]
         num_nodes: 4
-        network_type: csma
+        network_type: uan
         local_network: 192.168.4.0/24
         gateways:
           - target: edge_node7
