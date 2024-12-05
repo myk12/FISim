@@ -60,27 +60,38 @@ int main(int argc, char *argv[]) {
     }
 
     // Create a point-to-point link between eNodeB and PGW
-    NodeContainer csmaNodes;
-    csmaNodes.Add(pgw);
-    csmaNodes.Create(1); // one CSMA node
+    //NodeContainer csmaNodes;
+    //csmaNodes.Add(pgw);
+    //csmaNodes.Create(1); // one CSMA node
+    NodeContainer p2pNodes;
+    p2pNodes.Add(pgw);
+    p2pNodes.Create(1); // one P2P node
 
-    CsmaHelper csma;
-    csma.SetChannelAttribute("DataRate", StringValue("1Gbps"));
-    csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
-    NetDeviceContainer csmaDevs = csma.Install(csmaNodes);
+    //CsmaHelper csma;
+    //csma.SetChannelAttribute("DataRate", StringValue("1Gbps"));
+    //csma.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
+    //NetDeviceContainer csmaDevs = csma.Install(csmaNodes);
+
+    // change CSMA to P2P
+    PointToPointHelper p2p;
+    p2p.SetDeviceAttribute("DataRate", StringValue("1Gbps"));
+    p2p.SetChannelAttribute("Delay", TimeValue(MilliSeconds(2)));
+    NetDeviceContainer p2pDevs = p2p.Install(p2pNodes);
+
 
     // Install the IP stack on the CSMA node
-    internet.Install(csmaNodes.Get(1));
+    //internet.Install(csmaNodes.Get(1));
+    internet.Install(p2pNodes.Get(1));
 
     // Assign IP address to the CSMA node
     Ipv4AddressHelper ipv4;
     ipv4.SetBase("10.1.1.0", "255.255.255.0");
-    Ipv4InterfaceContainer csmaIfaces = ipv4.Assign(csmaDevs);
+    Ipv4InterfaceContainer csmaIfaces = ipv4.Assign(p2pDevs);
 
     // 安装 UDP Echo Server
     uint16_t echoPort = 9;
     UdpEchoServerHelper echoServer(echoPort);
-    ApplicationContainer serverApps = echoServer.Install(csmaNodes.Get(1));
+    ApplicationContainer serverApps = echoServer.Install(p2pNodes.Get(1));
     serverApps.Start(Seconds(1.0));
     serverApps.Stop(Seconds(simTime));
 

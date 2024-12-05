@@ -40,18 +40,18 @@ CybertwinNode::GetInstanceTypeId() const
 
 CybertwinNode::CybertwinNode()
 {
-    NS_LOG_DEBUG("Created a CybertwinNode.");
+    NS_LOG_FUNCTION("Created a CybertwinNode.");
 }
 
 CybertwinNode::~CybertwinNode()
 {
-    NS_LOG_DEBUG("Destroyed a CybertwinNode.");
+    NS_LOG_FUNCTION("Destroyed a CybertwinNode.");
 }
 
 void
 CybertwinNode::PowerOn()
 {
-    NS_LOG_DEBUG("Setup a CybertwinNode.");
+    NS_LOG_FUNCTION("Setup a CybertwinNode.");
 }
 
 void
@@ -137,7 +137,6 @@ CybertwinNode::AddLocalIp(Ipv4Address localIp)
 void
 CybertwinNode::AddGlobalIp(Ipv4Address globalIp)
 {
-    NS_LOG_UNCOND("\n\n\nnode " << m_name << " add global ip " << globalIp);
     m_globalAddrList.push_back(globalIp);
 }
 

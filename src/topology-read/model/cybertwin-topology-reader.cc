@@ -295,25 +295,34 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
         m_nodeInfoMap[nodeInfo->name] = nodeInfo;
 
         // Create different access network according to the network type
-        // For now, we only support CSMA and WiFi
-        // The leader node is the first node in the list and it is
-        // connected to the edge cloud
-        Ptr<Node> leader = nullptr;
+        // The router is the gateway to the edge cloud
+        Ptr<Node> router = nullptr;
         Ptr<Node> gateway = nullptr;
         NodeContainer endNodes;
-        if (node["network_type"].as<std::string>() == "csma")
+        std::string netType = node["network_type"].as<std::string>();
+        if (netType == "csma")
         {
             NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating CSMA network...");
-            endNodes = CreateCsmaNetwork(nodeInfo, leader);
+            endNodes = CreateCsmaNetwork(nodeInfo, router);
         }
-        else if (node["network_type"].as<std::string>() == "wifi")
+        else if (netType == "wifi")
         {
             NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating WiFi network...");
-            endNodes = CreateWifiNetwork(nodeInfo, leader);
+            endNodes = CreateWifiNetwork(nodeInfo, router);
+        }
+        else if (netType == "lte")
+        {
+            NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating LTE network...");
+            endNodes = CreateLteNetwork(nodeInfo, router);
+        }
+        else if (netType == "uan")
+        {
+            NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating UAN network...");
+            endNodes = CreateUanNetwork(nodeInfo, router);
         }
         else
         {
-            NS_LOG_ERROR("Unknown network type: " << node["network_type"].as<std::string>());
+            NS_LOG_ERROR("Unknown network type: " << netType);
         }
 
         // TODO: add multiple gateways support
@@ -323,7 +332,7 @@ CybertwinTopologyReader::ParseAccessNetwork(const YAML::Node& accessLayerConfig)
         NS_LOG_WARN("[CybertwinTopologyReader][" << __func__ << "] Multiple gateways are not supported yet...");
         NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Connecting end cluster to the edge cloud...");
         gateway = m_nodeInfoMap[nodeInfo->gateways[0].name]->node;
-        Ipv4InterfaceContainer interfaces = CreateP2PLink(leader,
+        Ipv4InterfaceContainer interfaces = CreateP2PLink(router,
                                                           gateway,
                                                           nodeInfo->gateways[0].data_rate,
                                                           nodeInfo->gateways[0].delay,
@@ -382,7 +391,7 @@ CybertwinTopologyReader::CreateP2PLink(Ptr<Node> sourceNode,
                                        std::string& delay,
                                        std::string& network)
 {
-    NS_LOG_FUNCTION(this);
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating point-to-point link...");
     PointToPointHelper p2p;
     p2p.SetDeviceAttribute("DataRate", StringValue(data_rate));
     p2p.SetChannelAttribute("Delay", StringValue(delay));
@@ -556,6 +565,123 @@ CybertwinTopologyReader::CreateWifiNetwork(NodeInfo* wifi, Ptr<Node>& leader)
     leader = apNode.Get(0);
 
     return allNodes;
+}
+
+/**
+ * @brief Create LTE network
+ * 
+ * @param lte - node information
+ * @param leader - leader node
+ * 
+ */
+NodeContainer
+CybertwinTopologyReader::CreateLteNetwork(NodeInfo* lte, Ptr<Node>& leader)
+{
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating LTE network...");
+    m_lteHelper = CreateObject<LteHelper>();
+    m_epcHelper = CreateObject<PointToPointEpcHelper>();
+    m_lteHelper->SetEpcHelper(m_epcHelper);
+
+    Ptr<Node> pgw = m_epcHelper->GetPgwNode();
+
+    // Create LTE nodes
+    NodeContainer enbNodes;
+    NodeContainer ueNodes;
+    enbNodes.Create(1); // one eNodeB
+    ueNodes.Create(lte->num_nodes); // number of UE
+
+    // configure eNodeB and UE devices and install them to the nodes
+    MobilityHelper mobility;
+
+    // eNodeB use constant position mobility model
+    mobility.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobility.Install(enbNodes);
+
+    // UE use random walk 2D mobility model
+    mobility.SetMobilityModel("ns3::RandomWalk2dMobilityModel",
+                              "Bounds", RectangleValue(Rectangle(-50, 50, -50, 50)));
+    mobility.Install(ueNodes);
+
+    // Install LTE devices to the nodes
+    NetDeviceContainer enbLteDevs = m_lteHelper->InstallEnbDevice(enbNodes);
+    NetDeviceContainer ueLteDevs = m_lteHelper->InstallUeDevice(ueNodes);
+
+    // Install the IP stack on the UEs
+    InternetStackHelper internet;
+    internet.Install(ueNodes);
+
+    // Assign IP address to UEs
+    Ipv4InterfaceContainer ueIpIfaces = m_epcHelper->AssignUeIpv4Address(ueLteDevs);
+
+    // Assign IP address to eNodeB
+    for (uint32_t i = 0; i < ueNodes.GetN(); ++i)
+    {
+        Ptr<Node> ueNode = ueNodes.Get(i);
+        Ptr<Ipv4StaticRouting> ueStaticRouting = Ipv4RoutingHelper::GetRouting<Ipv4StaticRouting>(
+            ueNode->GetObject<Ipv4>()->GetRoutingProtocol());
+        ueStaticRouting->SetDefaultRoute(m_epcHelper->GetUeDefaultGatewayAddress(), 1);
+    }
+
+    // Set pgw as the leader node
+    leader = pgw;
+
+    return ueNodes;
+}
+
+/**
+ * @brief Create UAN network
+ * 
+ * @param uan - node information
+ * @param leader - leader node
+ * 
+ */
+NodeContainer
+CybertwinTopologyReader::CreateUanNetwork(NodeInfo* uan, Ptr<Node>& leader)
+{
+    NS_LOG_INFO("[CybertwinTopologyReader][" << __func__ << "] Creating UAN network...");
+    // one Gateway node with multiple end nodes
+    NodeContainer gatewayNodes;
+    NodeContainer endNodes;
+    NodeContainer allNodes;
+
+    // Create Gateway node
+    gatewayNodes.Create(1);
+
+    // Create End nodes
+    endNodes.Create(uan->num_nodes);
+
+    // Add nodes to the container
+    allNodes.Add(gatewayNodes);
+    allNodes.Add(endNodes);
+
+    // Set constant position for the nodes
+    MobilityHelper mobilityHelper;
+    mobilityHelper.SetMobilityModel("ns3::ConstantPositionMobilityModel");
+    mobilityHelper.Install(allNodes);
+
+    // Setup Energy Model
+    BasicEnergySourceHelper energySourceHelper;
+    EnergySourceContainer energySources;
+    energySourceHelper.Set("BasicEnergySourceInitialEnergyJ", DoubleValue(100));
+    energySources = energySourceHelper.Install(allNodes);
+
+    // Install the UAN stack on the nodes
+    Ptr<UanChannel> channel = CreateObject<UanChannel>();
+    UanHelper uanHelper;
+    NetDeviceContainer netDevices = uanHelper.Install(allNodes, channel);
+
+    AcousticModemEnergyModelHelper acousticModemEnergyModelHelper;
+    acousticModemEnergyModelHelper.Install(netDevices, energySources);
+
+    InternetStackHelper internetStackHelper;
+    internetStackHelper.Install(allNodes);
+           
+    // Assign IP addresses
+    Ipv4InterfaceContainer interfaces = AssignIPAddresses(netDevices, uan->local_network);
+
+    leader = gatewayNodes.Get(0);
+
+    return endNodes;
 }
 
 Ipv4InterfaceContainer

@@ -20,8 +20,8 @@ CybertwinNetworkSimulator::GetTypeId()
 CybertwinNetworkSimulator::CybertwinNetworkSimulator()
 {
     NS_LOG_FUNCTION(this);
-    std::string topologyFile = "cybertwin/topology.yaml";
-    std::string appFiles = "cybertwin/applications.yaml";
+    std::string topologyFile = "./future-arch/Cybertwin/topology.yaml";
+    std::string appFiles = "./future-arch/Cybertwin/applications.yaml";
     m_topologyReader.SetFileName(topologyFile);
     m_topologyReader.SetAppFiles(appFiles);
 }
@@ -35,7 +35,7 @@ void
 CybertwinNetworkSimulator::InputInit()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[0] Initializing the simulator...");
+    NS_LOG_INFO("\n[0] Initializing the simulator...\n");
     // Initialize the simulator
     // create netanim object
 }
@@ -44,20 +44,20 @@ void
 CybertwinNetworkSimulator::DriverCompileTopology()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[1] Reading the topology file...");
+    NS_LOG_INFO("\n[1] Reading the topology file...\n");
     m_nodes = m_topologyReader.Read();
 
     // populate routing tables
     Ipv4GlobalRoutingHelper::PopulateRoutingTables();
 
-    NS_LOG_INFO("[1] Topology file read successfully!");
+    NS_LOG_INFO("\n[1] Topology file read successfully!\n");
 }
 
 void
 CybertwinNetworkSimulator::DriverInstallApps()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[2] Configuring the nodes and applications...");
+    NS_LOG_INFO("\n[2] Configuring the nodes and applications...\n");
     m_topologyReader.InstallApplications();
 
     // Start all installed applications
@@ -82,14 +82,14 @@ CybertwinNetworkSimulator::DriverInstallApps()
         node->StartAllAggregatedApps();
     }
 
-    NS_LOG_INFO("[2] Nodes and applications configured successfully!");
+    NS_LOG_INFO("\n[2] Nodes and applications configured successfully!\n");
 }
 
 void
 CybertwinNetworkSimulator::DriverBootSimulator()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[3] Running the simulation...");
+    NS_LOG_INFO("\n[3] Running the simulation...\n");
     // boot the Cybertwin Network
     // 1. Power on Cloud Nodes
     // 2. Power on Edge Nodes
@@ -142,26 +142,26 @@ CybertwinNetworkSimulator::DriverBootSimulator()
     }
 
 
-    NS_LOG_INFO("[3] Simulation completed!");
+    NS_LOG_INFO("\n[3] Simulation completed!\n");
 }
 
 void
 CybertwinNetworkSimulator::RunSimulator()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[4] Running the simulation...");
+    NS_LOG_INFO("\n[4] Running the simulation...\n");
     Simulator::Stop(Seconds(10));
     Simulator::Run();
-    NS_LOG_INFO("[4] Simulation completed!");
+    NS_LOG_INFO("\n[4] Simulation completed!\n");
 }
 
 void
 CybertwinNetworkSimulator::Output()
 {
     NS_LOG_FUNCTION(this);
-    NS_LOG_INFO("[5] Output the simulation results...");
+    NS_LOG_INFO("\n[5] Output the simulation results...\n");
     Simulator::Destroy();
-    NS_LOG_INFO("[5] Simulation results outputted successfully!");
+    NS_LOG_INFO("\n[5] Simulation results outputted successfully!\n");
 }
 
 void

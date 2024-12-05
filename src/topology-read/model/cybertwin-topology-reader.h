@@ -12,6 +12,13 @@
 #include "ns3/yans-wifi-helper.h"
 #include "ns3/topology-read-module.h"
 #include "ns3/netanim-module.h"
+#include "ns3/uan-module.h"
+#include "ns3/lte-module.h"
+#include "ns3/acoustic-modem-energy-model-helper.h"
+#include "ns3/energy-source-container.h"
+#include "ns3/basic-energy-source-helper.h"
+#include "ns3/uan-channel.h"
+#include "ns3/uan-helper.h"
 
 #include "ns3/cybertwin-manager.h"
 #include "ns3/cybertwin-node.h"
@@ -66,10 +73,10 @@ typedef struct NodeInfo
     NodeType_e type;    // indicating whether the node is a host server or an end cluster
     std::vector<Link_t> links;  // p2p links
 
-    // for CSMA or Wifi network
+    // for CSMA or Wifi or LTE or UAN
     NodeContainer nodes;    // cluster nodes
     int32_t num_nodes;      // number of nodes in the cluster
-    std::string network_type;   // indicating the network type: csma or wifi
+    std::string network_type;   // indicating the network type
     std::vector<Gateway_t> gateways;    // gateways
     std::string local_network;      // end cluster local area network
 } NodeInfo_t;
@@ -101,6 +108,7 @@ class CybertwinTopologyReader : public TopologyReader
 
     NodeInfo_t* CreateCloudNodeInfo(const YAML::Node &node);
     NodeInfo_t* CreateEndClusterNodeInfo(const YAML::Node &node);
+    
     NodeContainer GetCoreCloudNodes();
     NodeContainer GetEdgeCloudNodes();
     NodeContainer GetEndClusterNodes();
@@ -125,8 +133,12 @@ class CybertwinTopologyReader : public TopologyReader
     std::vector<Gateway_t> ParseGateways(const YAML::Node &gateways);
 
     Ipv4InterfaceContainer CreateP2PLink(Ptr<Node> sourceNode, Ptr<Node> targetNode, std::string &data_rate, std::string &delay, std::string &network);
+    
     NodeContainer CreateCsmaNetwork(NodeInfo *csma, Ptr<Node> &leader);
     NodeContainer CreateWifiNetwork(NodeInfo *wifi, Ptr<Node> &leader);
+    NodeContainer CreateLteNetwork(NodeInfo *lte, Ptr<Node> &leader);
+    NodeContainer CreateUanNetwork(NodeInfo *uan, Ptr<Node> &leader);
+    
     Ipv4InterfaceContainer AssignIPAddresses(const NetDeviceContainer &devices, const std::string &network);
 
     void ParseCoreCloud(const YAML::Node &coreLayer);
@@ -162,6 +174,10 @@ class CybertwinTopologyReader : public TopologyReader
 
     // Cybertwin Name Resolution Service
     std::string m_cnrsNodeName;
+
+    // LTE network stuff
+    Ptr<LteHelper> m_lteHelper;
+    Ptr<EpcHelper> m_epcHelper;
 };
 
 }; // namespace ns3
